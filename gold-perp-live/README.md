@@ -18,6 +18,7 @@ Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho
 | Basis (mark − index) | tính từ mark và index |
 | Funding quy năm | `funding rate × (24 / chu kỳ) × 365` |
 | Chu kỳ funding | REST `GET /fapi/v1/fundingInfo`, mặc định 8h nếu không lấy được |
+| Funding theo vị thế (USDT mỗi kỳ, mỗi ngày, mỗi năm) | `mark × khối lượng × |funding rate|`, nhân số kỳ mỗi ngày và 365 ngày. Khối lượng nhập trên trang, mặc định 1 oz |
 
 Biểu đồ mark và index ghi lại từ lúc mở trang, giữ 15 phút gần nhất (mỗi giây một điểm).
 

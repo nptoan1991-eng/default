@@ -151,6 +151,20 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .chip:empty { display: none; }
 .count { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 
+/* Funding theo vị thế */
+.stat.wide { grid-column: 1 / -1; gap: 12px; }
+.pos-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.qty { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.qty input {
+  width: 92px; padding: 5px 8px;
+  font: 500 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+}
+.qty input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.pos-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; }
+.pos-grid > div { display: grid; gap: 4px; }
+.pos-grid .v small { margin-left: 5px; font-size: 13px; color: var(--muted); }
+
 /* Chart */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 12px; }
 .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
@@ -168,6 +182,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 @media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 460px) {
   .stats { grid-template-columns: minmax(0, 1fr); }
+  .pos-grid { grid-template-columns: minmax(0, 1fr); }
   canvas { height: 210px; }
 }
 @media (prefers-reduced-motion: reduce) { .price { transition: none; } }
@@ -227,6 +242,19 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <div class="s" id="annual">—</div>
       <div class="s">Funding tiếp theo sau <span class="count" id="countdown">--:--:--</span> <span id="nextAt"></span></div>
     </article>
+    <article class="stat wide">
+      <div class="pos-head">
+        <div class="label">Funding theo vị thế</div>
+        <label class="qty" for="qty">Khối lượng <input id="qty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+        <span class="chip" id="receiver"></span>
+      </div>
+      <div class="pos-grid">
+        <div><div class="s">Mỗi lần funding (<span id="perLabel">8h</span>)</div><div class="v"><span id="perFunding">—</span><small>USDT</small></div></div>
+        <div><div class="s">Mỗi ngày (<span id="perDayCount">3</span> lần)</div><div class="v"><span id="perDay">—</span><small>USDT</small></div></div>
+        <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="perYear">—</span><small>USDT</small></div></div>
+      </div>
+      <div class="s" id="posNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+    </article>
   </section>
 
   <section class="panel" aria-label="Biểu đồ mark và index">
@@ -268,8 +296,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     countdown: $('countdown'), nextAt: $('nextAt'),
     status: $('status'), statusText: $('statusText'), notice: $('notice'),
     updated: $('updated'), chart: $('chart'), chartNote: $('chartNote'),
+    qty: $('qty'), receiver: $('receiver'), perLabel: $('perLabel'), perDayCount: $('perDayCount'),
+    perFunding: $('perFunding'), perDay: $('perDay'), perYear: $('perYear'), posNote: $('posNote'),
     seg: document.querySelectorAll('.seg button')
   };
+  const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
   const fmt2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const signed = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
@@ -415,9 +446,33 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const annual = s.rate * (24 / intervalH) * 365 * 100;
       el.annual.textContent = '≈ ' + signed(annual, 2) + '%/năm · chu kỳ ' + intervalH + 'h' + (intervalKnown ? '' : ' (mặc định)');
       renderCountdown(Date.now());
+      renderPosition();
     }
     if (s.E) el.updated.textContent = clock(s.E);
     if (chartDirty) { chartDirty = false; drawChart(); }
+  }
+
+  // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
+  function renderPosition() {
+    const q = parseFloat(el.qty.value);
+    const perDayN = 24 / intervalH;
+    el.perLabel.textContent = intervalH + 'h';
+    el.perDayCount.textContent = +perDayN.toFixed(2);
+    if (s.mark == null || !Number.isFinite(q) || q < 0) {
+      [el.perFunding, el.perDay, el.perYear].forEach((n) => { n.textContent = '—'; });
+      el.receiver.textContent = '';
+      el.posNote.textContent = s.mark == null ? POS_NOTE : 'Nhập khối lượng là số không âm, ví dụ 1 hoặc 0.5.';
+      return;
+    }
+    const notional = s.mark * q;
+    const per = notional * Math.abs(s.rate);
+    const money = (v) => v.toLocaleString('en-US', { minimumFractionDigits: v < 10 ? 4 : 2, maximumFractionDigits: v < 10 ? 4 : 2 });
+    el.perFunding.textContent = money(per);
+    el.perDay.textContent = money(per * perDayN);
+    el.perYear.textContent = money(per * perDayN * 365);
+    el.receiver.textContent = s.rate > 0 ? 'Short nhận · Long trả' : s.rate < 0 ? 'Long nhận · Short trả' : '';
+    el.posNote.textContent = 'Giá trị vị thế ' + fmt2.format(notional) + ' USDT (mark × ' + q + ' oz). '
+      + 'Ước tính theo funding rate hiện tại. Rate đổi theo từng kỳ nên số thực nhận sẽ khác.';
   }
 
   function flash(d) {
@@ -565,6 +620,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       delete n.dataset.dir;
     });
     el.payer.textContent = '';
+    renderPosition();
     el.countdown.textContent = '--:--:--';
     el.nextAt.textContent = '';
     el.last.classList.remove('up', 'down');
@@ -587,6 +643,15 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }
 
   el.seg.forEach((b) => b.addEventListener('click', () => setSymbol(b.dataset.sym)));
+
+  try {
+    const savedQty = localStorage.getItem('gold-perp-live.qty');
+    if (savedQty !== null) el.qty.value = savedQty;
+  } catch (e) { /* bỏ qua */ }
+  el.qty.addEventListener('input', () => {
+    try { localStorage.setItem('gold-perp-live.qty', el.qty.value); } catch (e) { /* bỏ qua */ }
+    renderPosition();
+  });
 
   const redraw = () => { chartDirty = true; schedule(); };
   if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(el.chart);
