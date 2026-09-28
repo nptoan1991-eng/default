@@ -323,6 +323,21 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     </article>
   </section>
 
+  <section class="panel" aria-label="So với giá vàng trên sàn forex">
+    <div class="panel-head">
+      <h2>So với giá forex</h2>
+      <span class="chip" id="fxState"></span>
+    </div>
+    <p class="note" id="fxMeta">Đang tải giá XAU/USD…</p>
+    <div class="hsum">
+      <div><div class="label">Forex XAU/USD (giữa)</div><div class="v" id="fxMid">—</div><div class="s" id="fxMidSub">—</div></div>
+      <div><div class="label" id="fxIdxLabel">Index − forex</div><div class="v"><span id="fxIdx">—</span><small>USDT</small></div><div class="s" id="fxIdxSub">—</div></div>
+      <div><div class="label" id="fxMarkLabel">Mark − forex</div><div class="v"><span id="fxMark">—</span><small>USDT</small></div><div class="s" id="fxMarkSub">—</div></div>
+      <div><div class="label" id="fxLastLabel">Khớp − forex</div><div class="v"><span id="fxLast">—</span><small>USDT</small></div><div class="s" id="fxLastSub">—</div></div>
+    </div>
+    <p class="note">Forex XAU/USD là giá vàng giao ngay trên sàn forex (Swissquote), lấy giữa bid và ask. Thị trường forex nghỉ từ 17:00 thứ Sáu đến 18:00 Chủ nhật (giờ New York), lúc đó giá forex đứng yên còn Binance vẫn chạy.</p>
+  </section>
+
   <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
     <div class="panel-head">
       <h2>SJC so với thế giới</h2>
@@ -477,6 +492,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const WS_BASE = 'wss://fstream.binance.com/market/stream?streams=';
   const REST_BASE = 'https://fapi.binance.com';
   const SJC_API = 'api/sjc-price.php';              // file PHP đặt cùng host với trang
+  const FX_API = 'api/fx-price.php';
+  const FX_REFRESH_MS = 10 * 1000;
+  const FX_STALE_MS = 3 * 60 * 1000;                // giá forex cũ hơn 3 phút coi như thị trường đang nghỉ
   const OZ_PER_LUONG = 37.5 / 31.1034768;           // 1 lượng = 37.5 g, 1 troy oz = 31.1034768 g
   const SJC_REFRESH_MS = 10 * 60 * 1000;
   const KLINE_REFRESH_MS = 60 * 60 * 1000;
@@ -510,7 +528,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     cmpMeta: $('cmpMeta'), cmpRetry: $('cmpRetry'), cmpCount: $('cmpCount'), cmpCountSub: $('cmpCountSub'),
     cmpLast: $('cmpLast'), cmpLastSub: $('cmpLastSub'), cmpXau: $('cmpXau'), cmpXauSub: $('cmpXauSub'),
     cmpPaxg: $('cmpPaxg'), cmpPaxgSub: $('cmpPaxgSub'), cmpChart: $('cmpChart'), cmpTable: $('cmpTable'),
-    bsMeta: $('bsMeta'), bsRetry: $('bsRetry'), ranges: document.querySelectorAll('.seg [data-range]')
+    bsMeta: $('bsMeta'), bsRetry: $('bsRetry'), ranges: document.querySelectorAll('.seg [data-range]'),
+    fxState: $('fxState'), fxMeta: $('fxMeta'), fxMid: $('fxMid'), fxMidSub: $('fxMidSub'),
+    fxIdxLabel: $('fxIdxLabel'), fxIdx: $('fxIdx'), fxIdxSub: $('fxIdxSub'), fxMarkLabel: $('fxMarkLabel'),
+    fxMark: $('fxMark'), fxMarkSub: $('fxMarkSub'), fxLastLabel: $('fxLastLabel'), fxLast: $('fxLast'), fxLastSub: $('fxLastSub')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -537,6 +558,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let xauIndex = null, sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
   let xauKlines = [], premSeries = [], premNow = null, premAvg = null;
   let cmp = null, cmpError = null, cmpLoading = false, cmpDays = [], cmpDirty = true;
+  let fxData = null, fxError = null;
   let s = fresh();
 
   function fresh() {
@@ -686,6 +708,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (s.E) el.updated.textContent = clock(s.E);
     if (chartDirty) { chartDirty = false; drawChart(); }
     if (barsDirty) { barsDirty = false; drawBars(); }
+    renderFx();
     if (sjcDirty) { sjcDirty = false; renderSjc(); }
     if (premDirty) { premDirty = false; drawPrem(); }
     if (cmpDirty) { cmpDirty = false; drawCompare(); }
@@ -1047,6 +1070,68 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         ctx.fillText(pad(d.date.getDate()) + '/' + pad(d.date.getMonth() + 1), x + bw / 2, h - 6);
       }
     });
+  }
+
+  // ---------- So với giá forex ----------
+  function fxDiff(value, mid, valEl, subEl) {
+    if (value == null || !mid) {
+      valEl.textContent = '—';
+      subEl.textContent = '—';
+      delete valEl.dataset.dir;
+      return;
+    }
+    const d = value - mid;
+    valEl.textContent = signed(d, 2);
+    valEl.dataset.dir = dir(d);
+    subEl.textContent = signed((d / mid) * 100, 3) + '% so với forex';
+  }
+
+  async function loadFx() {
+    if (location.protocol === 'file:') {
+      fxError = 'Khung này cần mở trang từ host có thư mục api/ đi kèm.';
+      schedule();
+      return;
+    }
+    try {
+      const r = await fetch(FX_API, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      if (!data || !(data.bid > 0) || !(data.ask > 0)) throw new Error((data && data.errors && data.errors.join(' ')) || 'chưa có giá');
+      fxData = data;
+      fxError = null;
+    } catch (e) {
+      fxError = 'Không lấy được giá forex từ ' + FX_API + ' (' + (e.message || e) + ').';
+    }
+    schedule();
+  }
+
+  function renderFx() {
+    el.fxIdxLabel.textContent = 'Index ' + sym + ' − forex';
+    el.fxMarkLabel.textContent = 'Mark ' + sym + ' − forex';
+    el.fxLastLabel.textContent = 'Khớp ' + sym + ' − forex';
+    if (!fxData) {
+      el.fxMeta.textContent = fxError || 'Đang tải giá XAU/USD…';
+      el.fxState.textContent = '';
+      delete el.fxState.dataset.dir;
+      [el.fxMid, el.fxMidSub].forEach((n) => { n.textContent = '—'; });
+      fxDiff(null, 0, el.fxIdx, el.fxIdxSub);
+      fxDiff(null, 0, el.fxMark, el.fxMarkSub);
+      fxDiff(null, 0, el.fxLast, el.fxLastSub);
+      return;
+    }
+    const mid = (fxData.bid + fxData.ask) / 2;
+    const quoteAt = fxData.ts || fxData.fetchedAt;
+    const closed = fxData.ts && Date.now() - fxData.ts > FX_STALE_MS;
+    el.fxState.textContent = closed ? 'Forex đang nghỉ hoặc chưa có giá mới' : 'Forex đang giao dịch';
+    if (closed) delete el.fxState.dataset.dir; else el.fxState.dataset.dir = 'up';
+    el.fxMeta.textContent = 'Giá XAU/USD của ' + fxData.source + (quoteAt ? ' lúc ' + clock(quoteAt) : '') + ', trang lấy lại mỗi 10 giây.'
+      + (fxError ? ' ' + fxError + ' Đang hiện giá lấy lúc trước.' : '')
+      + (fxData.errors && fxData.errors.length ? ' ' + fxData.errors.join(' ') : '');
+    el.fxMid.textContent = fmt2.format(mid);
+    el.fxMidSub.textContent = 'Bid ' + fmt2.format(fxData.bid) + ' · Ask ' + fmt2.format(fxData.ask) + ' · spread ' + (fxData.ask - fxData.bid).toFixed(2);
+    fxDiff(s.index, mid, el.fxIdx, el.fxIdxSub);
+    fxDiff(s.mark, mid, el.fxMark, el.fxMarkSub);
+    fxDiff(s.last, mid, el.fxLast, el.fxLastSub);
   }
 
   // ---------- SJC so với thế giới ----------
@@ -1755,6 +1840,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   loadCompare();
   loadBasis();
   setInterval(loadBasis, 60 * 60 * 1000);
+  loadFx();
+  setInterval(loadFx, FX_REFRESH_MS);
   setInterval(loadSjc, SJC_REFRESH_MS);
   setInterval(loadXauKlines, KLINE_REFRESH_MS);
 })();

@@ -11,10 +11,11 @@ gold-perp-live/
 ├── index.html          trang dashboard
 ├── README.md
 └── api/
-    └── sjc-price.php   lấy giá SJC và tỷ giá cho trang
+    ├── sjc-price.php   lấy giá SJC và tỷ giá cho trang
+    └── fx-price.php    lấy giá XAU/USD trên sàn forex (Swissquote)
 ```
 
-Thư mục `api/` cần quyền ghi. File PHP tự tạo `sjc_state.json` (cache), `sjc_history.json` (lịch sử) và `sjc.lock` trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json` và `fx.lock` trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
@@ -57,6 +58,15 @@ Tải toàn bộ lịch sử funding của 2 mã từ 05/01/2026 (ngày XAUUSDT 
 
 - So theo **tổng funding rate mỗi ngày** (bên Short) vì 2 mã có thể chốt funding ở giờ khác nhau. Không tính hôm nay và ngày XAUUSDT ra mắt vì chưa đủ kỳ.
 - Hiện số ngày PAXGUSDT cao hơn, lần gần nhất, trung bình mỗi ngày của từng mã (kèm USDT cho khối lượng đang nhập), biểu đồ chênh lệch XAU − PAXG mỗi ngày và bảng các ngày PAXGUSDT cao hơn.
+
+## So với giá forex
+
+`api/fx-price.php` lấy giá XAU/USD (bid/ask) từ feed công khai của Swissquote, cache 5 giây; trang lấy lại mỗi 10 giây. Feed này không có tài liệu chính thức và chặn gọi thẳng từ trình duyệt nên phải đi qua host.
+
+- Hiện giá giữa (bid + ask) / 2, bid, ask, spread, và **index / mark / giá khớp của mã đang chọn trừ giá forex**, bằng USDT và %.
+- Giá forex cũ hơn 3 phút thì trang báo thị trường forex đang nghỉ (17:00 thứ Sáu đến 18:00 Chủ nhật giờ New York). Lúc đó Binance vẫn chạy nên chênh lệch cần đọc khác.
+- IC Markets không có API giá công khai (chỉ có cTrader Open API / FIX cần tài khoản), nên dùng Swissquote làm đại diện cho giá forex.
+- Kiểm tra: mở `api/fx-price.php?debug=1` để xem dữ liệu thô và số bộ giá đọc được. Nếu Swissquote đổi định dạng, gửi nội dung trang debug để sửa.
 
 ## SJC so với thế giới
 
