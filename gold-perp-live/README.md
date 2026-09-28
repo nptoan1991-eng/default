@@ -34,6 +34,14 @@ Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho
 
 Biểu đồ mark và index ghi lại từ lúc mở trang, giữ 15 phút gần nhất (mỗi giây một điểm).
 
+## Mark − Index theo giờ
+
+Cho XAUUSDT và PAXGUSDT, lấy nến 1 giờ của mark price (`/fapi/v1/markPriceKlines`) và index price (`/fapi/v1/indexPriceKlines`), tính mark − index tại giá đóng mỗi giờ. Chọn 7, 30 (mặc định), 90 ngày hoặc toàn bộ từ 05/01/2026, tự tải lại mỗi giờ.
+
+- Biểu đồ có đường 0 là lúc mark bằng index. Trên 0 (xanh) là mark cao hơn, dưới 0 (đỏ) là mark thấp hơn. Rê chuột hoặc chạm để xem từng giờ.
+- Thống kê: % số giờ mark lớn hơn index, chênh trung bình, dương lớn nhất, âm lớn nhất (kèm thời điểm) và khoảng mà 90% số giờ nằm trong, bằng USDT và %.
+- Dùng giá đóng mỗi giờ nên các lần giãn ngắn trong giờ có thể không thấy.
+
 ## Lịch sử funding 14 ngày
 
 Lấy từ REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate, mark price lúc chốt), tự tải lại 30 giây sau mỗi lần chốt funding.
