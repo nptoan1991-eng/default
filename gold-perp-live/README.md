@@ -4,7 +4,16 @@ Dashboard xem dữ liệu live của hợp đồng vàng vĩnh cửu trên Binan
 
 ## Cách dùng
 
-Mở file `index.html` bằng trình duyệt (Chrome, Edge, Firefox, Safari). Không cần cài đặt, không cần API key.
+Đưa lên host PHP, cùng thư mục với `index.php` (trang danh sách tool):
+
+```
+gold-perp-live.html
+api/sjc-price.php
+```
+
+Thư mục `api/` cần quyền ghi. File PHP tự tạo `sjc_state.json` (cache), `sjc_history.json` (lịch sử) và `sjc.lock` trong đó.
+
+Mở `gold-perp-live.html` từ host. Nếu mở file trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
 Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho lần mở sau.
 
@@ -30,6 +39,19 @@ Lấy từ REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate,
 - Góc nhìn Short hoặc Long: số dương là nhận, số âm là trả. Tổng mỗi ngày là số ròng.
 - Ngày chia theo giờ máy, 14 ngày gồm hôm nay. Cột của hôm nay vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
 - Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT) hoặc theo từng kỳ (rate, mark lúc chốt, USDT).
+
+## SJC so với thế giới
+
+Khung này dùng để canh lúc chênh lệch giữa giá vàng SJC và giá thế giới đang thấp.
+
+- **Giá SJC**: `api/sjc-price.php` lấy từ API công khai của BTMC (dòng `VÀNG MIẾNG SJC`). BTMC niêm yết theo chỉ nên nhân 10 ra lượng. Host gọi BTMC tối đa 15 phút một lần (5 phút nếu lần trước lỗi), trang hỏi host 10 phút một lần.
+- **Tỷ giá**: USD bán ra của Vietcombank (API JSON, dự phòng bằng file XML). Lỗi thì dùng tỷ giá lấy lúc trước và ghi rõ trên trang.
+- **Giá thế giới quy đổi** = index XAUUSDT × 1.20565 × tỷ giá. 1 lượng = 37.5 g, 1 troy oz = 31.1035 g. Luôn dùng index XAUUSDT, kể cả khi đang xem PAXGUSDT.
+- **Chênh lệch bán ra** = SJC bán ra − giá thế giới quy đổi (giá bạn trả khi mua). Có thêm chênh lệch mua vào để thấy khoản mất nếu bán lại ngay.
+- **Lịch sử 30 ngày**: host ghi mỗi mốc giá SJC và mỗi lần tỷ giá đổi vào `sjc_history.json` (giữ 400 ngày). Trang ghép với index XAUUSDT theo giờ từ Binance (`/fapi/v1/indexPriceKlines`) để ra chênh lệch từng giờ. Lịch sử bắt đầu từ lần đầu trang gọi file PHP, cần ít nhất 1 ngày dữ liệu mới so sánh được.
+- **Nhãn Chênh thấp / Chênh cao**: chênh hiện tại thấp hơn 75% số giờ trong kỳ là nhóm thấp, cao hơn 75% số giờ là nhóm cao.
+
+Kiểm tra file PHP: mở `api/sjc-price.php?debug=1` để xem từng bước gọi BTMC và Vietcombank, `?refresh=1` để bỏ qua cache. Nếu debug báo lỗi curl 60 (host thiếu chứng chỉ CA), đổi `VERIFY_SSL` thành `false` ở đầu file.
 
 ## Trạng thái kết nối
 

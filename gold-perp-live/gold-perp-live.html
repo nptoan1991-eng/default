@@ -176,6 +176,29 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 
+/* SJC so với thế giới */
+.chip[data-dir="up"] { border-color: var(--up); }
+.chip[data-dir="down"] { border-color: var(--down); }
+.hsum .v.lead { font-size: 28px; }
+.range { display: grid; gap: 6px; margin-top: 18px; }
+.range-track {
+  position: relative; height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--up) 40%, var(--surface)),
+    var(--line) 50%,
+    color-mix(in srgb, var(--down) 40%, var(--surface)));
+}
+.range-avg { position: absolute; top: -4px; width: 2px; height: 16px; background: var(--muted); transform: translateX(-1px); }
+.range-now {
+  position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--gold); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--gold);
+  transform: translate(-50%, -50%);
+}
+.range-labels { display: flex; justify-content: space-between; gap: 8px; font: 12px var(--mono); color: var(--muted); }
+.range-labels span:nth-child(2) { text-align: center; }
+.range-labels span:last-child { text-align: right; }
+#premChart { height: 200px; margin-top: 16px; }
+
 /* Lịch sử funding */
 .panel-head .seg button { font-size: 12.5px; padding: 5px 11px; }
 .seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
@@ -286,6 +309,43 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     </article>
   </section>
 
+  <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
+    <div class="panel-head">
+      <h2>SJC so với thế giới</h2>
+      <span class="chip" id="premLevel"></span>
+    </div>
+    <p class="note" id="sjcMeta">Đang tải giá SJC…</p>
+    <div class="hsum">
+      <div>
+        <div class="label">Chênh lệch bán ra</div>
+        <div class="v lead"><span id="premSell">—</span><small>triệu/lượng</small></div>
+        <div class="s" id="premSellSub">SJC bán ra − giá thế giới quy đổi</div>
+      </div>
+      <div>
+        <div class="label">SJC bán ra / mua vào</div>
+        <div class="v"><span id="sjcSell">—</span><small>/ <span id="sjcBuy">—</span> triệu</small></div>
+        <div class="s" id="sjcUsd">—</div>
+      </div>
+      <div>
+        <div class="label">Thế giới quy đổi</div>
+        <div class="v"><span id="worldVnd">—</span><small>triệu/lượng</small></div>
+        <div class="s" id="worldSub">Index XAUUSDT × 1.20565 oz × tỷ giá</div>
+      </div>
+      <div>
+        <div class="label">Chênh lệch mua vào</div>
+        <div class="v"><span id="premBuy">—</span><small>triệu/lượng</small></div>
+        <div class="s" id="premBuySub">SJC mua vào − giá thế giới quy đổi</div>
+      </div>
+    </div>
+    <div class="range" id="premRange" hidden>
+      <div class="range-track"><span class="range-avg" id="rangeAvg"></span><span class="range-now" id="rangeNow"></span></div>
+      <div class="range-labels"><span id="rangeMin"></span><span id="rangeMid"></span><span id="rangeMax"></span></div>
+    </div>
+    <p class="note" id="premStats"></p>
+    <canvas id="premChart" aria-label="Biểu đồ chênh lệch bán ra của SJC so với thế giới"></canvas>
+    <p class="note" id="premNote"></p>
+  </section>
+
   <section class="panel" aria-label="Biểu đồ mark và index">
     <div class="panel-head">
       <h2>Mark và Index trong phiên</h2>
@@ -338,6 +398,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // Từ 23/04/2026 Binance tách WebSocket theo loại luồng: markPrice, aggTrade, ticker nằm ở /market
   const WS_BASE = 'wss://fstream.binance.com/market/stream?streams=';
   const REST_BASE = 'https://fapi.binance.com';
+  const SJC_API = 'api/sjc-price.php';              // file PHP đặt cùng host với trang
+  const OZ_PER_LUONG = 37.5 / 31.1034768;           // 1 lượng = 37.5 g, 1 troy oz = 31.1034768 g
+  const SJC_REFRESH_MS = 10 * 60 * 1000;
+  const KLINE_REFRESH_MS = 60 * 60 * 1000;
+  const PREM_DAYS = 30;
+  const PREM_MIN_SAMPLES = 24;                      // cần ít nhất 1 ngày dữ liệu theo giờ để so sánh
   const MAX_POINTS = 900;      // 15 phút, mỗi giây một điểm mark price
   const NO_DATA_MS = 10000;    // đã kết nối mà không có dữ liệu
   const STALE_MS = 5000;       // dữ liệu chậm
@@ -358,7 +424,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     views: document.querySelectorAll('.seg [data-view]'),
     histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'), bars: $('bars'),
     hTotal: $('hTotal'), hTotalSub: $('hTotalSub'), hAvgDay: $('hAvgDay'), hAvgDaySub: $('hAvgDaySub'),
-    hAvgRate: $('hAvgRate'), hAvgRateSub: $('hAvgRateSub'), hCount: $('hCount'), hCountSub: $('hCountSub')
+    hAvgRate: $('hAvgRate'), hAvgRateSub: $('hAvgRateSub'), hCount: $('hCount'), hCountSub: $('hCountSub'),
+    premLevel: $('premLevel'), sjcMeta: $('sjcMeta'), premSell: $('premSell'), premSellSub: $('premSellSub'),
+    sjcSell: $('sjcSell'), sjcBuy: $('sjcBuy'), sjcUsd: $('sjcUsd'), worldVnd: $('worldVnd'), worldSub: $('worldSub'),
+    premBuy: $('premBuy'), premBuySub: $('premBuySub'), premRange: $('premRange'), rangeAvg: $('rangeAvg'),
+    rangeNow: $('rangeNow'), rangeMin: $('rangeMin'), rangeMid: $('rangeMid'), rangeMax: $('rangeMax'),
+    premStats: $('premStats'), premChart: $('premChart'), premNote: $('premNote')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -381,6 +452,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let prevLast = null, flashTimer = null, frame = 0, chartDirty = true;
   let hist = null, histError = null, histLoading = false, histDueAt = 0, histDays = [], barsDirty = true;
   let side = 'short', view = 'day';
+  // SJC luôn so với index XAUUSDT, kể cả khi đang xem PAXGUSDT
+  let xauIndex = null, sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
+  let xauKlines = [], premSeries = [], premNow = null, premAvg = null;
   let s = fresh();
 
   function fresh() {
@@ -412,7 +486,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       try { ws.close(); } catch (e) { /* đã đóng */ }
     }
     const k = sym.toLowerCase();
-    const sock = new WebSocket(WS_BASE + [k + '@markPrice@1s', k + '@aggTrade', k + '@ticker'].join('/'));
+    const streams = [k + '@markPrice@1s', k + '@aggTrade', k + '@ticker'];
+    if (sym !== 'XAUUSDT') streams.push('xauusdt@markPrice@1s');
+    const sock = new WebSocket(WS_BASE + streams.join('/'));
     ws = sock;
     openedAt = 0;
     setStatus('connecting');
@@ -426,7 +502,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       let msg;
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       const d = msg && msg.data;
-      if (!d || d.s !== sym) return;
+      if (!d) return;
+      if (d.e === 'markPriceUpdate' && d.s === 'XAUUSDT') {
+        xauIndex = +d.i;
+        sjcDirty = true;
+        if (sym !== 'XAUUSDT') { schedule(); return; }
+      }
+      if (d.s !== sym) return;
       lastMsgAt = Date.now();
       if (!gotData) { gotData = true; el.notice.hidden = true; }
       handle(d);
@@ -522,6 +604,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (s.E) el.updated.textContent = clock(s.E);
     if (chartDirty) { chartDirty = false; drawChart(); }
     if (barsDirty) { barsDirty = false; drawBars(); }
+    if (sjcDirty) { sjcDirty = false; renderSjc(); }
+    if (premDirty) { premDirty = false; drawPrem(); }
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -883,6 +967,240 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     });
   }
 
+  // ---------- SJC so với thế giới ----------
+  const tri = (v) => (v / 1e6).toFixed(2);
+  const vnd = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+  const stamp = (t) => new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false });
+  const dm = (t) => { const d = new Date(t); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1); };
+
+  async function loadSjc() {
+    if (location.protocol === 'file:') {
+      sjcError = 'Khung này cần mở trang từ host có thư mục api/ đi kèm. Mở file trực tiếp trên máy thì không lấy được giá SJC.';
+      sjcDirty = true;
+      schedule();
+      return;
+    }
+    try {
+      const r = await fetch(SJC_API, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      if (!data || !data.sjc) throw new Error((data && data.errors && data.errors.join(' ')) || 'chưa có giá SJC');
+      sjcData = data;
+      sjcError = null;
+    } catch (e) {
+      sjcError = 'Không lấy được giá SJC từ ' + SJC_API + ' (' + (e.message || e) + ').';
+    }
+    buildPremSeries();
+    sjcDirty = true;
+    schedule();
+  }
+
+  async function loadXauKlines() {
+    try {
+      const start = Date.now() - PREM_DAYS * 864e5;
+      const url = REST_BASE + '/fapi/v1/indexPriceKlines?pair=XAUUSDT&interval=1h&startTime=' + start + '&limit=1000';
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const rows = await r.json();
+      const now = Date.now();
+      // Chỉ lấy các nến đã đóng: [.., close (4), .., closeTime (6)]
+      xauKlines = rows.map((k) => ({ t: +k[6], c: +k[4] })).filter((k) => Number.isFinite(k.t) && Number.isFinite(k.c) && k.t <= now);
+    } catch (e) {
+      // Giữ dữ liệu cũ; chỉ thiếu phần lịch sử chênh lệch
+    }
+    buildPremSeries();
+    sjcDirty = true;
+    schedule();
+  }
+
+  // Chênh lệch bán ra theo từng giờ: giá SJC và tỷ giá mới nhất tại thời điểm đó so với index XAUUSDT
+  function buildPremSeries() {
+    const hist = sjcData && Array.isArray(sjcData.history) ? sjcData.history.slice().sort((a, b) => a.t - b.t) : [];
+    premSeries = [];
+    let j = -1;
+    for (const k of xauKlines) {
+      while (j + 1 < hist.length && hist[j + 1].t <= k.t) j++;
+      if (j < 0) continue;
+      const p = hist[j];
+      premSeries.push({ t: k.t, v: p.sell - k.c * OZ_PER_LUONG * p.fx });
+    }
+    premDirty = true;
+  }
+
+  function renderSjc() {
+    const d = sjcData;
+    const fx = d && d.fx ? +d.fx.sell : null;
+    if (!d || !d.sjc) {
+      el.sjcMeta.textContent = sjcError || 'Đang tải giá SJC…';
+      premNow = null;
+      renderPremStats();
+      premDirty = true;
+      return;
+    }
+    const warn = [];
+    if (sjcError) warn.push(sjcError + ' Đang hiện dữ liệu lấy lúc trước.');
+    if (d.errors && d.errors.length) warn.push(d.errors.join(' '));
+    el.sjcMeta.textContent = 'Giá SJC niêm yết lúc ' + stamp(d.sjc.time) + ' (nguồn BTMC)'
+      + (fx ? ' · tỷ giá ' + d.fx.source + ' ' + vnd.format(fx) : '')
+      + (d.fetchedAt ? ' · host kiểm tra lúc ' + stamp(d.fetchedAt) : '') + '.'
+      + (warn.length ? ' ' + warn.join(' ') : '');
+    el.sjcSell.textContent = tri(d.sjc.sell);
+    el.sjcBuy.textContent = tri(d.sjc.buy);
+    el.sjcUsd.textContent = fx ? '≈ ' + fmt2.format(d.sjc.sell / fx / OZ_PER_LUONG) + ' USD/oz theo giá bán ra' : 'Chưa có tỷ giá';
+
+    if (xauIndex == null || !fx) {
+      [el.premSell, el.premBuy, el.worldVnd].forEach((n) => { n.textContent = '—'; });
+      el.worldSub.textContent = fx ? 'Đang chờ index XAUUSDT từ Binance' : 'Chưa có tỷ giá Vietcombank';
+      premNow = null;
+    } else {
+      const world = xauIndex * OZ_PER_LUONG * fx;
+      const premBuy = d.sjc.buy - world;
+      premNow = d.sjc.sell - world;
+      el.worldVnd.textContent = tri(world);
+      el.worldSub.textContent = 'Index XAUUSDT ' + fmt2.format(xauIndex) + ' × 1.20565 oz × ' + vnd.format(fx);
+      el.premSell.textContent = signed(premNow / 1e6, 2);
+      el.premSellSub.textContent = signed((premNow / world) * 100, 2) + '% so với giá thế giới quy đổi';
+      el.premBuy.textContent = signed(premBuy / 1e6, 2);
+      el.premBuySub.textContent = signed((premBuy / world) * 100, 2) + '%, là số chênh khi bán lại cho SJC';
+    }
+    renderPremStats();
+    premDirty = true;
+  }
+
+  function renderPremStats() {
+    const n = premSeries.length;
+    premAvg = n ? premSeries.reduce((a, p) => a + p.v, 0) / n : null;
+    if (premNow == null || n < PREM_MIN_SAMPLES) {
+      el.premRange.hidden = true;
+      el.premLevel.textContent = '';
+      delete el.premLevel.dataset.dir;
+      el.premStats.textContent = premNow == null ? ''
+        : 'Chưa đủ lịch sử để so sánh: cần ít nhất 1 ngày dữ liệu, hiện có ' + n + ' giờ. Host ghi log giá SJC từ lần đầu trang gọi ' + SJC_API + '.';
+      return;
+    }
+    let min = premSeries[0], max = premSeries[0], below = 0;
+    for (const p of premSeries) {
+      if (p.v < min.v) min = p;
+      if (p.v > max.v) max = p;
+      if (p.v < premNow) below++;
+    }
+    const pct = Math.round((below / n) * 100);
+    const days = Math.max(1, Math.round((premSeries[n - 1].t - premSeries[0].t) / 864e5));
+    const level = pct <= 25 ? ['Chênh thấp', 'up'] : pct >= 75 ? ['Chênh cao', 'down'] : ['Chênh trung bình', ''];
+    el.premLevel.textContent = level[0];
+    if (level[1]) el.premLevel.dataset.dir = level[1]; else delete el.premLevel.dataset.dir;
+
+    const lo = Math.min(min.v, premNow), hi = Math.max(max.v, premNow);
+    const pos = (v) => (hi > lo ? ((v - lo) / (hi - lo)) * 100 : 50) + '%';
+    el.premRange.hidden = false;
+    el.rangeAvg.style.left = pos(premAvg);
+    el.rangeNow.style.left = pos(premNow);
+    el.rangeMin.textContent = 'Thấp nhất ' + signed(min.v / 1e6, 2) + ' (' + dm(min.t) + ')';
+    el.rangeMid.textContent = 'TB ' + signed(premAvg / 1e6, 2);
+    el.rangeMax.textContent = 'Cao nhất ' + signed(max.v / 1e6, 2) + ' (' + dm(max.t) + ')';
+    el.premStats.textContent = 'Chênh hiện tại ' + signed(premNow / 1e6, 2) + ' triệu, cao hơn ' + pct + '% số giờ trong ' + days + ' ngày qua'
+      + (pct <= 25 ? ', thuộc nhóm thấp' : pct >= 75 ? ', thuộc nhóm cao' : '')
+      + '. So với trung bình: ' + signed((premNow - premAvg) / 1e6, 2) + ' triệu.';
+  }
+
+  function drawPrem() {
+    const c = el.premChart;
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const pts = premSeries.map((p) => ({ t: p.t, v: p.v / 1e6 }));
+    if (premNow != null) pts.push({ t: Date.now(), v: premNow / 1e6 });
+    const hist = sjcData && Array.isArray(sjcData.history) ? sjcData.history : [];
+    const firstLog = hist.length ? Math.min.apply(null, hist.map((p) => p.t)) : null;
+    const logNote = firstLog && firstLog > Date.now() - PREM_DAYS * 864e5 ? ' Log giá SJC trên host bắt đầu từ ' + stamp(firstLog) + '.' : '';
+    el.premNote.textContent = pts.length < 2
+      ? (sjcData ? 'Biểu đồ cần thêm dữ liệu.' + logNote : '')
+      : 'Chênh lệch bán ra theo giờ, ' + PREM_DAYS + ' ngày gần nhất. Đường nét đứt là trung bình. '
+        + 'Nhóm thấp là khi chênh hiện tại thấp hơn 75% số giờ, nhóm cao là khi cao hơn 75% số giờ.' + logNote;
+    if (pts.length < 2) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    const L = 2, R = 64, T = 10, B = 24;
+    const pw = w - L - R, ph = h - T - B;
+
+    let lo = Infinity, hi = -Infinity;
+    for (const p of pts) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
+    if (hi - lo < 0.2) { const mid = (hi + lo) / 2; lo = mid - 0.1; hi = mid + 0.1; }
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    const dec = Math.min(3, (String(+step.toPrecision(3)).split('.')[1] || '').length);
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t, span = Math.max(t1 - t0, 1);
+    const X = (t) => L + ((t - t0) / span) * pw;
+    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
+    const end = pts[pts.length - 1];
+    const endY = Y(end.v);
+
+    ctx.font = '11px ' + tok('--mono');
+    ctx.lineWidth = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const ticks = Math.round((hi - lo) / step);
+    for (let k = 0; k <= ticks; k++) {
+      const v = lo + k * step;
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.strokeStyle = tok('--line');
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      if (Math.abs(y - endY) > 14) {
+        ctx.fillStyle = tok('--muted');
+        ctx.fillText(v.toFixed(dec), L + pw + 8, y);
+      }
+    }
+    ctx.fillStyle = tok('--muted');
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillText(dm(t0), L, h - 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(dm(t1), L + pw, h - 6);
+
+    const grad = ctx.createLinearGradient(0, T, 0, T + ph);
+    grad.addColorStop(0, tok('--gold-fill'));
+    grad.addColorStop(1, tok('--gold-fill0'));
+    ctx.beginPath();
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
+    ctx.lineTo(X(t1), T + ph); ctx.lineTo(X(t0), T + ph); ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    if (premAvg != null) {
+      const ya = Math.round(Y(premAvg / 1e6)) + 0.5;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = tok('--idx');
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(L, ya); ctx.lineTo(L + pw, ya); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.strokeStyle = tok('--gold');
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
+    ctx.stroke();
+
+    ctx.fillStyle = tok('--gold');
+    ctx.beginPath(); ctx.arc(X(end.t), endY, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(L + pw + 3, endY - 9, R - 5, 18);
+    ctx.fillStyle = tok('--surface');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(signed(end.v, 2), L + pw + 8, endY + 0.5);
+  }
+
   function setSide(next) {
     side = next === 'long' ? 'long' : 'short';
     el.sides.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.side === side)));
@@ -944,11 +1262,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   try { savedSide = localStorage.getItem('gold-perp-live.side'); } catch (e) { /* bỏ qua */ }
   setSide(savedSide);
 
-  const redraw = () => { chartDirty = true; barsDirty = true; schedule(); };
+  const redraw = () => { chartDirty = true; barsDirty = true; premDirty = true; schedule(); };
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(redraw);
     ro.observe(el.chart);
     ro.observe(el.bars);
+    ro.observe(el.premChart);
   } else {
     window.addEventListener('resize', redraw);
   }
@@ -961,6 +1280,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   try { saved = localStorage.getItem('gold-perp-live.symbol'); } catch (e) { /* bỏ qua */ }
   setSymbol(SYMBOLS[saved] ? saved : 'XAUUSDT');
   setInterval(tick, 1000);
+  loadSjc();
+  loadXauKlines();
+  setInterval(loadSjc, SJC_REFRESH_MS);
+  setInterval(loadXauKlines, KLINE_REFRESH_MS);
 })();
 </script>
 </body>
