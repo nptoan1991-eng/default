@@ -1,0 +1,4 @@
+# File tạo trên host khi chạy, và cấu hình cảnh báo riêng của từng người
+gold-perp-live/api/alert-config.php
+gold-perp-live/api/*.json
+gold-perp-live/api/*.lock

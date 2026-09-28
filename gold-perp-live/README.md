@@ -12,10 +12,13 @@ gold-perp-live/
 ├── README.md
 └── api/
     ├── sjc-price.php   lấy giá SJC và tỷ giá cho trang
-    └── fx-price.php    lấy giá XAU/USD trên sàn forex (Swissquote)
+    ├── fx-price.php    lấy giá XAU/USD trên sàn forex (Swissquote) cho trang
+    ├── fx-lib.php      phần lấy giá forex dùng chung
+    ├── alert-check.php cảnh báo XAU − forex qua ntfy, chạy bằng cron
+    └── alert-config.example.php   cấu hình mẫu cho cảnh báo
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json` và `fx.lock` trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json` và `alert.lock` trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
@@ -64,7 +67,30 @@ So theo **giá khớp** gần nhất trên Binance và giá XAU/USD trên sàn f
 - Hai ngưỡng sửa được trên trang (mặc định **≥ 7** và **< 2** USDT), trang nhớ lại ngưỡng và trạng thái bật.
 - Báo **một lần** khi XAU − forex vừa vào vùng; phải ra khỏi vùng 0.5 USDT mới báo lại. Không báo khi forex đang nghỉ.
 - Khi bật: thanh cảnh báo ở đầu trang, 2 tiếng bíp, và thông báo của trình duyệt (cần cho phép, trang phải chạy qua https). Âm thanh chỉ phát sau khi đã bấm vào trang ít nhất một lần kể từ lúc mở. Khi tắt vẫn ghi nhật ký 10 lần gần nhất.
-- Chỉ chạy khi trang đang mở. Trên điện thoại, khoá màn hình hoặc chuyển app có thể làm trình duyệt tạm dừng trang.
+- Chỉ chạy khi trang đang mở. Trên điện thoại, khoá màn hình hoặc chuyển app có thể làm trình duyệt tạm dừng trang. Muốn nhận cả khi tắt trang, xem phần cảnh báo qua ntfy bên dưới.
+
+### Cảnh báo 24/7 qua ntfy
+
+`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT (Binance) và giá forex (Swissquote), tính XAU − forex rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Không lấy được giá 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại.
+
+1. **Cài app ntfy** trên điện thoại (Google Play hoặc App Store). Bấm **+**, nhập một tên kênh dài và khó đoán (ví dụ `gold-7f3k9q2x`), giữ server mặc định `ntfy.sh`. Ai biết tên kênh cũng đọc được thông báo.
+2. **Tạo file cấu hình** trên host: chép `api/alert-config.example.php` thành `api/alert-config.php`, sửa `ntfy_topic` trùng tên kênh ở bước 1, chỉnh ngưỡng `high` / `low` nếu muốn, điền `page_url` là link trang để bấm vào thông báo là mở trang. Khi cập nhật tool, **đừng ghi đè** `alert-config.php`.
+3. **Gửi thử**: chạy `php /đường-dẫn/gold-perp-live/api/alert-check.php test` (qua SSH hoặc một cron chạy một lần). Hoặc đặt `cron_key` trong cấu hình rồi mở `https://<tên-miền>/gold-perp-live/api/alert-check.php?key=<cron_key>&test=1`. Điện thoại nhận tin "Thử cảnh báo Gold Perp Live" là xong.
+4. **Cài cron** (cPanel → Cron Jobs), chạy mỗi phút hoặc mỗi 2–5 phút tuỳ host cho phép:
+
+   ```
+   php /home/<user>/public_html/gold-perp-live/api/alert-check.php >/dev/null 2>&1
+   ```
+
+   Nếu host không cho chạy lệnh `php`, dùng link web có key:
+
+   ```
+   curl -s "https://<tên-miền>/gold-perp-live/api/alert-check.php?key=<cron_key>" >/dev/null 2>&1
+   ```
+
+- Host phải truy cập được Binance. Host đặt ở Mỹ sẽ bị Binance chặn (lỗi 451), khi đó ntfy sẽ báo "Cảnh báo XAU − forex tạm ngừng".
+- Ngưỡng trên host (trong `alert-config.php`) và ngưỡng trên trang là hai chỗ riêng.
+- Chạy tay không kèm `test` sẽ in kết quả lần kiểm tra (giá, chênh lệch, vùng, đã gửi hay chưa) để xem nhanh.
 
 ## SJC so với thế giới
 

@@ -1636,7 +1636,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const sound = audioCtx && audioCtx.state === 'running' ? 'Âm thanh: bật.' : 'Âm thanh: bấm vào trang một lần để bật.';
       parts = ['Đang bật.', perm, sound];
     }
-    parts.push('Báo một lần khi XAU − forex vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở.');
+    parts.push('Báo một lần khi XAU − forex vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở; muốn nhận cả khi tắt trang thì cài cảnh báo qua ntfy trên host (xem README).');
     el.alertNote.textContent = parts.join(' ');
   }
 
