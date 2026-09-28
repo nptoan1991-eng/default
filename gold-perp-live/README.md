@@ -4,16 +4,19 @@ Dashboard xem dữ liệu live của hợp đồng vàng vĩnh cửu trên Binan
 
 ## Cách dùng
 
-Đưa lên host PHP, cùng thư mục với `index.php` (trang danh sách tool):
+Upload nguyên thư mục `gold-perp-live/` lên host PHP rồi mở `https://<tên-miền>/gold-perp-live/`. Trang chính là `index.html` nên web server tự mở khi vào link thư mục.
 
 ```
-gold-perp-live.html
-api/sjc-price.php
+gold-perp-live/
+├── index.html          trang dashboard
+├── README.md
+└── api/
+    └── sjc-price.php   lấy giá SJC và tỷ giá cho trang
 ```
 
 Thư mục `api/` cần quyền ghi. File PHP tự tạo `sjc_state.json` (cache), `sjc_history.json` (lịch sử) và `sjc.lock` trong đó.
 
-Mở `gold-perp-live.html` từ host. Nếu mở file trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
+Nếu mở `index.html` trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
 Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho lần mở sau.
 
