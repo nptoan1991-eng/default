@@ -22,6 +22,15 @@ Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho
 
 Biểu đồ mark và index ghi lại từ lúc mở trang, giữ 15 phút gần nhất (mỗi giây một điểm).
 
+## Lịch sử funding 14 ngày
+
+Lấy từ REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate, mark price lúc chốt), tự tải lại 30 giây sau mỗi lần chốt funding.
+
+- USDT mỗi kỳ = `funding rate × mark lúc chốt × khối lượng`. Khối lượng dùng chung ô ở mục Funding theo vị thế (mặc định 1 oz).
+- Góc nhìn Short hoặc Long: số dương là nhận, số âm là trả. Tổng mỗi ngày là số ròng.
+- Ngày chia theo giờ máy, 14 ngày gồm hôm nay. Cột của hôm nay vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
+- Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT) hoặc theo từng kỳ (rate, mark lúc chốt, USDT).
+
 ## Trạng thái kết nối
 
 - **Live**: đang nhận dữ liệu.

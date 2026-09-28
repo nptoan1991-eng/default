@@ -176,10 +176,39 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 
+/* Lịch sử funding */
+.panel-head .seg button { font-size: 12.5px; padding: 5px 11px; }
+.seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.hist-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.linkbtn {
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer;
+  font: 600 12px var(--sans); padding: 4px 10px; border-radius: 6px;
+}
+.hsum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 24px; margin-top: 14px; }
+.hsum > div { display: grid; gap: 4px; align-content: start; }
+.hsum .v { font: 500 22px/1.15 var(--mono); font-variant-numeric: tabular-nums; }
+.hsum .v small { margin-left: 5px; font-size: 12.5px; color: var(--muted); }
+.hsum .s { font-size: 12.5px; color: var(--muted); }
+#bars { height: 200px; margin-top: 18px; }
+.tabs { margin-top: 18px; }
+.table-wrap { margin-top: 10px; max-height: 380px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+th {
+  position: sticky; top: 0; background: var(--surface);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+}
+td { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+td:first-child { font-family: var(--sans); }
+td.today::after { content: " · hôm nay"; color: var(--muted); font-size: 12px; }
+
 footer { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
 footer code { font-family: var(--mono); font-size: 11.5px; }
 
-@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .stats, .hsum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 460px) {
   .stats { grid-template-columns: minmax(0, 1fr); }
   .pos-grid { grid-template-columns: minmax(0, 1fr); }
@@ -266,6 +295,32 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <p class="note" id="chartNote">Đang thu thập dữ liệu. Biểu đồ bắt đầu từ lúc mở trang.</p>
   </section>
 
+  <section class="panel" aria-label="Lịch sử funding 14 ngày">
+    <div class="panel-head">
+      <h2>Lịch sử funding 14 ngày</h2>
+      <div class="seg" role="radiogroup" aria-label="Góc nhìn">
+        <button type="button" id="side-short" role="radio" data-side="short" aria-checked="true">Short</button>
+        <button type="button" id="side-long" role="radio" data-side="long" aria-checked="false">Long</button>
+      </div>
+    </div>
+    <div class="hist-meta">
+      <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
+      <button type="button" class="linkbtn" id="histRetry" hidden>Tải lại</button>
+    </div>
+    <div class="hsum">
+      <div><div class="label">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
+      <div><div class="label">Trung bình mỗi ngày</div><div class="v"><span id="hAvgDay">—</span><small>USDT</small></div><div class="s" id="hAvgDaySub">—</div></div>
+      <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
+      <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
+    </div>
+    <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
+    <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
+      <button type="button" id="view-day" role="tab" data-view="day" aria-selected="true">Theo ngày</button>
+      <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
+    </div>
+    <div class="table-wrap"><table id="histTable"></table></div>
+  </section>
+
   <footer>
     <span>Nguồn: <code>wss://fstream.binance.com/market</code>, dữ liệu public, không cần API key</span>
     <span>Cập nhật lúc <span class="num" id="updated">—</span></span>
@@ -298,7 +353,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     updated: $('updated'), chart: $('chart'), chartNote: $('chartNote'),
     qty: $('qty'), receiver: $('receiver'), perLabel: $('perLabel'), perDayCount: $('perDayCount'),
     perFunding: $('perFunding'), perDay: $('perDay'), perYear: $('perYear'), posNote: $('posNote'),
-    seg: document.querySelectorAll('.seg button')
+    seg: document.querySelectorAll('.seg [data-sym]'),
+    sides: document.querySelectorAll('.seg [data-side]'),
+    views: document.querySelectorAll('.seg [data-view]'),
+    histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'), bars: $('bars'),
+    hTotal: $('hTotal'), hTotalSub: $('hTotalSub'), hAvgDay: $('hAvgDay'), hAvgDaySub: $('hAvgDaySub'),
+    hAvgRate: $('hAvgRate'), hAvgRateSub: $('hAvgRateSub'), hCount: $('hCount'), hCountSub: $('hCountSub')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -307,12 +367,20 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const dir = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
   const pad = (n) => String(n).padStart(2, '0');
   const clock = (t) => new Date(t).toLocaleTimeString('vi-VN', { hour12: false });
+  const money = (v) => {
+    const d = Math.abs(v) < 10 ? 4 : 2;
+    return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  };
+  const signedMoney = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + money(Math.abs(v));
+  const dayKey = (t) => { const d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 
   let sym = null, ws = null;
   let retry = 0, retryAt = 0, retryTimer = null;
   let openedAt = 0, lastMsgAt = 0, gotData = false;
   let intervalH = 8, intervalKnown = false;
   let prevLast = null, flashTimer = null, frame = 0, chartDirty = true;
+  let hist = null, histError = null, histLoading = false, histDueAt = 0, histDays = [], barsDirty = true;
+  let side = 'short', view = 'day';
   let s = fresh();
 
   function fresh() {
@@ -388,6 +456,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       intervalH = (hit && Number(hit.fundingIntervalHours)) || 8;
       intervalKnown = true;
       schedule();
+      renderHistory();
     } catch (e) {
       // Không lấy được thì giữ chu kỳ mặc định 8h
     }
@@ -398,6 +467,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     switch (d.e) {
       case 'markPriceUpdate':
         s.mark = +d.p; s.index = +d.i; s.rate = +d.r; s.next = +d.T; s.E = d.E;
+        // Tải lại lịch sử 30 giây sau mỗi lần chốt funding
+        if (!histDueAt && s.next > Date.now()) histDueAt = s.next + 30000;
         s.series.push({ t: d.E, m: s.mark, i: s.index });
         if (s.series.length > MAX_POINTS) s.series.shift();
         chartDirty = true;
@@ -450,6 +521,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     if (s.E) el.updated.textContent = clock(s.E);
     if (chartDirty) { chartDirty = false; drawChart(); }
+    if (barsDirty) { barsDirty = false; drawBars(); }
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -466,7 +538,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     const notional = s.mark * q;
     const per = notional * Math.abs(s.rate);
-    const money = (v) => v.toLocaleString('en-US', { minimumFractionDigits: v < 10 ? 4 : 2, maximumFractionDigits: v < 10 ? 4 : 2 });
     el.perFunding.textContent = money(per);
     el.perDay.textContent = money(per * perDayN);
     el.perYear.textContent = money(per * perDayN * 365);
@@ -507,6 +578,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       setStatus('reconnecting', ' · thử lại sau ' + Math.max(0, Math.ceil((retryAt - now) / 1000)) + 's');
     }
     renderCountdown(now);
+    if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(sym); }
   }
 
   // ---------- Biểu đồ ----------
@@ -613,6 +685,211 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.fillText(fmt2.format(end.m), L + pw + 8, endY + 0.5);
   }
 
+  // ---------- Lịch sử funding 14 ngày ----------
+  async function loadHistory(forSym) {
+    histLoading = true;
+    histError = null;
+    renderHistory();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 13); // 13 ngày trước + hôm nay = 14 ngày theo giờ máy
+    try {
+      const url = REST_BASE + '/fapi/v1/fundingRate?symbol=' + forSym + '&startTime=' + start.getTime() + '&limit=1000';
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const rows = await r.json();
+      if (forSym !== sym) return;
+      hist = {
+        start: start.getTime(),
+        rows: rows
+          .map((x) => ({ t: +x.fundingTime, rate: +x.fundingRate, mark: parseFloat(x.markPrice) }))
+          .filter((x) => Number.isFinite(x.t) && Number.isFinite(x.rate))
+          .sort((a, b) => a.t - b.t)
+      };
+    } catch (e) {
+      if (forSym !== sym) return;
+      histError = e.message || String(e);
+    }
+    histLoading = false;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    el.histRetry.hidden = !histError;
+    const q = parseFloat(el.qty.value);
+    const qOk = Number.isFinite(q) && q >= 0;
+    const rows = hist ? hist.rows : [];
+    const sideName = side === 'short' ? 'Short' : 'Long';
+
+    if (!rows.length || !qOk) {
+      histDays = [];
+      [el.hTotal, el.hAvgDay, el.hAvgRate, el.hCount].forEach((n) => { n.textContent = '—'; delete n.dataset.dir; });
+      [el.hTotalSub, el.hAvgDaySub, el.hAvgRateSub, el.hCountSub].forEach((n) => { n.textContent = '—'; });
+      el.histTable.innerHTML = '';
+      el.histMeta.textContent = histError
+        ? 'Không tải được lịch sử funding từ fapi.binance.com (' + histError + '). Trình duyệt có thể đang chặn gọi API khi mở file trực tiếp, hoặc mạng đang chặn Binance.'
+        : histLoading ? 'Đang tải lịch sử funding…'
+        : !qOk ? 'Nhập khối lượng là số không âm ở mục Funding theo vị thế.'
+        : 'Binance chưa có kỳ funding nào cho ' + sym + ' trong 14 ngày qua.';
+      barsDirty = true;
+      schedule();
+      return;
+    }
+
+    // USDT của từng kỳ = rate × mark lúc chốt × khối lượng, đổi dấu theo góc nhìn
+    const sign = side === 'short' ? 1 : -1;
+    let approx = false;
+    const periods = rows.map((r) => {
+      const hasMark = Number.isFinite(r.mark) && r.mark > 0;
+      const mark = hasMark ? r.mark : s.mark;
+      if (!hasMark) approx = true;
+      return { t: r.t, rate: r.rate, mark, approx: !hasMark, usdt: mark != null ? sign * r.rate * mark * q : NaN };
+    });
+
+    const days = [];
+    const byKey = new Map();
+    const d0 = new Date(hist.start);
+    for (let k = 0; k < 14; k++) {
+      const date = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + k);
+      const day = { key: dayKey(date.getTime()), date, n: 0, rate: 0, usdt: 0 };
+      days.push(day);
+      byKey.set(day.key, day);
+    }
+    for (const p of periods) {
+      const day = byKey.get(dayKey(p.t));
+      if (!day) continue;
+      day.n++;
+      day.rate += p.rate;
+      if (Number.isFinite(p.usdt)) day.usdt += p.usdt;
+    }
+    histDays = days;
+
+    const todayKey = dayKey(Date.now());
+    const total = days.reduce((a, d) => a + d.usdt, 0);
+    const full = days.filter((d) => d.key !== todayKey && d.n > 0);
+    const avgDay = full.length ? full.reduce((a, d) => a + d.usdt, 0) / full.length : total;
+    const avgRate = periods.reduce((a, p) => a + p.rate, 0) / periods.length;
+    const positive = periods.filter((p) => p.rate > 0).length;
+    const verb = (v) => (v > 0 ? sideName + ' nhận' : v < 0 ? sideName + ' trả' : 'Không phát sinh');
+
+    el.hTotal.textContent = signedMoney(total);
+    el.hTotal.dataset.dir = dir(total);
+    el.hTotalSub.textContent = verb(total) + ' cho ' + q + ' oz';
+    el.hAvgDay.textContent = signedMoney(avgDay);
+    el.hAvgDay.dataset.dir = dir(avgDay);
+    el.hAvgDaySub.textContent = full.length ? 'Tính trên ' + full.length + ' ngày đủ, không tính hôm nay' : 'Mới có dữ liệu của hôm nay';
+    el.hAvgRate.textContent = signed(avgRate * 100, 4) + '%';
+    el.hAvgRateSub.textContent = '≈ ' + signed(avgRate * 100 * (24 / intervalH) * 365, 2) + '%/năm với chu kỳ ' + intervalH + 'h';
+    el.hCount.textContent = String(periods.length);
+    el.hCountSub.textContent = Math.round((positive / periods.length) * 100) + '% số kỳ có rate dương';
+
+    const off = -new Date().getTimezoneOffset() / 60;
+    el.histMeta.textContent = (histError ? 'Lần tải lại gần nhất bị lỗi (' + histError + '), đang hiện dữ liệu trước đó. ' : '')
+      + 'Tính cho ' + q + ' oz theo mark price lúc chốt từng kỳ. Góc nhìn ' + sideName + ': số dương là nhận, số âm là trả. '
+      + 'Ngày theo giờ máy (UTC' + (off >= 0 ? '+' : '−') + Math.abs(off) + '), cột mờ là hôm nay chưa đủ kỳ.'
+      + (approx ? ' Kỳ có dấu ≈ thiếu mark lúc chốt nên dùng mark hiện tại.' : '');
+
+    const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    let html;
+    if (view === 'day') {
+      html = '<thead><tr><th>Ngày</th><th>Số kỳ</th><th>Tổng rate</th><th>USDT (' + q + ' oz)</th></tr></thead><tbody>';
+      for (const d of days.slice().reverse()) {
+        const label = d.date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+        html += '<tr><td' + (d.key === todayKey ? ' class="today"' : '') + '>' + label + '</td>'
+          + '<td>' + d.n + '</td>'
+          + '<td>' + (d.n ? signed(d.rate * 100, 4) + '%' : '—') + '</td>'
+          + '<td' + tone(d.usdt) + '>' + (d.n ? signedMoney(d.usdt) : '—') + '</td></tr>';
+      }
+    } else {
+      html = '<thead><tr><th>Thời điểm chốt</th><th>Rate</th><th>Mark lúc chốt</th><th>USDT (' + q + ' oz)</th></tr></thead><tbody>';
+      for (const p of periods.slice().reverse()) {
+        const when = new Date(p.t).toLocaleString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+        html += '<tr><td>' + when + '</td>'
+          + '<td>' + signed(p.rate * 100, 4) + '%</td>'
+          + '<td>' + (p.mark != null ? (p.approx ? '≈ ' : '') + fmt2.format(p.mark) : '—') + '</td>'
+          + '<td' + tone(p.usdt) + '>' + (Number.isFinite(p.usdt) ? signedMoney(p.usdt) : '—') + '</td></tr>';
+      }
+    }
+    el.histTable.innerHTML = html + '</tbody>';
+    barsDirty = true;
+    schedule();
+  }
+
+  function drawBars() {
+    const c = el.bars;
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const days = histDays;
+    if (!days.length) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    const L = 2, R = 64, T = 10, B = 24;
+    const pw = w - L - R, ph = h - T - B;
+
+    let lo = 0, hi = 0;
+    for (const d of days) { lo = Math.min(lo, d.usdt); hi = Math.max(hi, d.usdt); }
+    if (hi === lo) hi = lo + 1;
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    const dec = Math.min(4, (String(+step.toPrecision(3)).split('.')[1] || '').length);
+    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
+
+    // Lưới, nhãn trục USDT và đường 0
+    ctx.font = '11px ' + tok('--mono');
+    ctx.lineWidth = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const ticks = Math.round((hi - lo) / step);
+    for (let k = 0; k <= ticks; k++) {
+      const v = lo + k * step;
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.strokeStyle = Math.abs(v) < step / 1e6 ? tok('--muted') : tok('--line');
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      ctx.fillStyle = tok('--muted');
+      ctx.fillText((Math.abs(v) < step / 1e6 ? 0 : v).toFixed(dec), L + pw + 8, y);
+    }
+
+    // Cột mỗi ngày, hôm nay vẽ mờ vì chưa đủ kỳ
+    const todayKey = dayKey(Date.now());
+    const slot = pw / days.length;
+    const bw = Math.max(4, Math.min(34, slot * 0.62));
+    const every = slot < 40 ? 2 : 1;
+    const y0 = Y(0);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    days.forEach((d, k) => {
+      const x = L + slot * k + (slot - bw) / 2;
+      if (d.n) {
+        const yv = Y(d.usdt);
+        ctx.globalAlpha = d.key === todayKey ? 0.45 : 1;
+        ctx.fillStyle = tok(d.usdt >= 0 ? '--up' : '--down');
+        ctx.fillRect(x, Math.min(yv, y0), bw, Math.max(1, Math.abs(yv - y0)));
+        ctx.globalAlpha = 1;
+      }
+      if ((days.length - 1 - k) % every === 0) {
+        ctx.fillStyle = tok('--muted');
+        ctx.fillText(pad(d.date.getDate()) + '/' + pad(d.date.getMonth() + 1), x + bw / 2, h - 6);
+      }
+    });
+  }
+
+  function setSide(next) {
+    side = next === 'long' ? 'long' : 'short';
+    el.sides.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.side === side)));
+    try { localStorage.setItem('gold-perp-live.side', side); } catch (e) { /* bỏ qua */ }
+    renderHistory();
+  }
+
   // ---------- Chọn hợp đồng ----------
   function resetView() {
     [el.last, el.mark, el.index, el.basis, el.premium, el.rate, el.annual, el.chg, el.updated].forEach((n) => {
@@ -638,7 +915,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.symNote.textContent = SYMBOLS[sym];
     resetView();
     drawChart();
+    hist = null; histError = null; histDueAt = 0;
     loadFundingInterval(sym);
+    loadHistory(sym);
     connect();
   }
 
@@ -651,11 +930,28 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   el.qty.addEventListener('input', () => {
     try { localStorage.setItem('gold-perp-live.qty', el.qty.value); } catch (e) { /* bỏ qua */ }
     renderPosition();
+    renderHistory();
   });
 
-  const redraw = () => { chartDirty = true; schedule(); };
-  if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(el.chart);
-  else window.addEventListener('resize', redraw);
+  el.sides.forEach((b) => b.addEventListener('click', () => setSide(b.dataset.side)));
+  el.views.forEach((b) => b.addEventListener('click', () => {
+    view = b.dataset.view;
+    el.views.forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    renderHistory();
+  }));
+  el.histRetry.addEventListener('click', () => loadHistory(sym));
+  let savedSide = null;
+  try { savedSide = localStorage.getItem('gold-perp-live.side'); } catch (e) { /* bỏ qua */ }
+  setSide(savedSide);
+
+  const redraw = () => { chartDirty = true; barsDirty = true; schedule(); };
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(redraw);
+    ro.observe(el.chart);
+    ro.observe(el.bars);
+  } else {
+    window.addEventListener('resize', redraw);
+  }
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   if (mq.addEventListener) mq.addEventListener('change', redraw);
   new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
