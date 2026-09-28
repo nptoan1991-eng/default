@@ -239,7 +239,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </section>
 
   <footer>
-    <span>Nguồn: <code>wss://fstream.binance.com</code>, dữ liệu public, không cần API key</span>
+    <span>Nguồn: <code>wss://fstream.binance.com/market</code>, dữ liệu public, không cần API key</span>
     <span>Cập nhật lúc <span class="num" id="updated">—</span></span>
   </footer>
 </main>
@@ -252,7 +252,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     XAUUSDT: 'Giá USDT cho 1 troy ounce vàng',
     PAXGUSDT: 'PAX Gold: 1 PAXG tương ứng 1 troy ounce vàng'
   };
-  const WS_BASE = 'wss://fstream.binance.com/stream?streams=';
+  // Từ 23/04/2026 Binance tách WebSocket theo loại luồng: markPrice, aggTrade, ticker nằm ở /market
+  const WS_BASE = 'wss://fstream.binance.com/market/stream?streams=';
   const REST_BASE = 'https://fapi.binance.com';
   const MAX_POINTS = 900;      // 15 phút, mỗi giây một điểm mark price
   const NO_DATA_MS = 10000;    // đã kết nối mà không có dữ liệu
@@ -440,7 +441,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       if (!gotData) {
         if (openedAt && now - openedAt > NO_DATA_MS) {
           setStatus('nodata');
-          showNotice('Đã kết nối nhưng chưa nhận được dữ liệu cho ' + sym + ' sau 10 giây. Mã hợp đồng có thể đã đổi hoặc thị trường đang tạm dừng giao dịch.');
+          showNotice('Đã kết nối nhưng chưa nhận được dữ liệu cho ' + sym + ' sau 10 giây. Binance có thể đã đổi mã hợp đồng hoặc địa chỉ kết nối, hoặc thị trường đang tạm dừng giao dịch.');
         }
       } else {
         const age = now - lastMsgAt;

@@ -10,7 +10,7 @@ Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho
 
 ## Dữ liệu hiển thị
 
-| Mục | Nguồn (WebSocket `wss://fstream.binance.com`) |
+| Mục | Nguồn (WebSocket `wss://fstream.binance.com/market/stream`) |
 | --- | --- |
 | Giá khớp gần nhất | `<symbol>@aggTrade` |
 | % thay đổi 24h | `<symbol>@ticker` |
