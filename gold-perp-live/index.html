@@ -136,7 +136,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* Stats strip */
 .stats {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px; background: var(--line);
   border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
 }
@@ -172,7 +172,6 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend span::before { content: ""; width: 16px; height: 0; border-top: 2px solid var(--gold); }
-.legend .li::before { border-top: 1.5px dashed var(--idx); }
 canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 
@@ -198,6 +197,21 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .range-labels span:nth-child(2) { text-align: center; }
 .range-labels span:last-child { text-align: right; }
 #premChart { height: 200px; margin-top: 16px; }
+
+/* Cảnh báo XAU − forex */
+.alert-box { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); display: grid; gap: 8px; }
+.alert-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.alert-box .note { margin: 0; }
+.alert-log { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font: 12.5px var(--mono); color: var(--ink); }
+.alert-log time { color: var(--muted); margin-right: 8px; }
+.chip.hot { border-color: var(--warn); color: var(--warn); }
+.linkbtn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.alert-bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  padding: 10px 14px; border: 1px solid var(--warn); border-radius: 8px;
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface)); font-weight: 600;
+}
 
 /* Lịch sử funding */
 .panel-head .seg button { font-size: 12.5px; padding: 5px 11px; }
@@ -274,6 +288,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </header>
 
   <div class="notice" id="notice" hidden></div>
+  <div class="alert-bar" id="alertBar" role="alert" hidden>
+    <span id="alertText"></span>
+    <button type="button" class="linkbtn" id="alertClose">Đóng</button>
+  </div>
 
   <section class="hero" aria-label="Giá khớp gần nhất">
     <div>
@@ -286,21 +304,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     </div>
   </section>
 
-  <section class="stats" aria-label="Mark, index và funding">
+  <section class="stats" aria-label="Mark price và funding">
     <article class="stat">
       <div class="label">Mark price</div>
       <div class="v" id="mark">—</div>
       <div class="s">Giá dùng tính PnL và thanh lý</div>
-    </article>
-    <article class="stat">
-      <div class="label">Index price</div>
-      <div class="v" id="index">—</div>
-      <div class="s">Giá tham chiếu từ các sàn spot</div>
-    </article>
-    <article class="stat">
-      <div class="label">Basis (Mark − Index)</div>
-      <div class="v" id="basis">—</div>
-      <div class="s" id="premium">—</div>
     </article>
     <article class="stat">
       <div class="label">Funding rate</div>
@@ -323,19 +331,60 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     </article>
   </section>
 
-  <section class="panel" aria-label="So với giá vàng trên sàn forex">
+  <section class="panel" aria-label="Chênh lệch giá XAUUSDT với PAXGUSDT và forex">
     <div class="panel-head">
-      <h2>So với giá forex</h2>
+      <h2>Chênh lệch giá</h2>
       <span class="chip" id="fxState"></span>
     </div>
-    <p class="note" id="fxMeta">Đang tải giá XAU/USD…</p>
+    <p class="note" id="spMeta">So theo giá khớp gần nhất trên Binance và giá XAU/USD của Swissquote (giữa bid và ask).</p>
     <div class="hsum">
+      <div><div class="label">XAU − PAXG</div><div class="v lead"><span id="spXP">—</span><small>USDT</small></div><div class="s" id="spXPSub">—</div></div>
+      <div><div class="label">XAU − forex</div><div class="v lead"><span id="spXF">—</span><small>USDT</small></div><div class="s" id="spXFSub">—</div></div>
+      <div><div class="label">Khớp XAUUSDT / PAXGUSDT</div><div class="v"><span id="spX">—</span><small>/ <span id="spP">—</span></small></div><div class="s">Giá khớp gần nhất trên Binance</div></div>
       <div><div class="label">Forex XAU/USD (giữa)</div><div class="v" id="fxMid">—</div><div class="s" id="fxMidSub">—</div></div>
-      <div><div class="label" id="fxIdxLabel">Index − forex</div><div class="v"><span id="fxIdx">—</span><small>USDT</small></div><div class="s" id="fxIdxSub">—</div></div>
-      <div><div class="label" id="fxMarkLabel">Mark − forex</div><div class="v"><span id="fxMark">—</span><small>USDT</small></div><div class="s" id="fxMarkSub">—</div></div>
-      <div><div class="label" id="fxLastLabel">Khớp − forex</div><div class="v"><span id="fxLast">—</span><small>USDT</small></div><div class="s" id="fxLastSub">—</div></div>
     </div>
-    <p class="note">Forex XAU/USD là giá vàng giao ngay trên sàn forex (Swissquote), lấy giữa bid và ask. Thị trường forex nghỉ từ 17:00 thứ Sáu đến 18:00 Chủ nhật (giờ New York), lúc đó giá forex đứng yên còn Binance vẫn chạy.</p>
+
+    <div class="alert-box">
+      <div class="alert-head">
+        <div class="label">Cảnh báo XAU − forex</div>
+        <label class="qty" for="alertHi">≥ <input id="alertHi" type="number" step="0.5" value="7" inputmode="decimal"> USDT</label>
+        <label class="qty" for="alertLo">hoặc &lt; <input id="alertLo" type="number" step="0.5" value="2" inputmode="decimal"> USDT</label>
+        <button type="button" class="linkbtn" id="alertToggle" aria-pressed="false">Bật cảnh báo</button>
+        <span class="chip" id="alertZone"></span>
+      </div>
+      <p class="note" id="alertNote"></p>
+      <ul class="alert-log" id="alertLog" hidden></ul>
+    </div>
+
+    <div class="bs-block">
+      <div class="panel-head">
+        <h3 class="sub-h">XAU − PAXG theo giờ</h3>
+        <div class="seg" role="radiogroup" aria-label="Khoảng thời gian">
+          <button type="button" id="sp-7" role="radio" data-range="7" aria-checked="false">7 ngày</button>
+          <button type="button" id="sp-30" role="radio" data-range="30" aria-checked="true">30 ngày</button>
+          <button type="button" id="sp-90" role="radio" data-range="90" aria-checked="false">90 ngày</button>
+          <button type="button" id="sp-all" role="radio" data-range="all" aria-checked="false">Từ 05/01</button>
+        </div>
+      </div>
+      <div class="hist-meta">
+        <p class="note" id="spHistMeta">Đang tải giá khớp theo giờ…</p>
+        <button type="button" class="linkbtn" id="spRetry" hidden>Tải lại</button>
+      </div>
+      <div class="hsum">
+        <div><div class="label">XAU cao hơn PAXG</div><div class="v" id="spPos">—</div><div class="s" id="spPosSub">—</div></div>
+        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg">—</span><small>USDT</small></div><div class="s" id="spAvgSub">—</div></div>
+        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax">—</span><small>USDT</small></div><div class="s" id="spMaxSub">—</div></div>
+        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin">—</span><small>USDT</small></div><div class="s" id="spMinSub">—</div></div>
+      </div>
+      <p class="note" id="spBand"></p>
+      <div class="bs-wrap">
+        <canvas id="spChart" aria-label="Biểu đồ XAUUSDT trừ PAXGUSDT theo giờ"></canvas>
+        <div class="bs-guide" id="spGuide" hidden></div>
+        <div class="bs-tip" id="spTip" hidden></div>
+      </div>
+      <p class="note">Giá đóng nến 1 giờ của XAUUSDT trừ PAXGUSDT, nên các lần giãn ngắn bên trong một giờ có thể không thấy. Trên 0 (xanh) là XAUUSDT cao hơn, dưới 0 (đỏ) là thấp hơn. Rê chuột hoặc chạm vào biểu đồ để xem từng giờ.</p>
+    </div>
+    <p class="note">Thị trường forex nghỉ từ 17:00 thứ Sáu đến 18:00 Chủ nhật (giờ New York). Lúc đó giá forex đứng yên còn Binance vẫn chạy, nên XAU − forex cuối tuần không phản ánh chênh lệch thật.</p>
   </section>
 
   <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
@@ -358,7 +407,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <div>
         <div class="label">Thế giới quy đổi</div>
         <div class="v"><span id="worldVnd">—</span><small>triệu/lượng</small></div>
-        <div class="s" id="worldSub">Index XAUUSDT × 1.20565 oz × tỷ giá</div>
+        <div class="s" id="worldSub">Giá khớp XAUUSDT × 1.20565 oz × tỷ giá</div>
       </div>
       <div>
         <div class="label">Chênh lệch mua vào</div>
@@ -375,60 +424,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <p class="note" id="premNote"></p>
   </section>
 
-  <section class="panel" aria-label="Biểu đồ mark và index">
+  <section class="panel" aria-label="Biểu đồ giá khớp trong phiên">
     <div class="panel-head">
-      <h2>Mark và Index trong phiên</h2>
-      <div class="legend"><span class="lm">Mark</span><span class="li">Index</span></div>
+      <h2>Giá khớp trong phiên</h2>
     </div>
-    <canvas id="chart" aria-label="Biểu đồ đường mark price và index price"></canvas>
+    <canvas id="chart" aria-label="Biểu đồ giá khớp trong phiên"></canvas>
     <p class="note" id="chartNote">Đang thu thập dữ liệu. Biểu đồ bắt đầu từ lúc mở trang.</p>
-  </section>
-
-  <section class="panel" aria-label="Mark trừ index theo giờ">
-    <div class="panel-head">
-      <h2>Mark − Index theo giờ</h2>
-      <div class="seg" role="radiogroup" aria-label="Khoảng thời gian">
-        <button type="button" id="bs-7" role="radio" data-range="7" aria-checked="false">7 ngày</button>
-        <button type="button" id="bs-30" role="radio" data-range="30" aria-checked="true">30 ngày</button>
-        <button type="button" id="bs-90" role="radio" data-range="90" aria-checked="false">90 ngày</button>
-        <button type="button" id="bs-all" role="radio" data-range="all" aria-checked="false">Từ 05/01</button>
-      </div>
-    </div>
-    <div class="hist-meta">
-      <p class="note" id="bsMeta">Đang tải giá mark và index theo giờ…</p>
-      <button type="button" class="linkbtn" id="bsRetry" hidden>Tải lại</button>
-    </div>
-    <div class="bs-block">
-      <h3 class="sub-h">XAUUSDT</h3>
-      <div class="hsum">
-        <div><div class="label">Mark lớn hơn index</div><div class="v" id="bsPos_XAUUSDT">—</div><div class="s" id="bsPosSub_XAUUSDT">—</div></div>
-        <div><div class="label">Chênh trung bình</div><div class="v"><span id="bsAvg_XAUUSDT">—</span><small>USDT</small></div><div class="s" id="bsAvgSub_XAUUSDT">—</div></div>
-        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="bsMax_XAUUSDT">—</span><small>USDT</small></div><div class="s" id="bsMaxSub_XAUUSDT">—</div></div>
-        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="bsMin_XAUUSDT">—</span><small>USDT</small></div><div class="s" id="bsMinSub_XAUUSDT">—</div></div>
-      </div>
-      <p class="note" id="bsBand_XAUUSDT"></p>
-      <div class="bs-wrap">
-        <canvas id="bsChart_XAUUSDT" aria-label="Biểu đồ mark trừ index theo giờ của XAUUSDT"></canvas>
-        <div class="bs-guide" id="bsGuide_XAUUSDT" hidden></div>
-        <div class="bs-tip" id="bsTip_XAUUSDT" hidden></div>
-      </div>
-    </div>
-    <div class="bs-block">
-      <h3 class="sub-h">PAXGUSDT</h3>
-      <div class="hsum">
-        <div><div class="label">Mark lớn hơn index</div><div class="v" id="bsPos_PAXGUSDT">—</div><div class="s" id="bsPosSub_PAXGUSDT">—</div></div>
-        <div><div class="label">Chênh trung bình</div><div class="v"><span id="bsAvg_PAXGUSDT">—</span><small>USDT</small></div><div class="s" id="bsAvgSub_PAXGUSDT">—</div></div>
-        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="bsMax_PAXGUSDT">—</span><small>USDT</small></div><div class="s" id="bsMaxSub_PAXGUSDT">—</div></div>
-        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="bsMin_PAXGUSDT">—</span><small>USDT</small></div><div class="s" id="bsMinSub_PAXGUSDT">—</div></div>
-      </div>
-      <p class="note" id="bsBand_PAXGUSDT"></p>
-      <div class="bs-wrap">
-        <canvas id="bsChart_PAXGUSDT" aria-label="Biểu đồ mark trừ index theo giờ của PAXGUSDT"></canvas>
-        <div class="bs-guide" id="bsGuide_PAXGUSDT" hidden></div>
-        <div class="bs-tip" id="bsTip_PAXGUSDT" hidden></div>
-      </div>
-    </div>
-    <p class="note">Dùng giá đóng nến 1 giờ của mark price và index price, nên các lần giãn ngắn bên trong một giờ có thể không thấy. Trên 0 (xanh) là mark cao hơn index, dưới 0 (đỏ) là mark thấp hơn. Rê chuột hoặc chạm vào biểu đồ để xem từng giờ. Cuối tuần và ngày lễ, index XAUUSDT tính theo sổ lệnh nên chênh lệch lúc đó có thể khác thường.</p>
   </section>
 
   <section class="panel" aria-label="Lịch sử funding 14 ngày">
@@ -508,7 +509,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const $ = (id) => document.getElementById(id);
   const el = {
     last: $('last'), chg: $('chg'), symNote: $('symNote'),
-    mark: $('mark'), index: $('index'), basis: $('basis'), premium: $('premium'),
+    mark: $('mark'),
     rate: $('rate'), payer: $('payer'), annual: $('annual'),
     countdown: $('countdown'), nextAt: $('nextAt'),
     status: $('status'), statusText: $('statusText'), notice: $('notice'),
@@ -528,10 +529,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     cmpMeta: $('cmpMeta'), cmpRetry: $('cmpRetry'), cmpCount: $('cmpCount'), cmpCountSub: $('cmpCountSub'),
     cmpLast: $('cmpLast'), cmpLastSub: $('cmpLastSub'), cmpXau: $('cmpXau'), cmpXauSub: $('cmpXauSub'),
     cmpPaxg: $('cmpPaxg'), cmpPaxgSub: $('cmpPaxgSub'), cmpChart: $('cmpChart'), cmpTable: $('cmpTable'),
-    bsMeta: $('bsMeta'), bsRetry: $('bsRetry'), ranges: document.querySelectorAll('.seg [data-range]'),
-    fxState: $('fxState'), fxMeta: $('fxMeta'), fxMid: $('fxMid'), fxMidSub: $('fxMidSub'),
-    fxIdxLabel: $('fxIdxLabel'), fxIdx: $('fxIdx'), fxIdxSub: $('fxIdxSub'), fxMarkLabel: $('fxMarkLabel'),
-    fxMark: $('fxMark'), fxMarkSub: $('fxMarkSub'), fxLastLabel: $('fxLastLabel'), fxLast: $('fxLast'), fxLastSub: $('fxLastSub')
+    fxState: $('fxState'), fxMid: $('fxMid'), fxMidSub: $('fxMidSub'), spMeta: $('spMeta'),
+    spXP: $('spXP'), spXPSub: $('spXPSub'), spXF: $('spXF'), spXFSub: $('spXFSub'), spX: $('spX'), spP: $('spP'),
+    alertHi: $('alertHi'), alertLo: $('alertLo'), alertToggle: $('alertToggle'), alertZone: $('alertZone'),
+    alertNote: $('alertNote'), alertLog: $('alertLog'), alertBar: $('alertBar'), alertText: $('alertText'), alertClose: $('alertClose'),
+    ranges: document.querySelectorAll('.seg [data-range]'), spHistMeta: $('spHistMeta'), spRetry: $('spRetry'),
+    spPos: $('spPos'), spPosSub: $('spPosSub'), spAvg: $('spAvg'), spAvgSub: $('spAvgSub'),
+    spMax: $('spMax'), spMaxSub: $('spMaxSub'), spMin: $('spMin'), spMinSub: $('spMinSub'), spBand: $('spBand'),
+    spChart: $('spChart'), spGuide: $('spGuide'), spTip: $('spTip')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -554,15 +559,16 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let prevLast = null, flashTimer = null, frame = 0, chartDirty = true;
   let hist = null, histError = null, histLoading = false, histDueAt = 0, histDays = [], barsDirty = true;
   let view = 'day';
-  // SJC luôn so với index XAUUSDT, kể cả khi đang xem PAXGUSDT
-  let xauIndex = null, sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
+  // Giá khớp gần nhất của cả 2 mã, dùng cho chênh lệch giá và SJC (SJC luôn so với XAUUSDT)
+  const lastBy = { XAUUSDT: null, PAXGUSDT: null };
+  let sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
   let xauKlines = [], premSeries = [], premNow = null, premAvg = null;
   let cmp = null, cmpError = null, cmpLoading = false, cmpDays = [], cmpDirty = true;
   let fxData = null, fxError = null;
   let s = fresh();
 
   function fresh() {
-    return { last: null, chgPct: null, mark: null, index: null, rate: null, next: null, E: null, series: [] };
+    return { last: null, chgPct: null, mark: null, rate: null, next: null, E: null, series: [] };
   }
 
   // ---------- Kết nối ----------
@@ -591,7 +597,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     const k = sym.toLowerCase();
     const streams = [k + '@markPrice@1s', k + '@aggTrade', k + '@ticker'];
-    if (sym !== 'XAUUSDT') streams.push('xauusdt@markPrice@1s');
+    // Luôn nhận giá khớp của mã còn lại để tính XAU − PAXG, XAU − forex và SJC
+    Object.keys(lastBy).forEach((other) => { if (other !== sym) streams.push(other.toLowerCase() + '@aggTrade'); });
     const sock = new WebSocket(WS_BASE + streams.join('/'));
     ws = sock;
     openedAt = 0;
@@ -607,10 +614,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       const d = msg && msg.data;
       if (!d) return;
-      if (d.e === 'markPriceUpdate' && d.s === 'XAUUSDT') {
-        xauIndex = +d.i;
+      if (d.e === 'aggTrade' && d.s in lastBy) {
+        lastBy[d.s] = +d.p;
         sjcDirty = true;
-        if (sym !== 'XAUUSDT') { schedule(); return; }
+        if (d.s !== sym) { schedule(); return; }
       }
       if (d.s !== sym) return;
       lastMsgAt = Date.now();
@@ -652,10 +659,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   function handle(d) {
     switch (d.e) {
       case 'markPriceUpdate':
-        s.mark = +d.p; s.index = +d.i; s.rate = +d.r; s.next = +d.T; s.E = d.E;
+        s.mark = +d.p; s.rate = +d.r; s.next = +d.T; s.E = d.E;
         // Tải lại lịch sử 30 giây sau mỗi lần chốt funding
         if (!histDueAt && s.next > Date.now()) histDueAt = s.next + 30000;
-        s.series.push({ t: d.E, m: s.mark, i: s.index });
+        // Biểu đồ trong phiên: mỗi giây một điểm giá khớp (chưa có thì tạm dùng mark)
+        s.series.push({ t: d.E, v: s.last != null ? s.last : s.mark });
         if (s.series.length > MAX_POINTS) s.series.shift();
         chartDirty = true;
         break;
@@ -690,14 +698,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     if (s.mark != null) {
       el.mark.textContent = fmt2.format(s.mark);
-      el.index.textContent = fmt2.format(s.index);
-      const basis = s.mark - s.index;
-      const prem = (basis / s.index) * 100;
-      el.basis.textContent = signed(basis, 2);
-      el.basis.dataset.dir = dir(basis);
-      el.premium.textContent = basis === 0
-        ? 'Mark bằng index'
-        : 'Mark ' + (basis > 0 ? 'cao' : 'thấp') + ' hơn index ' + Math.abs(prem).toFixed(3) + '%';
       el.rate.textContent = signed(s.rate * 100, 4) + '%';
       el.payer.textContent = s.rate > 0 ? 'Long trả Short' : s.rate < 0 ? 'Short trả Long' : '';
       const annual = s.rate * (24 / intervalH) * 365 * 100;
@@ -708,11 +708,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (s.E) el.updated.textContent = clock(s.E);
     if (chartDirty) { chartDirty = false; drawChart(); }
     if (barsDirty) { barsDirty = false; drawBars(); }
-    renderFx();
+    renderSpread();
     if (sjcDirty) { sjcDirty = false; renderSjc(); }
     if (premDirty) { premDirty = false; drawPrem(); }
     if (cmpDirty) { cmpDirty = false; drawCompare(); }
-    if (bsDirty) { bsDirty = false; BS_SYMS.forEach(drawBasisChart); }
+    if (spDirty) { spDirty = false; drawSpreadChart(); }
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -804,7 +804,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const pw = w - L - R, ph = h - T - B;
 
     let lo = Infinity, hi = -Infinity;
-    for (const p of pts) { lo = Math.min(lo, p.m, p.i); hi = Math.max(hi, p.m, p.i); }
+    for (const p of pts) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
     if (hi - lo < 0.4) { const mid = (hi + lo) / 2; lo = mid - 0.2; hi = mid + 0.2; }
     const step = niceStep((hi - lo) / 4);
     lo = Math.floor(lo / step) * step;
@@ -814,7 +814,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const X = (t) => L + ((t - t0) / span) * pw;
     const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
     const end = pts[pts.length - 1];
-    const endY = Y(end.m);
+    const endY = Y(end.v);
 
     // Lưới và nhãn trục giá
     ctx.font = '11px ' + tok('--mono');
@@ -839,41 +839,31 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.textAlign = 'right';
     ctx.fillText(clock(t1), L + pw, h - 6);
 
-    // Vùng dưới đường mark
+    // Vùng dưới đường giá
     const grad = ctx.createLinearGradient(0, T, 0, T + ph);
     grad.addColorStop(0, tok('--gold-fill'));
     grad.addColorStop(1, tok('--gold-fill0'));
     ctx.beginPath();
-    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.m)) : ctx.moveTo(X(p.t), Y(p.m))));
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
     ctx.lineTo(X(t1), T + ph); ctx.lineTo(X(t0), T + ph); ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Đường index (nét đứt)
-    ctx.setLineDash([4, 3]);
-    ctx.strokeStyle = tok('--idx');
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.i)) : ctx.moveTo(X(p.t), Y(p.i))));
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Đường mark
     ctx.strokeStyle = tok('--gold');
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.m)) : ctx.moveTo(X(p.t), Y(p.m))));
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
     ctx.stroke();
 
-    // Điểm cuối và nhãn giá mark hiện tại
+    // Điểm cuối và nhãn giá hiện tại
     ctx.fillStyle = tok('--gold');
     ctx.beginPath(); ctx.arc(X(end.t), endY, 3.5, 0, Math.PI * 2); ctx.fill();
     ctx.fillRect(L + pw + 3, endY - 9, R - 5, 18);
     ctx.fillStyle = tok('--surface');
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(fmt2.format(end.m), L + pw + 8, endY + 0.5);
+    ctx.fillText(fmt2.format(end.v), L + pw + 8, endY + 0.5);
   }
 
   // ---------- Lịch sử funding 14 ngày ----------
@@ -1072,68 +1062,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     });
   }
 
-  // ---------- So với giá forex ----------
-  function fxDiff(value, mid, valEl, subEl) {
-    if (value == null || !mid) {
-      valEl.textContent = '—';
-      subEl.textContent = '—';
-      delete valEl.dataset.dir;
-      return;
-    }
-    const d = value - mid;
-    valEl.textContent = signed(d, 2);
-    valEl.dataset.dir = dir(d);
-    subEl.textContent = signed((d / mid) * 100, 3) + '% so với forex';
-  }
-
-  async function loadFx() {
-    if (location.protocol === 'file:') {
-      fxError = 'Khung này cần mở trang từ host có thư mục api/ đi kèm.';
-      schedule();
-      return;
-    }
-    try {
-      const r = await fetch(FX_API, { cache: 'no-store' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const data = await r.json();
-      if (!data || !(data.bid > 0) || !(data.ask > 0)) throw new Error((data && data.errors && data.errors.join(' ')) || 'chưa có giá');
-      fxData = data;
-      fxError = null;
-    } catch (e) {
-      fxError = 'Không lấy được giá forex từ ' + FX_API + ' (' + (e.message || e) + ').';
-    }
-    schedule();
-  }
-
-  function renderFx() {
-    el.fxIdxLabel.textContent = 'Index ' + sym + ' − forex';
-    el.fxMarkLabel.textContent = 'Mark ' + sym + ' − forex';
-    el.fxLastLabel.textContent = 'Khớp ' + sym + ' − forex';
-    if (!fxData) {
-      el.fxMeta.textContent = fxError || 'Đang tải giá XAU/USD…';
-      el.fxState.textContent = '';
-      delete el.fxState.dataset.dir;
-      [el.fxMid, el.fxMidSub].forEach((n) => { n.textContent = '—'; });
-      fxDiff(null, 0, el.fxIdx, el.fxIdxSub);
-      fxDiff(null, 0, el.fxMark, el.fxMarkSub);
-      fxDiff(null, 0, el.fxLast, el.fxLastSub);
-      return;
-    }
-    const mid = (fxData.bid + fxData.ask) / 2;
-    const quoteAt = fxData.ts || fxData.fetchedAt;
-    const closed = fxData.ts && Date.now() - fxData.ts > FX_STALE_MS;
-    el.fxState.textContent = closed ? 'Forex đang nghỉ hoặc chưa có giá mới' : 'Forex đang giao dịch';
-    if (closed) delete el.fxState.dataset.dir; else el.fxState.dataset.dir = 'up';
-    el.fxMeta.textContent = 'Giá XAU/USD của ' + fxData.source + (quoteAt ? ' lúc ' + clock(quoteAt) : '') + ', trang lấy lại mỗi 10 giây.'
-      + (fxError ? ' ' + fxError + ' Đang hiện giá lấy lúc trước.' : '')
-      + (fxData.errors && fxData.errors.length ? ' ' + fxData.errors.join(' ') : '');
-    el.fxMid.textContent = fmt2.format(mid);
-    el.fxMidSub.textContent = 'Bid ' + fmt2.format(fxData.bid) + ' · Ask ' + fmt2.format(fxData.ask) + ' · spread ' + (fxData.ask - fxData.bid).toFixed(2);
-    fxDiff(s.index, mid, el.fxIdx, el.fxIdxSub);
-    fxDiff(s.mark, mid, el.fxMark, el.fxMarkSub);
-    fxDiff(s.last, mid, el.fxLast, el.fxLastSub);
-  }
-
   // ---------- SJC so với thế giới ----------
   const tri = (v) => (v / 1e6).toFixed(2);
   const vnd = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -1165,7 +1093,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   async function loadXauKlines() {
     try {
       const start = Date.now() - PREM_DAYS * 864e5;
-      const url = REST_BASE + '/fapi/v1/indexPriceKlines?pair=XAUUSDT&interval=1h&startTime=' + start + '&limit=1000';
+      const url = REST_BASE + '/fapi/v1/klines?symbol=XAUUSDT&interval=1h&startTime=' + start + '&limit=1000';
       const r = await fetch(url, { cache: 'no-store' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const rows = await r.json();
@@ -1180,7 +1108,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     schedule();
   }
 
-  // Chênh lệch bán ra theo từng giờ: giá SJC và tỷ giá mới nhất tại thời điểm đó so với index XAUUSDT
+  // Chênh lệch bán ra theo từng giờ: giá SJC và tỷ giá mới nhất tại thời điểm đó so với giá khớp XAUUSDT
   function buildPremSeries() {
     const hist = sjcData && Array.isArray(sjcData.history) ? sjcData.history.slice().sort((a, b) => a.t - b.t) : [];
     premSeries = [];
@@ -1215,16 +1143,17 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.sjcBuy.textContent = tri(d.sjc.buy);
     el.sjcUsd.textContent = fx ? '≈ ' + fmt2.format(d.sjc.sell / fx / OZ_PER_LUONG) + ' USD/oz theo giá bán ra' : 'Chưa có tỷ giá';
 
-    if (xauIndex == null || !fx) {
+    const xau = lastBy.XAUUSDT;
+    if (xau == null || !fx) {
       [el.premSell, el.premBuy, el.worldVnd].forEach((n) => { n.textContent = '—'; });
-      el.worldSub.textContent = fx ? 'Đang chờ index XAUUSDT từ Binance' : 'Chưa có tỷ giá Vietcombank';
+      el.worldSub.textContent = fx ? 'Đang chờ giá khớp XAUUSDT từ Binance' : 'Chưa có tỷ giá Vietcombank';
       premNow = null;
     } else {
-      const world = xauIndex * OZ_PER_LUONG * fx;
+      const world = xau * OZ_PER_LUONG * fx;
       const premBuy = d.sjc.buy - world;
       premNow = d.sjc.sell - world;
       el.worldVnd.textContent = tri(world);
-      el.worldSub.textContent = 'Index XAUUSDT ' + fmt2.format(xauIndex) + ' × 1.20565 oz × ' + vnd.format(fx);
+      el.worldSub.textContent = 'Giá khớp XAUUSDT ' + fmt2.format(xau) + ' × 1.20565 oz × ' + vnd.format(fx);
       el.premSell.textContent = signed(premNow / 1e6, 2);
       el.premSellSub.textContent = signed((premNow / world) * 100, 2) + '% so với giá thế giới quy đổi';
       el.premBuy.textContent = signed(premBuy / 1e6, 2);
@@ -1548,11 +1477,185 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     });
   }
 
-  // ---------- Mark − Index theo giờ ----------
-  const BS_SYMS = ['XAUUSDT', 'PAXGUSDT'];
-  const BS_LABEL = { 7: '7 ngày gần nhất', 30: '30 ngày gần nhất', 90: '90 ngày gần nhất', all: 'từ 05/01/2026' };
-  let bsRange = '30', bsData = {}, bsSeries = {}, bsGeom = {}, bsError = null, bsLoading = false, bsDirty = true;
+  // ---------- Chênh lệch giá: XAUUSDT với PAXGUSDT và với forex ----------
+  const SP_LABEL = { 7: '7 ngày gần nhất', 30: '30 ngày gần nhất', 90: '90 ngày gần nhất', all: 'từ 05/01/2026' };
+  const ALERT_GAP = 0.5; // phải ra khỏi vùng ít nhất 0.5 USDT mới báo lại
+  let spRange = '30', spPts = [], spGeom = null, spError = null, spLoading = false, spDirty = true;
+  let alertOn = false, alertZone = null, audioCtx = null;
+  const alertLog = [];
 
+  const fxMid = () => (fxData ? (fxData.bid + fxData.ask) / 2 : null);
+  const fxOpen = () => !!fxData && !(fxData.ts && Date.now() - fxData.ts > FX_STALE_MS);
+
+  async function loadFx() {
+    if (location.protocol === 'file:') {
+      fxError = 'Giá forex cần mở trang từ host có thư mục api/ đi kèm.';
+      schedule();
+      return;
+    }
+    try {
+      const r = await fetch(FX_API, { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      if (!data || !(data.bid > 0) || !(data.ask > 0)) throw new Error((data && data.errors && data.errors.join(' ')) || 'chưa có giá');
+      fxData = data;
+      fxError = null;
+    } catch (e) {
+      fxError = 'Không lấy được giá forex từ ' + FX_API + ' (' + (e.message || e) + ').';
+    }
+    schedule();
+  }
+
+  function setDiff(valEl, subEl, d, base, what) {
+    if (d == null || !base) {
+      valEl.textContent = '—';
+      delete valEl.dataset.dir;
+      subEl.textContent = '—';
+      return;
+    }
+    valEl.textContent = signed(d, 2);
+    valEl.dataset.dir = dir(d);
+    subEl.textContent = signed((d / base) * 100, 3) + '% so với ' + what;
+  }
+
+  function renderSpread() {
+    const x = lastBy.XAUUSDT, p = lastBy.PAXGUSDT, mid = fxMid();
+    el.spX.textContent = x != null ? fmt2.format(x) : '—';
+    el.spP.textContent = p != null ? fmt2.format(p) : '—';
+    setDiff(el.spXP, el.spXPSub, x != null && p != null ? x - p : null, p, 'PAXGUSDT');
+    setDiff(el.spXF, el.spXFSub, x != null && mid ? x - mid : null, mid, 'forex');
+
+    const notes = [];
+    if (!fxData) {
+      el.fxMid.textContent = '—';
+      el.fxMidSub.textContent = fxError ? 'Chưa có giá forex' : 'Đang tải giá XAU/USD…';
+      el.fxState.textContent = '';
+      el.fxState.classList.remove('hot');
+    } else {
+      const open = fxOpen();
+      el.fxState.textContent = open ? 'Forex đang giao dịch' : 'Forex đang nghỉ hoặc chưa có giá mới';
+      el.fxState.classList.toggle('hot', !open);
+      el.fxMid.textContent = fmt2.format(mid);
+      el.fxMidSub.textContent = 'Bid ' + fmt2.format(fxData.bid) + ' · Ask ' + fmt2.format(fxData.ask)
+        + ' · spread ' + (fxData.ask - fxData.bid).toFixed(2) + ' · lúc ' + clock(fxData.ts || fxData.fetchedAt);
+      if (fxData.errors && fxData.errors.length) notes.push(fxData.errors.join(' '));
+    }
+    if (fxError) notes.push(fxError + (fxData ? ' Đang hiện giá lấy lúc trước.' : ''));
+    el.spMeta.textContent = 'So theo giá khớp gần nhất trên Binance và giá XAU/USD của Swissquote (giữa bid và ask), giá forex lấy lại mỗi 10 giây.'
+      + (notes.length ? ' ' + notes.join(' ') : '');
+    checkAlert(x != null && mid ? x - mid : null);
+  }
+
+  // ---------- Cảnh báo XAU − forex ----------
+  function alertLimits() {
+    const hi = parseFloat(el.alertHi.value), lo = parseFloat(el.alertLo.value);
+    return Number.isFinite(hi) && Number.isFinite(lo) && lo < hi ? { hi, lo } : null;
+  }
+
+  function checkAlert(d) {
+    const lim = alertLimits();
+    el.alertZone.classList.remove('hot');
+    if (!lim) {
+      alertZone = null;
+      el.alertZone.textContent = 'Ngưỡng dưới phải nhỏ hơn ngưỡng trên';
+      el.alertZone.classList.add('hot');
+      return;
+    }
+    if (d == null || !fxOpen()) {
+      // Forex nghỉ thì giá forex đứng yên, không báo; khi mở lại sẽ xét lại từ đầu
+      alertZone = null;
+      el.alertZone.textContent = d == null ? '' : 'Forex đang nghỉ, tạm không báo';
+      return;
+    }
+    let zone = alertZone;
+    if (d >= lim.hi) zone = 'high';
+    else if (d < lim.lo) zone = 'low';
+    else if (zone === 'high' && d < lim.hi - ALERT_GAP) zone = 'mid';
+    else if (zone === 'low' && d >= lim.lo + ALERT_GAP) zone = 'mid';
+    else if (zone == null) zone = 'mid';
+    if (zone !== alertZone) {
+      alertZone = zone;
+      if (zone !== 'mid') fireAlert(zone, d, lim);
+    }
+    el.alertZone.textContent = zone === 'high' ? 'Đang ≥ ' + lim.hi + ' USDT'
+      : zone === 'low' ? 'Đang < ' + lim.lo + ' USDT'
+      : 'Đang trong khoảng ' + lim.lo + ' đến ' + lim.hi;
+    if (zone !== 'mid') el.alertZone.classList.add('hot');
+  }
+
+  function fireAlert(zone, d, lim) {
+    const text = zone === 'high'
+      ? 'XAUUSDT cao hơn forex ' + signed(d, 2) + ' USDT, từ ' + lim.hi + ' trở lên'
+      : 'XAUUSDT chỉ chênh forex ' + signed(d, 2) + ' USDT, dưới ' + lim.lo;
+    alertLog.unshift({ t: Date.now(), text });
+    if (alertLog.length > 10) alertLog.pop();
+    el.alertLog.hidden = false;
+    el.alertLog.innerHTML = alertLog.map((a) => '<li><time>' + clock(a.t) + '</time>' + a.text + '</li>').join('');
+    if (!alertOn) return;
+    el.alertText.textContent = clock(Date.now()) + ' · ' + text;
+    el.alertBar.hidden = false;
+    beep();
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try { new Notification('Gold Perp Live', { body: text, tag: 'xau-forex' }); } catch (e) { /* trình duyệt không cho tạo thông báo từ trang */ }
+    }
+  }
+
+  function beep() {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const t = audioCtx.currentTime;
+    [0, 0.35].forEach((offset) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880;
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, t + offset);
+      g.gain.exponentialRampToValueAtTime(0.25, t + offset + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + offset + 0.25);
+      o.start(t + offset);
+      o.stop(t + offset + 0.3);
+    });
+  }
+
+  // Trình duyệt chỉ cho phát âm thanh sau khi người dùng bấm vào trang
+  function unlockAudio() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state !== 'running') audioCtx.resume().then(renderAlertNote, renderAlertNote);
+    } catch (e) { /* không có âm thanh */ }
+  }
+
+  function renderAlertNote() {
+    let parts;
+    if (!alertOn) {
+      parts = ['Đang tắt, chỉ ghi nhật ký bên dưới.'];
+    } else {
+      const perm = !('Notification' in window) ? 'Trình duyệt không hỗ trợ thông báo.'
+        : Notification.permission === 'granted' ? 'Thông báo trình duyệt: đã cho phép.'
+        : Notification.permission === 'denied' ? 'Thông báo trình duyệt đang bị chặn, mở cài đặt của trang để cho phép.'
+        : 'Thông báo trình duyệt: chưa cho phép.';
+      const sound = audioCtx && audioCtx.state === 'running' ? 'Âm thanh: bật.' : 'Âm thanh: bấm vào trang một lần để bật.';
+      parts = ['Đang bật.', perm, sound];
+    }
+    parts.push('Báo một lần khi XAU − forex vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở.');
+    el.alertNote.textContent = parts.join(' ');
+  }
+
+  function setAlertOn(on, fromClick) {
+    alertOn = on;
+    el.alertToggle.textContent = on ? 'Tắt cảnh báo' : 'Bật cảnh báo';
+    el.alertToggle.setAttribute('aria-pressed', String(on));
+    try { localStorage.setItem('gold-perp-live.alertOn', on ? '1' : '0'); } catch (e) { /* bỏ qua */ }
+    if (on && fromClick) {
+      unlockAudio();
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(renderAlertNote, renderAlertNote);
+      }
+    }
+    if (!on) el.alertBar.hidden = true;
+    renderAlertNote();
+  }
+
+  // ---------- XAU − PAXG theo giờ ----------
   // Nến 1 giờ, trả về [openTime, close, closeTime]; mỗi lần tối đa 1500 nến
   async function fetchHourly(path, param, symbol, since) {
     const out = [];
@@ -1568,82 +1671,78 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     return out;
   }
 
-  async function loadBasis() {
-    const range = bsRange;
+  async function loadSpread() {
+    const range = spRange;
     const since = range === 'all' ? CMP_START : Date.now() - Number(range) * 864e5;
-    bsLoading = true;
-    bsError = null;
-    renderBasis();
+    spLoading = true;
+    spError = null;
+    renderSpreadHistory();
     try {
-      const lists = await Promise.all(BS_SYMS.map(async (symbol) => {
-        const [mk, ix] = await Promise.all([
-          fetchHourly('/fapi/v1/markPriceKlines', 'symbol', symbol, since),
-          fetchHourly('/fapi/v1/indexPriceKlines', 'pair', symbol, since)
-        ]);
-        const idx = new Map(ix.map((k) => [k[0], k[1]]));
-        const now = Date.now();
-        // Chỉ lấy nến đã đóng; t là giờ đóng nến (vd 14:00)
-        return mk.filter((k) => k[2] <= now && idx.has(k[0])).map((k) => ({ t: k[2] + 1, m: k[1], i: idx.get(k[0]) }));
-      }));
-      if (range !== bsRange) return;
-      bsData = {};
-      BS_SYMS.forEach((symbol, n) => { bsData[symbol] = lists[n]; });
+      const [xk, pk] = await Promise.all([
+        fetchHourly('/fapi/v1/klines', 'symbol', 'XAUUSDT', since),
+        fetchHourly('/fapi/v1/klines', 'symbol', 'PAXGUSDT', since)
+      ]);
+      if (range !== spRange) return;
+      const paxg = new Map(pk.map((k) => [k[0], k[1]]));
+      const now = Date.now();
+      // Chỉ lấy nến đã đóng; t là giờ đóng nến (vd 14:00)
+      spPts = xk.filter((k) => k[2] <= now && paxg.has(k[0])).map((k) => {
+        const p = paxg.get(k[0]);
+        return { t: k[2] + 1, v: k[1] - p, pct: ((k[1] - p) / p) * 100 };
+      });
     } catch (e) {
-      if (range !== bsRange) return;
-      bsError = e.message || String(e);
+      if (range !== spRange) return;
+      spError = e.message || String(e);
     }
-    bsLoading = false;
-    renderBasis();
+    spLoading = false;
+    renderSpreadHistory();
   }
 
-  function renderBasis() {
-    el.bsRetry.hidden = !bsError;
-    el.bsMeta.textContent = bsError
-      ? 'Không tải được giá mark và index theo giờ (' + bsError + ').'
-      : bsLoading ? 'Đang tải giá mark và index theo giờ, ' + BS_LABEL[bsRange] + '…'
-      : 'Mark − index tại giá đóng mỗi giờ, ' + BS_LABEL[bsRange] + '.';
-    const pick = (list, f) => list[Math.min(list.length - 1, Math.max(0, Math.round(f * (list.length - 1))))];
-    for (const symbol of BS_SYMS) {
-      const q = (id) => $(id + '_' + symbol);
-      const pts = (bsData[symbol] || []).map((p) => ({ t: p.t, v: p.m - p.i, pct: ((p.m - p.i) / p.i) * 100 }));
-      bsSeries[symbol] = pts;
-      if (!pts.length) {
-        ['bsPos', 'bsAvg', 'bsMax', 'bsMin', 'bsPosSub', 'bsAvgSub', 'bsMaxSub', 'bsMinSub'].forEach((id) => { q(id).textContent = '—'; });
-        q('bsBand').textContent = '';
-        continue;
-      }
-      const n = pts.length;
-      let max = pts[0], min = pts[0], sum = 0, sumPct = 0, above = 0;
-      for (const p of pts) {
-        if (p.v > max.v) max = p;
-        if (p.v < min.v) min = p;
-        sum += p.v;
-        sumPct += p.pct;
-        if (p.v > 0) above++;
-      }
-      const vs = pts.map((p) => p.v).sort((a, b) => a - b);
-      const ps = pts.map((p) => p.pct).sort((a, b) => a - b);
-      q('bsPos').textContent = Math.round((above / n) * 100) + '%';
-      q('bsPosSub').textContent = above + ' / ' + n + ' giờ, còn lại mark bằng hoặc thấp hơn';
-      q('bsAvg').textContent = signed(sum / n, 2);
-      q('bsAvgSub').textContent = signed(sumPct / n, 4) + '% so với index';
-      q('bsMax').textContent = signed(max.v, 2);
-      q('bsMaxSub').textContent = signed(max.pct, 3) + '% lúc ' + stamp(max.t);
-      q('bsMin').textContent = signed(min.v, 2);
-      q('bsMinSub').textContent = signed(min.pct, 3) + '% lúc ' + stamp(min.t);
-      q('bsBand').textContent = '90% số giờ nằm trong khoảng ' + signed(pick(vs, 0.05), 2) + ' đến ' + signed(pick(vs, 0.95), 2)
-        + ' USDT (' + signed(pick(ps, 0.05), 3) + '% đến ' + signed(pick(ps, 0.95), 3) + '%).';
-    }
-    bsDirty = true;
+  function renderSpreadHistory() {
+    el.spRetry.hidden = !spError;
+    el.spHistMeta.textContent = spError
+      ? 'Không tải được giá khớp theo giờ (' + spError + ').'
+      : spLoading ? 'Đang tải giá khớp theo giờ, ' + SP_LABEL[spRange] + '…'
+      : 'XAUUSDT − PAXGUSDT tại giá đóng mỗi giờ, ' + SP_LABEL[spRange] + '.';
+    const outs = [el.spPos, el.spAvg, el.spMax, el.spMin, el.spPosSub, el.spAvgSub, el.spMaxSub, el.spMinSub];
+    const pts = spPts;
+    spDirty = true;
     schedule();
+    if (!pts.length) {
+      outs.forEach((n) => { n.textContent = '—'; });
+      el.spBand.textContent = '';
+      return;
+    }
+    const n = pts.length;
+    let max = pts[0], min = pts[0], sum = 0, sumPct = 0, above = 0;
+    for (const p of pts) {
+      if (p.v > max.v) max = p;
+      if (p.v < min.v) min = p;
+      sum += p.v;
+      sumPct += p.pct;
+      if (p.v > 0) above++;
+    }
+    const pick = (list, f) => list[Math.min(list.length - 1, Math.max(0, Math.round(f * (list.length - 1))))];
+    const vs = pts.map((p) => p.v).sort((a, b) => a - b);
+    const ps = pts.map((p) => p.pct).sort((a, b) => a - b);
+    el.spPos.textContent = Math.round((above / n) * 100) + '%';
+    el.spPosSub.textContent = above + ' / ' + n + ' giờ, còn lại XAU bằng hoặc thấp hơn';
+    el.spAvg.textContent = signed(sum / n, 2);
+    el.spAvgSub.textContent = signed(sumPct / n, 4) + '% so với PAXGUSDT';
+    el.spMax.textContent = signed(max.v, 2);
+    el.spMaxSub.textContent = signed(max.pct, 3) + '% lúc ' + stamp(max.t);
+    el.spMin.textContent = signed(min.v, 2);
+    el.spMinSub.textContent = signed(min.pct, 3) + '% lúc ' + stamp(min.t);
+    el.spBand.textContent = '90% số giờ nằm trong khoảng ' + signed(pick(vs, 0.05), 2) + ' đến ' + signed(pick(vs, 0.95), 2)
+      + ' USDT (' + signed(pick(ps, 0.05), 3) + '% đến ' + signed(pick(ps, 0.95), 3) + '%).';
   }
 
-  function drawBasisChart(symbol) {
-    const c = $('bsChart_' + symbol);
+  function drawSpreadChart() {
+    const c = el.spChart;
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const w = c.clientWidth, h = c.clientHeight;
-    bsGeom[symbol] = null;
+    spGeom = null;
     if (!w || !h) return;
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
       c.width = Math.round(w * dpr);
@@ -1651,7 +1750,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const pts = bsSeries[symbol] || [];
+    const pts = spPts;
     if (pts.length < 2) return;
 
     const cs = getComputedStyle(document.documentElement);
@@ -1669,7 +1768,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const X = (t) => L + ((t - t0) / span) * pw;
     const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
     const y0 = Y(0);
-    bsGeom[symbol] = { X, L, pw, t0, span };
+    spGeom = { X, L, pw, t0, span };
 
     // Lưới và nhãn trục USDT
     ctx.font = '11px ' + tok('--mono');
@@ -1706,19 +1805,16 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.beginPath(); ctx.rect(L, y0, pw, T + ph - y0); ctx.clip();
     area(); ctx.fillStyle = tok('--down'); ctx.fill();
     ctx.restore();
-    ctx.globalAlpha = 1;
 
     ctx.strokeStyle = tok('--ink');
     ctx.globalAlpha = 0.55;
-    ctx.lineWidth = 1;
     ctx.lineJoin = 'round';
     ctx.beginPath();
     pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // Đường 0: mark bằng index
-    ctx.strokeStyle = tok('--ink');
+    // Đường 0: hai giá bằng nhau
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(L, Math.round(y0) + 0.5); ctx.lineTo(L + pw, Math.round(y0) + 0.5); ctx.stroke();
 
@@ -1732,12 +1828,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.fillText(dm(t1), L + pw, h - 6);
   }
 
-  function bindBasisTip(symbol) {
-    const c = $('bsChart_' + symbol), tip = $('bsTip_' + symbol), guide = $('bsGuide_' + symbol);
+  function bindSpreadTip() {
+    const c = el.spChart, tip = el.spTip, guide = el.spGuide;
     const hide = () => { tip.hidden = true; guide.hidden = true; };
     const show = (e) => {
-      const pts = bsSeries[symbol], g = bsGeom[symbol];
-      if (!pts || pts.length < 2 || !g) return hide();
+      const pts = spPts, g = spGeom;
+      if (pts.length < 2 || !g) return hide();
       const rect = c.getBoundingClientRect();
       const t = g.t0 + ((e.clientX - rect.left - g.L) / g.pw) * g.span;
       let a = 0, b = pts.length - 1;
@@ -1757,7 +1853,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   // ---------- Chọn hợp đồng ----------
   function resetView() {
-    [el.last, el.mark, el.index, el.basis, el.premium, el.rate, el.annual, el.chg, el.updated].forEach((n) => {
+    [el.last, el.mark, el.rate, el.annual, el.chg, el.updated].forEach((n) => {
       n.textContent = '—';
       delete n.dataset.dir;
     });
@@ -1799,14 +1895,35 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderCompare();
   });
   el.cmpRetry.addEventListener('click', loadCompare);
-  el.bsRetry.addEventListener('click', loadBasis);
+  el.spRetry.addEventListener('click', loadSpread);
   el.ranges.forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.range === bsRange) return;
-    bsRange = b.dataset.range;
+    if (b.dataset.range === spRange) return;
+    spRange = b.dataset.range;
     el.ranges.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
-    loadBasis();
+    loadSpread();
   }));
-  BS_SYMS.forEach(bindBasisTip);
+  bindSpreadTip();
+
+  // Cảnh báo: ngưỡng và trạng thái bật được nhớ lại; âm thanh cần một lần bấm vào trang
+  try {
+    const hi = localStorage.getItem('gold-perp-live.alertHi'), lo = localStorage.getItem('gold-perp-live.alertLo');
+    if (hi !== null) el.alertHi.value = hi;
+    if (lo !== null) el.alertLo.value = lo;
+  } catch (e) { /* bỏ qua */ }
+  [el.alertHi, el.alertLo].forEach((input) => input.addEventListener('input', () => {
+    try {
+      localStorage.setItem('gold-perp-live.alertHi', el.alertHi.value);
+      localStorage.setItem('gold-perp-live.alertLo', el.alertLo.value);
+    } catch (e) { /* bỏ qua */ }
+    alertZone = null;
+    schedule();
+  }));
+  el.alertToggle.addEventListener('click', () => setAlertOn(!alertOn, true));
+  el.alertClose.addEventListener('click', () => { el.alertBar.hidden = true; });
+  document.addEventListener('pointerdown', () => { if (alertOn) unlockAudio(); });
+  let savedAlert = null;
+  try { savedAlert = localStorage.getItem('gold-perp-live.alertOn'); } catch (e) { /* bỏ qua */ }
+  setAlertOn(savedAlert === '1', false);
 
   el.views.forEach((b) => b.addEventListener('click', () => {
     view = b.dataset.view;
@@ -1815,14 +1932,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }));
   el.histRetry.addEventListener('click', () => loadHistory(sym));
 
-  const redraw = () => { chartDirty = true; barsDirty = true; premDirty = true; cmpDirty = true; bsDirty = true; schedule(); };
+  const redraw = () => { chartDirty = true; barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; schedule(); };
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(redraw);
     ro.observe(el.chart);
     ro.observe(el.bars);
     ro.observe(el.premChart);
     ro.observe(el.cmpChart);
-    BS_SYMS.forEach((symbol) => ro.observe($('bsChart_' + symbol)));
+    ro.observe(el.spChart);
   } else {
     window.addEventListener('resize', redraw);
   }
@@ -1838,8 +1955,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   loadSjc();
   loadXauKlines();
   loadCompare();
-  loadBasis();
-  setInterval(loadBasis, 60 * 60 * 1000);
+  loadSpread();
+  setInterval(loadSpread, 60 * 60 * 1000);
   loadFx();
   setInterval(loadFx, FX_REFRESH_MS);
   setInterval(loadSjc, SJC_REFRESH_MS);
