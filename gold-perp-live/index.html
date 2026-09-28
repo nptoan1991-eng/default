@@ -213,6 +213,11 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .hsum .v small { margin-left: 5px; font-size: 12.5px; color: var(--muted); }
 .hsum .s { font-size: 12.5px; color: var(--muted); }
 #bars { height: 200px; margin-top: 18px; }
+#cmpChart { height: 180px; margin-top: 16px; }
+.legend .lx::before, .legend .lp::before { width: 10px; height: 10px; border-top: 0; border-radius: 2px; }
+.legend .lx::before { background: var(--idx); }
+.legend .lp::before { background: var(--gold); }
+.sub-h { margin: 18px 0 0; font: 600 13.5px/1.3 var(--sans); }
 .tabs { margin-top: 18px; }
 .table-wrap { margin-top: 10px; max-height: 380px; overflow: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
@@ -377,6 +382,27 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <div class="table-wrap"><table id="histTable"></table></div>
   </section>
 
+  <section class="panel" aria-label="So sánh funding XAUUSDT và PAXGUSDT">
+    <div class="panel-head">
+      <h2>So sánh funding XAUUSDT và PAXGUSDT</h2>
+      <div class="legend"><span class="lx">XAUUSDT cao hơn</span><span class="lp">PAXGUSDT cao hơn</span></div>
+    </div>
+    <div class="hist-meta">
+      <p class="note" id="cmpMeta">Đang tải lịch sử funding của 2 mã…</p>
+      <button type="button" class="linkbtn" id="cmpRetry" hidden>Tải lại</button>
+    </div>
+    <div class="hsum">
+      <div><div class="label">Ngày PAXGUSDT cao hơn</div><div class="v" id="cmpCount">—</div><div class="s" id="cmpCountSub">—</div></div>
+      <div><div class="label">Lần gần nhất PAXGUSDT cao hơn</div><div class="v" id="cmpLast">—</div><div class="s" id="cmpLastSub">—</div></div>
+      <div><div class="label">TB mỗi ngày XAUUSDT</div><div class="v" id="cmpXau">—</div><div class="s" id="cmpXauSub">—</div></div>
+      <div><div class="label">TB mỗi ngày PAXGUSDT</div><div class="v" id="cmpPaxg">—</div><div class="s" id="cmpPaxgSub">—</div></div>
+    </div>
+    <canvas id="cmpChart" aria-label="Biểu đồ chênh lệch tổng funding mỗi ngày giữa XAUUSDT và PAXGUSDT"></canvas>
+    <p class="note">Mỗi cột là tổng funding rate trong ngày của XAUUSDT trừ PAXGUSDT, tính bằng điểm %. Cột dưới 0 là ngày PAXGUSDT cao hơn.</p>
+    <h3 class="sub-h">Những ngày PAXGUSDT cao hơn</h3>
+    <div class="table-wrap"><table id="cmpTable"></table></div>
+  </section>
+
   <footer>
     <span>Nguồn: <code>wss://fstream.binance.com/market</code>, dữ liệu public, không cần API key</span>
     <span>Cập nhật lúc <span class="num" id="updated">—</span></span>
@@ -424,7 +450,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     sjcSell: $('sjcSell'), sjcBuy: $('sjcBuy'), sjcUsd: $('sjcUsd'), worldVnd: $('worldVnd'), worldSub: $('worldSub'),
     premBuy: $('premBuy'), premBuySub: $('premBuySub'), premRange: $('premRange'), rangeAvg: $('rangeAvg'),
     rangeNow: $('rangeNow'), rangeMin: $('rangeMin'), rangeMid: $('rangeMid'), rangeMax: $('rangeMax'),
-    premStats: $('premStats'), premChart: $('premChart'), premNote: $('premNote')
+    premStats: $('premStats'), premChart: $('premChart'), premNote: $('premNote'),
+    cmpMeta: $('cmpMeta'), cmpRetry: $('cmpRetry'), cmpCount: $('cmpCount'), cmpCountSub: $('cmpCountSub'),
+    cmpLast: $('cmpLast'), cmpLastSub: $('cmpLastSub'), cmpXau: $('cmpXau'), cmpXauSub: $('cmpXauSub'),
+    cmpPaxg: $('cmpPaxg'), cmpPaxgSub: $('cmpPaxgSub'), cmpChart: $('cmpChart'), cmpTable: $('cmpTable')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -450,6 +479,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // SJC luôn so với index XAUUSDT, kể cả khi đang xem PAXGUSDT
   let xauIndex = null, sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
   let xauKlines = [], premSeries = [], premNow = null, premAvg = null;
+  let cmp = null, cmpError = null, cmpLoading = false, cmpDays = [], cmpDirty = true;
   let s = fresh();
 
   function fresh() {
@@ -601,6 +631,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (barsDirty) { barsDirty = false; drawBars(); }
     if (sjcDirty) { sjcDirty = false; renderSjc(); }
     if (premDirty) { premDirty = false; drawPrem(); }
+    if (cmpDirty) { cmpDirty = false; drawCompare(); }
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -657,7 +688,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       setStatus('reconnecting', ' · thử lại sau ' + Math.max(0, Math.ceil((retryAt - now) / 1000)) + 's');
     }
     renderCountdown(now);
-    if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(sym); }
+    if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(sym); loadCompare(); }
   }
 
   // ---------- Biểu đồ ----------
@@ -1194,6 +1225,186 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.fillText(signed(end.v, 2), L + pw + 8, endY + 0.5);
   }
 
+  // ---------- So sánh funding XAUUSDT và PAXGUSDT ----------
+  const CMP_START = Date.UTC(2026, 0, 5); // XAUUSDT ra mắt 05/01/2026
+  const fmtDay = (key) => key.split('-').reverse().join('/');
+
+  async function fetchFundingSince(symbol, since) {
+    const out = [];
+    let start = since;
+    for (let page = 0; page < 20; page++) {
+      const r = await fetch(REST_BASE + '/fapi/v1/fundingRate?symbol=' + symbol + '&startTime=' + start + '&limit=1000', { cache: 'no-store' });
+      if (!r.ok) throw new Error(symbol + ' HTTP ' + r.status);
+      const rows = await r.json();
+      for (const x of rows) out.push({ t: +x.fundingTime, rate: +x.fundingRate, mark: parseFloat(x.markPrice) });
+      if (rows.length < 1000) break;
+      start = +rows[rows.length - 1].fundingTime + 1;
+    }
+    return out.filter((x) => Number.isFinite(x.t) && Number.isFinite(x.rate));
+  }
+
+  async function loadCompare() {
+    cmpLoading = true;
+    cmpError = null;
+    renderCompare();
+    try {
+      const [xau, paxg] = await Promise.all([fetchFundingSince('XAUUSDT', CMP_START), fetchFundingSince('PAXGUSDT', CMP_START)]);
+      cmp = { xau, paxg };
+    } catch (e) {
+      cmpError = e.message || String(e);
+    }
+    cmpLoading = false;
+    renderCompare();
+  }
+
+  // Tổng rate và tổng USDT (bên Short, q oz) của từng ngày theo giờ máy
+  function dailyTotals(rows, q) {
+    const days = new Map();
+    for (const r of rows) {
+      const key = dayKey(r.t);
+      let d = days.get(key);
+      if (!d) { d = { rate: 0, usdt: 0 }; days.set(key, d); }
+      d.rate += r.rate;
+      if (Number.isFinite(r.mark) && r.mark > 0) d.usdt += r.rate * r.mark * q;
+    }
+    return days;
+  }
+
+  function renderCompare() {
+    el.cmpRetry.hidden = !cmpError;
+    const q = parseFloat(el.qty.value);
+    const qOk = Number.isFinite(q) && q >= 0;
+    const outs = [el.cmpCount, el.cmpLast, el.cmpXau, el.cmpPaxg, el.cmpCountSub, el.cmpLastSub, el.cmpXauSub, el.cmpPaxgSub];
+    cmpDays = [];
+    cmpDirty = true;
+    schedule();
+    if (!cmp || !qOk) {
+      outs.forEach((n) => { n.textContent = '—'; });
+      el.cmpTable.innerHTML = '';
+      el.cmpMeta.textContent = cmpError
+        ? 'Không tải được lịch sử funding để so sánh (' + cmpError + ').'
+        : cmpLoading ? 'Đang tải lịch sử funding của 2 mã từ 05/01/2026…'
+        : 'Nhập khối lượng là số không âm ở mục Funding theo vị thế.';
+      return;
+    }
+
+    // So theo tổng mỗi ngày vì 2 mã có thể chốt funding ở giờ khác nhau.
+    // Bỏ hôm nay (chưa đủ kỳ) và ngày đầu có dữ liệu của cả 2 mã (ngày XAUUSDT ra mắt).
+    const X = dailyTotals(cmp.xau, q), P = dailyTotals(cmp.paxg, q);
+    const todayKey = dayKey(Date.now());
+    const keys = Array.from(X.keys()).filter((k) => P.has(k) && k !== todayKey).sort();
+    keys.shift();
+    cmpDays = keys.map((k) => {
+      const x = X.get(k), p = P.get(k);
+      return { key: k, x: x.rate, p: p.rate, xu: x.usdt, pu: p.usdt };
+    });
+    const n = cmpDays.length;
+    if (!n) {
+      outs.forEach((o) => { o.textContent = '—'; });
+      el.cmpTable.innerHTML = '';
+      el.cmpMeta.textContent = 'Chưa có ngày nào đủ dữ liệu của cả 2 mã.';
+      return;
+    }
+
+    const higher = cmpDays.filter((d) => d.p > d.x);
+    const last = higher[higher.length - 1];
+    const avg = (f) => cmpDays.reduce((a, d) => a + f(d), 0) / n;
+    el.cmpCount.textContent = higher.length + ' / ' + n;
+    el.cmpCountSub.textContent = Math.round((higher.length / n) * 100) + '% số ngày có tổng funding của PAXGUSDT cao hơn';
+    el.cmpLast.textContent = last ? fmtDay(last.key) : 'Chưa có';
+    el.cmpLastSub.textContent = last
+      ? 'PAXG ' + signed(last.p * 100, 4) + '%, XAU ' + signed(last.x * 100, 4) + '% trong ngày'
+      : 'XAUUSDT luôn cao hơn hoặc bằng';
+    el.cmpXau.textContent = signed(avg((d) => d.x) * 100, 4) + '%';
+    el.cmpXauSub.textContent = '≈ ' + signedMoney(avg((d) => d.xu)) + ' USDT/ngày cho ' + q + ' oz';
+    el.cmpPaxg.textContent = signed(avg((d) => d.p) * 100, 4) + '%';
+    el.cmpPaxgSub.textContent = '≈ ' + signedMoney(avg((d) => d.pu)) + ' USDT/ngày cho ' + q + ' oz';
+    el.cmpMeta.textContent = 'So theo tổng funding rate mỗi ngày (bên Short) của ' + n + ' ngày đủ dữ liệu, từ '
+      + fmtDay(keys[0]) + ' đến ' + fmtDay(keys[n - 1]) + '. Không tính hôm nay và ngày XAUUSDT ra mắt. Ngày theo giờ máy.';
+
+    let html = '<thead><tr><th>Ngày</th><th>XAUUSDT</th><th>PAXGUSDT</th><th>PAXG hơn</th></tr></thead><tbody>';
+    if (!higher.length) {
+      html += '<tr><td colspan="4">Chưa có ngày nào PAXGUSDT cao hơn.</td></tr>';
+    } else {
+      for (const d of higher.slice().reverse()) {
+        html += '<tr><td>' + fmtDay(d.key) + '</td>'
+          + '<td>' + signed(d.x * 100, 4) + '%</td>'
+          + '<td>' + signed(d.p * 100, 4) + '%</td>'
+          + '<td>' + signed((d.p - d.x) * 100, 4) + '</td></tr>';
+      }
+    }
+    el.cmpTable.innerHTML = html + '</tbody>';
+  }
+
+  function drawCompare() {
+    const c = el.cmpChart;
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const days = cmpDays;
+    if (!days.length) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    const L = 2, R = 64, T = 10, B = 24;
+    const pw = w - L - R, ph = h - T - B;
+    const vals = days.map((d) => (d.x - d.p) * 100);
+    let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+    if (hi === lo) hi = lo + 0.001;
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    const dec = Math.min(5, (String(+step.toPrecision(3)).split('.')[1] || '').length);
+    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
+
+    ctx.font = '11px ' + tok('--mono');
+    ctx.lineWidth = 1;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const ticks = Math.round((hi - lo) / step);
+    for (let k = 0; k <= ticks; k++) {
+      const v = lo + k * step;
+      const zero = Math.abs(v) < step / 1e6;
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.strokeStyle = zero ? tok('--muted') : tok('--line');
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      ctx.fillStyle = tok('--muted');
+      ctx.fillText((zero ? 0 : v).toFixed(dec), L + pw + 8, y);
+    }
+
+    const slot = pw / days.length;
+    const bw = Math.max(1, slot * 0.7);
+    const y0 = Y(0);
+    const gold = tok('--gold'), idx = tok('--idx');
+    days.forEach((d, k) => {
+      const v = vals[k];
+      const yv = Y(v);
+      ctx.fillStyle = v < 0 ? gold : idx;
+      ctx.fillRect(L + slot * k + (slot - bw) / 2, Math.min(yv, y0), bw, Math.max(1, Math.abs(yv - y0)));
+    });
+
+    // Nhãn đầu mỗi tháng
+    ctx.fillStyle = tok('--muted');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    let lastX = -Infinity;
+    days.forEach((d, k) => {
+      const [y, m, dd] = d.key.split('-');
+      if (k !== 0 && dd !== '01') return;
+      const x = L + slot * k;
+      if (x - lastX < 44) return;
+      ctx.fillText(m + '/' + y.slice(2), x, h - 6);
+      lastX = x;
+    });
+  }
+
   // ---------- Chọn hợp đồng ----------
   function resetView() {
     [el.last, el.mark, el.index, el.basis, el.premium, el.rate, el.annual, el.chg, el.updated].forEach((n) => {
@@ -1235,7 +1446,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     try { localStorage.setItem('gold-perp-live.qty', el.qty.value); } catch (e) { /* bỏ qua */ }
     renderPosition();
     renderHistory();
+    renderCompare();
   });
+  el.cmpRetry.addEventListener('click', loadCompare);
 
   el.views.forEach((b) => b.addEventListener('click', () => {
     view = b.dataset.view;
@@ -1244,12 +1457,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }));
   el.histRetry.addEventListener('click', () => loadHistory(sym));
 
-  const redraw = () => { chartDirty = true; barsDirty = true; premDirty = true; schedule(); };
+  const redraw = () => { chartDirty = true; barsDirty = true; premDirty = true; cmpDirty = true; schedule(); };
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(redraw);
     ro.observe(el.chart);
     ro.observe(el.bars);
     ro.observe(el.premChart);
+    ro.observe(el.cmpChart);
   } else {
     window.addEventListener('resize', redraw);
   }
@@ -1264,6 +1478,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   setInterval(tick, 1000);
   loadSjc();
   loadXauKlines();
+  loadCompare();
   setInterval(loadSjc, SJC_REFRESH_MS);
   setInterval(loadXauKlines, KLINE_REFRESH_MS);
 })();
