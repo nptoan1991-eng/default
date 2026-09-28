@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gold Perp Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;800&family=Chivo+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ECEEEC;
+  --surface: #FFFFFF;
+  --ink: #16191B;
+  --muted: #5F666A;
+  --line: #D5D9D6;
+  --gold: #8C6812;
+  --gold-fill: rgba(140, 104, 18, 0.16);
+  --gold-fill0: rgba(140, 104, 18, 0);
+  --idx: #7A8287;
+  --up: #0E7A46;
+  --down: #BF2E29;
+  --warn: #A95A08;
+  --down-soft: rgba(191, 46, 41, 0.08);
+  --sans: "Chivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F1113;
+    --surface: #171A1D;
+    --ink: #E8E6E0;
+    --muted: #8E9498;
+    --line: #2A2F33;
+    --gold: #D6B05A;
+    --gold-fill: rgba(214, 176, 90, 0.20);
+    --gold-fill0: rgba(214, 176, 90, 0);
+    --idx: #858C91;
+    --up: #3CC47F;
+    --down: #EF625B;
+    --warn: #EEA24E;
+    --down-soft: rgba(239, 98, 91, 0.10);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F1113;
+  --surface: #171A1D;
+  --ink: #E8E6E0;
+  --muted: #8E9498;
+  --line: #2A2F33;
+  --gold: #D6B05A;
+  --gold-fill: rgba(214, 176, 90, 0.20);
+  --gold-fill0: rgba(214, 176, 90, 0);
+  --idx: #858C91;
+  --up: #3CC47F;
+  --down: #EF625B;
+  --warn: #EEA24E;
+  --down-soft: rgba(239, 98, 91, 0.10);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  padding-inline: 16px;
+  padding-block: 20px 32px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 18px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+[data-dir="up"] { color: var(--up); }
+[data-dir="down"] { color: var(--down); }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.au {
+  position: relative; width: 44px; height: 44px; flex: none;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--gold); color: var(--gold);
+  font: 600 16px var(--mono);
+}
+.au small { position: absolute; top: 2px; left: 4px; font-size: 9px; font-weight: 400; }
+h1 { margin: 0; font: 800 19px/1.15 var(--sans); letter-spacing: -0.01em; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.seg {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+}
+.seg button {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  font: 500 13px var(--mono); padding: 6px 12px; border-radius: 5px;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-checked="true"] { background: var(--ink); color: var(--bg); }
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--muted); font-size: 12.5px; font-weight: 600;
+}
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pill[data-state="live"] { color: var(--ink); }
+.pill[data-state="live"] i { background: var(--up); box-shadow: 0 0 0 3px color-mix(in srgb, var(--up) 22%, transparent); }
+.pill[data-state="waiting"] i, .pill[data-state="stale"] i { background: var(--warn); }
+.pill[data-state="reconnecting"] i, .pill[data-state="nodata"] i { background: var(--down); }
+
+.notice {
+  border: 1px solid var(--down); background: var(--down-soft);
+  border-radius: 8px; padding: 10px 14px; font-size: 13.5px;
+}
+
+/* Hero price */
+.hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; padding-top: 6px; }
+.label {
+  font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted);
+}
+.price {
+  margin-top: 4px;
+  font: 500 clamp(44px, 10vw, 76px)/1 var(--mono);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.03em;
+  transition: color 0.9s ease-out;
+}
+.price.up { color: var(--up); transition: none; }
+.price.down { color: var(--down); transition: none; }
+.hero-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+.chg { font: 600 14px var(--mono); color: var(--ink); }
+
+/* Stats strip */
+.stats {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+.stat { background: var(--surface); padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.stat .v { font: 500 25px/1.15 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.stat .s { font-size: 12.5px; color: var(--muted); }
+.stat .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip {
+  font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--gold); color: var(--gold);
+}
+.chip:empty { display: none; }
+.count { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* Chart */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 12px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.panel-head h2 { margin: 0; font: 600 15px/1.3 var(--sans); }
+.legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend span::before { content: ""; width: 16px; height: 0; border-top: 2px solid var(--gold); }
+.legend .li::before { border-top: 1.5px dashed var(--idx); }
+canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
+.note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+
+footer { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+footer code { font-family: var(--mono); font-size: 11.5px; }
+
+@media (max-width: 860px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) {
+  .stats { grid-template-columns: minmax(0, 1fr); }
+  canvas { height: 210px; }
+}
+@media (prefers-reduced-motion: reduce) { .price { transition: none; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="au" aria-hidden="true"><small>79</small>Au</div>
+      <div>
+        <h1>Gold Perp Live</h1>
+        <p>Binance USDⓈ-M Futures · hợp đồng vĩnh cửu</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="radiogroup" aria-label="Chọn hợp đồng">
+        <button type="button" id="sym-xau" role="radio" data-sym="XAUUSDT" aria-checked="true">XAUUSDT</button>
+        <button type="button" id="sym-paxg" role="radio" data-sym="PAXGUSDT" aria-checked="false">PAXGUSDT</button>
+      </div>
+      <span class="pill" id="status" data-state="connecting" role="status"><i></i><span id="statusText">Đang kết nối</span></span>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="hero" aria-label="Giá khớp gần nhất">
+    <div>
+      <div class="label">Giá khớp gần nhất · USDT / troy oz</div>
+      <div class="price" id="last">—</div>
+      <div class="hero-meta">
+        <span class="chg" id="chg">—</span>
+        <span id="symNote">Giá USDT cho 1 troy ounce vàng</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="Mark, index và funding">
+    <article class="stat">
+      <div class="label">Mark price</div>
+      <div class="v" id="mark">—</div>
+      <div class="s">Giá dùng tính PnL và thanh lý</div>
+    </article>
+    <article class="stat">
+      <div class="label">Index price</div>
+      <div class="v" id="index">—</div>
+      <div class="s">Giá tham chiếu từ các sàn spot</div>
+    </article>
+    <article class="stat">
+      <div class="label">Basis (Mark − Index)</div>
+      <div class="v" id="basis">—</div>
+      <div class="s" id="premium">—</div>
+    </article>
+    <article class="stat">
+      <div class="label">Funding rate</div>
+      <div class="row"><span class="v" id="rate">—</span><span class="chip" id="payer"></span></div>
+      <div class="s" id="annual">—</div>
+      <div class="s">Funding tiếp theo sau <span class="count" id="countdown">--:--:--</span> <span id="nextAt"></span></div>
+    </article>
+  </section>
+
+  <section class="panel" aria-label="Biểu đồ mark và index">
+    <div class="panel-head">
+      <h2>Mark và Index trong phiên</h2>
+      <div class="legend"><span class="lm">Mark</span><span class="li">Index</span></div>
+    </div>
+    <canvas id="chart" aria-label="Biểu đồ đường mark price và index price"></canvas>
+    <p class="note" id="chartNote">Đang thu thập dữ liệu. Biểu đồ bắt đầu từ lúc mở trang.</p>
+  </section>
+
+  <footer>
+    <span>Nguồn: <code>wss://fstream.binance.com</code>, dữ liệu public, không cần API key</span>
+    <span>Cập nhật lúc <span class="num" id="updated">—</span></span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const SYMBOLS = {
+    XAUUSDT: 'Giá USDT cho 1 troy ounce vàng',
+    PAXGUSDT: 'PAX Gold: 1 PAXG tương ứng 1 troy ounce vàng'
+  };
+  const WS_BASE = 'wss://fstream.binance.com/stream?streams=';
+  const REST_BASE = 'https://fapi.binance.com';
+  const MAX_POINTS = 900;      // 15 phút, mỗi giây một điểm mark price
+  const NO_DATA_MS = 10000;    // đã kết nối mà không có dữ liệu
+  const STALE_MS = 5000;       // dữ liệu chậm
+  const DEAD_MS = 30000;       // coi như đứt, mở lại kết nối
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    last: $('last'), chg: $('chg'), symNote: $('symNote'),
+    mark: $('mark'), index: $('index'), basis: $('basis'), premium: $('premium'),
+    rate: $('rate'), payer: $('payer'), annual: $('annual'),
+    countdown: $('countdown'), nextAt: $('nextAt'),
+    status: $('status'), statusText: $('statusText'), notice: $('notice'),
+    updated: $('updated'), chart: $('chart'), chartNote: $('chartNote'),
+    seg: document.querySelectorAll('.seg button')
+  };
+
+  const fmt2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const signed = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
+  const dir = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+  const pad = (n) => String(n).padStart(2, '0');
+  const clock = (t) => new Date(t).toLocaleTimeString('vi-VN', { hour12: false });
+
+  let sym = null, ws = null;
+  let retry = 0, retryAt = 0, retryTimer = null;
+  let openedAt = 0, lastMsgAt = 0, gotData = false;
+  let intervalH = 8, intervalKnown = false;
+  let prevLast = null, flashTimer = null, frame = 0, chartDirty = true;
+  let s = fresh();
+
+  function fresh() {
+    return { last: null, chgPct: null, mark: null, index: null, rate: null, next: null, E: null, series: [] };
+  }
+
+  // ---------- Kết nối ----------
+  const STATUS_TEXT = {
+    connecting: 'Đang kết nối',
+    waiting: 'Đã kết nối, chờ dữ liệu',
+    live: 'Live',
+    stale: 'Dữ liệu chậm',
+    reconnecting: 'Mất kết nối',
+    nodata: 'Không có dữ liệu'
+  };
+  function setStatus(state, extra) {
+    el.status.dataset.state = state;
+    el.statusText.textContent = STATUS_TEXT[state] + (extra || '');
+  }
+  function showNotice(text) {
+    el.notice.textContent = text;
+    el.notice.hidden = false;
+  }
+
+  function connect() {
+    clearTimeout(retryTimer);
+    if (ws) {
+      ws.onopen = ws.onmessage = ws.onclose = ws.onerror = null;
+      try { ws.close(); } catch (e) { /* đã đóng */ }
+    }
+    const k = sym.toLowerCase();
+    const sock = new WebSocket(WS_BASE + [k + '@markPrice@1s', k + '@aggTrade', k + '@ticker'].join('/'));
+    ws = sock;
+    openedAt = 0;
+    setStatus('connecting');
+
+    sock.onopen = () => {
+      retry = 0;
+      openedAt = Date.now();
+      if (!gotData) setStatus('waiting');
+    };
+    sock.onmessage = (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      const d = msg && msg.data;
+      if (!d || d.s !== sym) return;
+      lastMsgAt = Date.now();
+      if (!gotData) { gotData = true; el.notice.hidden = true; }
+      handle(d);
+    };
+    sock.onclose = () => { if (ws === sock) reconnectLater(); };
+  }
+
+  function reconnectLater() {
+    const delay = Math.min(30000, 1000 * 2 ** retry++);
+    retryAt = Date.now() + delay;
+    setStatus('reconnecting', ' · thử lại sau ' + Math.ceil(delay / 1000) + 's');
+    if (!gotData && retry >= 2) {
+      showNotice('Chưa kết nối được tới Binance (fstream.binance.com). Hãy kiểm tra mạng. Binance chặn truy cập từ một số khu vực như Mỹ, nên nếu đang dùng VPN thì thử đổi vị trí.');
+    }
+    retryTimer = setTimeout(connect, delay);
+  }
+
+  async function loadFundingInterval(forSym) {
+    intervalH = 8;
+    intervalKnown = false;
+    try {
+      const r = await fetch(REST_BASE + '/fapi/v1/fundingInfo', { cache: 'no-store' });
+      if (!r.ok) return;
+      const list = await r.json();
+      if (forSym !== sym) return;
+      const hit = Array.isArray(list) ? list.find((x) => x.symbol === forSym) : null;
+      intervalH = (hit && Number(hit.fundingIntervalHours)) || 8;
+      intervalKnown = true;
+      schedule();
+    } catch (e) {
+      // Không lấy được thì giữ chu kỳ mặc định 8h
+    }
+  }
+
+  // ---------- Dữ liệu ----------
+  function handle(d) {
+    switch (d.e) {
+      case 'markPriceUpdate':
+        s.mark = +d.p; s.index = +d.i; s.rate = +d.r; s.next = +d.T; s.E = d.E;
+        s.series.push({ t: d.E, m: s.mark, i: s.index });
+        if (s.series.length > MAX_POINTS) s.series.shift();
+        chartDirty = true;
+        break;
+      case 'aggTrade':
+        s.last = +d.p; s.E = d.E;
+        break;
+      case '24hrTicker':
+        s.chgPct = +d.P;
+        if (s.last == null) s.last = +d.c;
+        break;
+    }
+    schedule();
+  }
+
+  function schedule() {
+    if (frame) return;
+    // Tab ẩn thì requestAnimationFrame không chạy, dùng timer để tiêu đề tab vẫn cập nhật giá
+    frame = document.hidden ? setTimeout(render, 500) : requestAnimationFrame(render);
+  }
+
+  function render() {
+    frame = 0;
+    if (s.last != null) {
+      el.last.textContent = fmt2.format(s.last);
+      if (prevLast != null && s.last !== prevLast) flash(s.last > prevLast ? 'up' : 'down');
+      prevLast = s.last;
+      document.title = fmt2.format(s.last) + ' · ' + sym + ' | Gold Perp Live';
+    }
+    if (s.chgPct != null) {
+      el.chg.textContent = signed(s.chgPct, 2) + '% trong 24h';
+      el.chg.dataset.dir = dir(s.chgPct);
+    }
+    if (s.mark != null) {
+      el.mark.textContent = fmt2.format(s.mark);
+      el.index.textContent = fmt2.format(s.index);
+      const basis = s.mark - s.index;
+      const prem = (basis / s.index) * 100;
+      el.basis.textContent = signed(basis, 2);
+      el.basis.dataset.dir = dir(basis);
+      el.premium.textContent = basis === 0
+        ? 'Mark bằng index'
+        : 'Mark ' + (basis > 0 ? 'cao' : 'thấp') + ' hơn index ' + Math.abs(prem).toFixed(3) + '%';
+      el.rate.textContent = signed(s.rate * 100, 4) + '%';
+      el.payer.textContent = s.rate > 0 ? 'Long trả Short' : s.rate < 0 ? 'Short trả Long' : '';
+      const annual = s.rate * (24 / intervalH) * 365 * 100;
+      el.annual.textContent = '≈ ' + signed(annual, 2) + '%/năm · chu kỳ ' + intervalH + 'h' + (intervalKnown ? '' : ' (mặc định)');
+      renderCountdown(Date.now());
+    }
+    if (s.E) el.updated.textContent = clock(s.E);
+    if (chartDirty) { chartDirty = false; drawChart(); }
+  }
+
+  function flash(d) {
+    el.last.classList.remove('up', 'down');
+    el.last.classList.add(d);
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => el.last.classList.remove('up', 'down'), 250);
+  }
+
+  function renderCountdown(now) {
+    if (!s.next) return;
+    const ms = Math.max(0, s.next - now);
+    const h = Math.floor(ms / 3.6e6), m = Math.floor((ms % 3.6e6) / 6e4), sec = Math.floor((ms % 6e4) / 1000);
+    el.countdown.textContent = pad(h) + ':' + pad(m) + ':' + pad(sec);
+    el.nextAt.textContent = '(lúc ' + new Date(s.next).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false }) + ')';
+  }
+
+  function tick() {
+    const now = Date.now();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      if (!gotData) {
+        if (openedAt && now - openedAt > NO_DATA_MS) {
+          setStatus('nodata');
+          showNotice('Đã kết nối nhưng chưa nhận được dữ liệu cho ' + sym + ' sau 10 giây. Mã hợp đồng có thể đã đổi hoặc thị trường đang tạm dừng giao dịch.');
+        }
+      } else {
+        const age = now - lastMsgAt;
+        if (age > DEAD_MS) connect();
+        else setStatus(age > STALE_MS ? 'stale' : 'live');
+      }
+    } else if (el.status.dataset.state === 'reconnecting') {
+      setStatus('reconnecting', ' · thử lại sau ' + Math.max(0, Math.ceil((retryAt - now) / 1000)) + 's');
+    }
+    renderCountdown(now);
+  }
+
+  // ---------- Biểu đồ ----------
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  }
+
+  function drawChart() {
+    const c = el.chart;
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const pts = s.series;
+    el.chartNote.textContent = pts.length < 2
+      ? 'Đang thu thập dữ liệu. Biểu đồ bắt đầu từ lúc mở trang.'
+      : 'Ghi từ lúc mở trang, giữ 15 phút gần nhất (' + pts.length + ' điểm, mỗi giây một điểm).';
+    if (pts.length < 2) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    const L = 2, R = 76, T = 10, B = 24;
+    const pw = w - L - R, ph = h - T - B;
+
+    let lo = Infinity, hi = -Infinity;
+    for (const p of pts) { lo = Math.min(lo, p.m, p.i); hi = Math.max(hi, p.m, p.i); }
+    if (hi - lo < 0.4) { const mid = (hi + lo) / 2; lo = mid - 0.2; hi = mid + 0.2; }
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t, span = Math.max(t1 - t0, 1);
+    const X = (t) => L + ((t - t0) / span) * pw;
+    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
+    const end = pts[pts.length - 1];
+    const endY = Y(end.m);
+
+    // Lưới và nhãn trục giá
+    ctx.font = '11px ' + tok('--mono');
+    ctx.lineWidth = 1;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    for (let v = lo; v <= hi + step / 2; v += step) {
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.strokeStyle = tok('--line');
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      if (Math.abs(y - endY) > 14) {
+        ctx.fillStyle = tok('--muted');
+        ctx.fillText(fmt2.format(v), L + pw + 8, y);
+      }
+    }
+
+    // Nhãn thời gian
+    ctx.fillStyle = tok('--muted');
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillText(clock(t0), L, h - 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(clock(t1), L + pw, h - 6);
+
+    // Vùng dưới đường mark
+    const grad = ctx.createLinearGradient(0, T, 0, T + ph);
+    grad.addColorStop(0, tok('--gold-fill'));
+    grad.addColorStop(1, tok('--gold-fill0'));
+    ctx.beginPath();
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.m)) : ctx.moveTo(X(p.t), Y(p.m))));
+    ctx.lineTo(X(t1), T + ph); ctx.lineTo(X(t0), T + ph); ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Đường index (nét đứt)
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = tok('--idx');
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.i)) : ctx.moveTo(X(p.t), Y(p.i))));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Đường mark
+    ctx.strokeStyle = tok('--gold');
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.m)) : ctx.moveTo(X(p.t), Y(p.m))));
+    ctx.stroke();
+
+    // Điểm cuối và nhãn giá mark hiện tại
+    ctx.fillStyle = tok('--gold');
+    ctx.beginPath(); ctx.arc(X(end.t), endY, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(L + pw + 3, endY - 9, R - 5, 18);
+    ctx.fillStyle = tok('--surface');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(fmt2.format(end.m), L + pw + 8, endY + 0.5);
+  }
+
+  // ---------- Chọn hợp đồng ----------
+  function resetView() {
+    [el.last, el.mark, el.index, el.basis, el.premium, el.rate, el.annual, el.chg, el.updated].forEach((n) => {
+      n.textContent = '—';
+      delete n.dataset.dir;
+    });
+    el.payer.textContent = '';
+    el.countdown.textContent = '--:--:--';
+    el.nextAt.textContent = '';
+    el.last.classList.remove('up', 'down');
+    document.title = 'Gold Perp Live';
+  }
+
+  function setSymbol(next) {
+    if (next === sym) return;
+    sym = next;
+    try { localStorage.setItem('gold-perp-live.symbol', sym); } catch (e) { /* bỏ qua */ }
+    s = fresh();
+    prevLast = null; gotData = false; retry = 0; chartDirty = true;
+    el.notice.hidden = true;
+    el.seg.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.sym === sym)));
+    el.symNote.textContent = SYMBOLS[sym];
+    resetView();
+    drawChart();
+    loadFundingInterval(sym);
+    connect();
+  }
+
+  el.seg.forEach((b) => b.addEventListener('click', () => setSymbol(b.dataset.sym)));
+
+  const redraw = () => { chartDirty = true; schedule(); };
+  if ('ResizeObserver' in window) new ResizeObserver(redraw).observe(el.chart);
+  else window.addEventListener('resize', redraw);
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', redraw);
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) redraw(); });
+
+  let saved = null;
+  try { saved = localStorage.getItem('gold-perp-live.symbol'); } catch (e) { /* bỏ qua */ }
+  setSymbol(SYMBOLS[saved] ? saved : 'XAUUSDT');
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
