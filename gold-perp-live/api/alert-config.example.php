@@ -1,6 +1,6 @@
 <?php
 /**
- * Cấu hình cảnh báo XAUUSDT − giá forex qua ntfy.sh.
+ * Cấu hình cảnh báo qua ntfy.sh: XAUUSDT Bybit − forex và PAXGUSDT Binance − forex.
  * Chép file này thành alert-config.php (cùng thư mục) rồi sửa.
  * Khi cập nhật tool, đừng ghi đè alert-config.php để giữ cấu hình của bạn.
  */
@@ -11,9 +11,11 @@ return [
     'ntfy_server' => 'https://ntfy.sh',
     'ntfy_token' => '',      // chỉ cần khi kênh có mật khẩu hoặc dùng server ntfy riêng
 
-    'high' => 7,             // báo khi XAUUSDT − forex >= số này (USDT)
-    'low' => 2,              // báo khi XAUUSDT − forex < số này (USDT)
-    'gap' => 0.5,            // phải ra khỏi vùng bấy nhiêu USDT mới báo lại
+    'high' => 7,             // báo khi XAUUSDT Bybit − forex >= số này (USDT)
+    'low' => 2,              // báo khi XAUUSDT Bybit − forex < số này (USDT)
+    'paxg_high' => 20,       // báo khi PAXGUSDT Binance − forex >= số này (USDT)
+    'paxg_low' => -20,       // báo khi PAXGUSDT Binance − forex < số này (USDT)
+    'gap' => 0.5,            // phải ra khỏi vùng bấy nhiêu USDT mới báo lại (cả hai cảnh báo)
 
     // Chỉ cần khi cron gọi qua link web (curl/wget): đặt một chuỗi bí mật
     // rồi thêm ?key=chuỗi-đó vào link. Để trống thì chỉ chạy được bằng lệnh php.

@@ -14,9 +14,10 @@ function spread_read() {
     return is_array($rows) ? $rows : [];
 }
 
-// Mỗi giờ một dòng: giá lần ghi cuối trong giờ (xau, paxg, fx) và cao nhất / thấp nhất
-// của XAU − forex và PAXG − forex trong giờ, để thấy cả các lần giãn ngắn.
-function spread_log($t, $xau, $paxg, $fx) {
+// Mỗi giờ một dòng: giá lần ghi cuối trong giờ (xau, paxg, fx, và bybit là XAUUSDT Bybit)
+// và cao nhất / thấp nhất của XAU − forex, PAXG − forex, Bybit XAU − forex trong giờ,
+// để thấy cả các lần giãn ngắn.
+function spread_log($t, $xau, $paxg, $fx, $bybit = null) {
     $rows = spread_read();
     $h = (int) (floor($t / 3600000) * 3600000);
     $last = $rows ? $rows[count($rows) - 1] : null;
@@ -29,12 +30,15 @@ function spread_log($t, $xau, $paxg, $fx) {
     $row['t'] = (int) $t;
     $row['xau'] = $xau === null ? null : round($xau, 3);
     $row['paxg'] = $paxg === null ? null : round($paxg, 3);
+    $row['bybit'] = $bybit === null ? null : round($bybit, 3);
     $row['fx'] = round($fx, 3);
-    foreach (['xf' => $xau, 'pf' => $paxg] as $key => $price) {
+    foreach (['xf' => $xau, 'pf' => $paxg, 'bf' => $bybit] as $key => $price) {
         if ($price === null) continue;
         $d = round($price - $fx, 3);
-        $row[$key . 'Max'] = $row[$key . 'Max'] === null ? $d : max($row[$key . 'Max'], $d);
-        $row[$key . 'Min'] = $row[$key . 'Min'] === null ? $d : min($row[$key . 'Min'], $d);
+        $max = isset($row[$key . 'Max']) ? $row[$key . 'Max'] : null;
+        $min = isset($row[$key . 'Min']) ? $row[$key . 'Min'] : null;
+        $row[$key . 'Max'] = $max === null ? $d : max($max, $d);
+        $row[$key . 'Min'] = $min === null ? $d : min($min, $d);
     }
     $rows[] = $row;
     $cut = (time() - SPREAD_KEEP_DAYS * 86400) * 1000;

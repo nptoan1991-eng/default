@@ -2,6 +2,8 @@
 /**
  * Giá và funding các hợp đồng vàng trên Bybit và Hyperliquid cho khung "Funding 3 sàn"
  * (Binance do trang tự lấy). Đi qua host để trình duyệt không bị chặn và gom về một định dạng.
+ * Tab XAUUSDT cũng dùng file này: lịch sử funding Bybit 14 ngày (kèm mark lúc chốt từng kỳ),
+ * và giá/funding Bybit dự phòng khi WebSocket của Bybit chưa kết nối được.
  *
  * - Bybit: XAUUSDT, PAXGUSDT (REST v5, funding theo chu kỳ của từng mã, thường 8 giờ)
  * - Hyperliquid: xyz:GOLD (thị trường HIP-3 của TradeXYZ), PAXG (funding mỗi giờ)
@@ -109,7 +111,32 @@ function hl_live($coin, $dex, $ctxs) {
     return null;
 }
 
-// Lịch sử funding Bybit: tối đa 200 dòng mỗi lần, mới nhất trước, lùi dần endTime
+// Mark price Bybit theo giờ (nến 60 phút, tối đa 1000 nến mỗi lần, mới nhất trước):
+// giờ bắt đầu => giá mở nến, tức mark lúc chốt funding đúng giờ đó
+function bybit_marks($symbol, $start, &$debug) {
+    $k = ex_log($debug, 'bybit_mark_' . $symbol);
+    $out = [];
+    $end = fx_now_ms();
+    for ($page = 0; $page < 5; $page++) {
+        $raw = fx_fetch(EX_BYBIT . '/v5/market/mark-price-kline?category=linear&symbol=' . $symbol . '&interval=60&start=' . $start . '&end=' . $end . '&limit=1000', $debug[$k]);
+        $json = $raw !== false ? json_decode($raw, true) : null;
+        $list = isset($json['result']['list']) && is_array($json['result']['list']) ? $json['result']['list'] : [];
+        if (!$list) break;
+        $oldest = PHP_INT_MAX;
+        foreach ($list as $r) {
+            if (!isset($r[0], $r[1]) || !is_numeric($r[1])) continue;
+            $t = (int) $r[0];
+            $out[$t] = (float) $r[1];
+            $oldest = min($oldest, $t);
+        }
+        if (count($list) < 1000 || $oldest <= $start) break;
+        $end = $oldest - 1;
+    }
+    return $out;
+}
+
+// Lịch sử funding Bybit: tối đa 200 dòng mỗi lần, mới nhất trước, lùi dần endTime.
+// Mỗi kỳ trả [thời điểm, rate, mark lúc chốt]; thiếu mark thì phần tử thứ ba là null.
 function bybit_hist($symbol, $start, &$debug) {
     $k = ex_log($debug, 'bybit_hist_' . $symbol);
     $out = [];
@@ -129,8 +156,15 @@ function bybit_hist($symbol, $start, &$debug) {
         if (count($list) < 200 || $oldest <= $start) break;
         $end = $oldest - 1;
     }
+    if (!$out) return null;
     ksort($out);
-    return $out ? array_map(null, array_keys($out), array_values($out)) : null;
+    $marks = bybit_marks($symbol, $start - 3600000, $debug);
+    $rows = [];
+    foreach ($out as $t => $rate) {
+        $h = (int) (floor($t / 3600000) * 3600000);
+        $rows[] = [$t, $rate, isset($marks[$h]) ? $marks[$h] : null];
+    }
+    return $rows;
 }
 
 // Lịch sử funding Hyperliquid: mỗi giờ một dòng, tối đa 500 dòng mỗi lần
@@ -224,8 +258,17 @@ $hist = null;
 if ($days) {
     $cache = ex_read(EX_HIST_FILE);
     $key = (string) $days;
-    if ($DEBUG || !isset($cache[$key]['at']) || fx_now_ms() - $cache[$key]['at'] > EX_HIST_TTL_MS) {
+    $now = fx_now_ms();
+    // Hết hạn sau 30 phút, hoặc sớm hơn khi Bybit vừa chốt một kỳ funding (để có ngay kỳ mới)
+    $stale = !isset($cache[$key]['at']) || $now - $cache[$key]['at'] > EX_HIST_TTL_MS
+        || (!empty($cache[$key]['due']) && $now >= $cache[$key]['due'] + 30000);
+    if ($DEBUG || $stale) {
         $cache[$key] = ex_refresh_hist($days, $debug);
+        $due = null;
+        foreach ($live['live'] as $k => $v) {
+            if (strpos($k, 'bybit:') === 0 && !empty($v['next']) && $v['next'] > $now) $due = $due === null ? $v['next'] : min($due, $v['next']);
+        }
+        $cache[$key]['due'] = $due;
         ex_write(EX_HIST_FILE, $cache);
     }
     $hist = $cache[$key];
