@@ -1,6 +1,9 @@
 # Gold Perp Live
 
-Dashboard xem dữ liệu live của hợp đồng vàng vĩnh cửu trên Binance USDⓈ-M Futures (`XAUUSDT`, `PAXGUSDT`).
+Dashboard xem dữ liệu live của hợp đồng vàng vĩnh cửu, gồm 2 tab:
+
+- **XAUUSDT Binance**: giá khớp, mark price, funding và đếm ngược, funding theo vị thế, SJC so với thế giới, lịch sử funding 14 ngày.
+- **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU / PAXG / forex kèm cảnh báo và phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 ## Cách dùng
 
@@ -17,14 +20,15 @@ gold-perp-live/
     ├── alert-check.php cảnh báo XAU − forex qua ntfy và ghi chênh lệch theo giờ, chạy bằng cron
     ├── alert-config.example.php   cấu hình mẫu cho cảnh báo
     ├── spread-lib.php  ghi nhật ký XAU/PAXG − giá Swissquote theo giờ
-    └── spread-history.php   đọc nhật ký đó cho trang
+    ├── spread-history.php   đọc nhật ký đó cho trang
+    └── exchanges.php   giá và funding hợp đồng vàng trên Bybit và Hyperliquid
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) và `spread_history.json` (chênh lệch theo giờ) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
-Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho lần mở sau.
+Trang nhớ tab mở gần nhất. Link có `#so-sanh` mở thẳng tab So sánh.
 
 ## Dữ liệu hiển thị
 
@@ -46,6 +50,20 @@ Lấy từ REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate,
 - Số liệu tính cho bên Short: dương là nhận, âm là trả. Bên Long luôn ngược dấu vì funding chỉ chuyển giữa hai bên. Tổng mỗi ngày là số ròng.
 - Ngày chia theo giờ máy, 14 ngày gồm hôm nay. Cột của hôm nay vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
 - Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT) hoặc theo từng kỳ (rate, mark lúc chốt, USDT).
+
+## Funding 3 sàn
+
+Tab So sánh. Bảng live chia theo tài sản gốc:
+
+| Nhóm | Binance | Bybit | Hyperliquid |
+| --- | --- | --- | --- |
+| Vàng giao ngay | XAUUSDT | XAUUSDT | xyz:GOLD (thị trường HIP-3 của TradeXYZ) |
+| Token PAXG | PAXGUSDT | PAXGUSDT | PAXG |
+
+- Binance lấy trực tiếp (`/fapi/v1/premiumIndex`, `/fapi/v1/fundingRate`). Bybit (`/v5/market/tickers`, `/v5/market/funding/history`) và Hyperliquid (`metaAndAssetCtxs`, `fundingHistory`) lấy qua `api/exchanges.php` trên host, cache 30 giây cho số liệu hiện tại và 30 phút cho lịch sử. Host phải truy cập được Bybit và Hyperliquid (Bybit chặn IP Mỹ).
+- Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên bảng quy về **cùng 8 giờ** và **theo năm**. Có thêm USDT/ngày cho khối lượng đang nhập (bên Short), kỳ funding tới, giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là funding quy năm cao nhất trong nhóm.
+- Lịch sử 7 hoặc 30 ngày: funding thực tế trung bình quy năm của từng hợp đồng, và biểu đồ tổng funding mỗi ngày của 3 sàn cho từng nhóm.
+- Kiểm tra: mở `api/exchanges.php?debug=1` để xem dữ liệu thô từng lần gọi Bybit và Hyperliquid. Nếu sàn nào đổi định dạng, gửi nội dung trang debug để sửa.
 
 ## So sánh funding XAUUSDT và PAXGUSDT
 

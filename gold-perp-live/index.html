@@ -20,6 +20,7 @@
   --gold-fill0: rgba(140, 104, 18, 0);
   --idx: #7A8287;
   --blue: #2E68AE;
+  --violet: #7B4FB8;
   --up: #0E7A46;
   --down: #BF2E29;
   --warn: #A95A08;
@@ -40,6 +41,7 @@
     --gold-fill0: rgba(214, 176, 90, 0);
     --idx: #858C91;
     --blue: #6FA6E6;
+  --violet: #B596EA;
     --up: #3CC47F;
     --down: #EF625B;
     --warn: #EEA24E;
@@ -58,6 +60,7 @@
   --gold-fill0: rgba(214, 176, 90, 0);
   --idx: #858C91;
   --blue: #6FA6E6;
+  --violet: #B596EA;
   --up: #3CC47F;
   --down: #EF625B;
   --warn: #EEA24E;
@@ -239,6 +242,25 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .bs-block .sub-h { margin: 0; font: 600 13.5px var(--mono); letter-spacing: 0.02em; }
 .bs-wrap { position: relative; margin-top: 10px; }
 .bs-wrap canvas { height: 200px; margin-top: 0; touch-action: pan-y; }
+.main-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.main-tabs button {
+  border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; cursor: pointer;
+  padding: 10px 14px; font: 600 14.5px var(--sans); color: var(--muted); white-space: nowrap;
+}
+.main-tabs button:hover { color: var(--ink); }
+.main-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+.tab-page { display: grid; gap: 18px; }
+/* Cho phép các khung co lại để bảng rộng tự cuộn ngang bên trong, không kéo rộng cả trang */
+.wrap > *, .tab-page > * { min-width: 0; }
+.ex-table tr.grp td { padding-top: 14px; font: 600 12px var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); text-align: left; }
+.ex-table td.best { font-weight: 700; color: var(--gold); }
+/* Tên hợp đồng đứng yên khi cuộn ngang bảng trên điện thoại */
+.ex-table th:first-child, .ex-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.ex-legend { margin-top: 8px; }
+.ex-legend .eb::before { border-top-color: var(--gold); }
+.ex-legend .ey::before { border-top-color: var(--blue); }
+.ex-legend .eh::before { border-top-color: var(--violet); }
+#tab-so-sanh .sub-h { margin-top: 18px; }
 .drill-legend { margin-top: 10px; flex-wrap: wrap; }
 .drill-legend .dp::before { border-top-color: var(--blue); }
 .drill-legend .dt::before { border-top: 2px dashed var(--muted); }
@@ -295,10 +317,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
     </div>
     <div class="controls">
-      <div class="seg" role="radiogroup" aria-label="Chọn hợp đồng">
-        <button type="button" id="sym-xau" role="radio" data-sym="XAUUSDT" aria-checked="true">XAUUSDT</button>
-        <button type="button" id="sym-paxg" role="radio" data-sym="PAXGUSDT" aria-checked="false">PAXGUSDT</button>
-      </div>
       <span class="pill" id="status" data-state="connecting" role="status"><i></i><span id="statusText">Đang kết nối</span></span>
     </div>
   </header>
@@ -309,235 +327,275 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <button type="button" class="linkbtn" id="alertClose">Đóng</button>
   </div>
 
-  <section class="hero" aria-label="Giá khớp gần nhất">
-    <div>
-      <div class="label">Giá khớp gần nhất · USDT / troy oz</div>
-      <div class="price" id="last">—</div>
-      <div class="hero-meta">
-        <span class="chg" id="chg">—</span>
-        <span id="symNote">Giá USDT cho 1 troy ounce vàng</span>
-      </div>
-    </div>
-  </section>
+  <nav class="main-tabs" role="tablist" aria-label="Phần của trang">
+    <button type="button" id="tab-btn-xau" role="tab" data-tab="xau" aria-controls="tab-xau" aria-selected="true">XAUUSDT Binance</button>
+    <button type="button" id="tab-btn-so-sanh" role="tab" data-tab="so-sanh" aria-controls="tab-so-sanh" aria-selected="false">So sánh</button>
+  </nav>
 
-  <section class="stats" aria-label="Mark price và funding">
-    <article class="stat">
-      <div class="label">Mark price</div>
-      <div class="v" id="mark">—</div>
-      <div class="s">Giá dùng tính PnL và thanh lý</div>
-    </article>
-    <article class="stat">
-      <div class="label">Funding rate</div>
-      <div class="row"><span class="v" id="rate">—</span><span class="chip" id="payer"></span></div>
-      <div class="s" id="annual">—</div>
-      <div class="s">Funding tiếp theo sau <span class="count" id="countdown">--:--:--</span> <span id="nextAt"></span></div>
-    </article>
-    <article class="stat wide">
-      <div class="pos-head">
-        <div class="label">Funding theo vị thế</div>
-        <label class="qty" for="qty">Khối lượng <input id="qty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-        <span class="chip" id="receiver"></span>
+  <div class="tab-page" id="tab-xau" role="tabpanel" aria-labelledby="tab-btn-xau">
+    <section class="hero" aria-label="Giá khớp gần nhất">
+      <div>
+        <div class="label">Giá khớp gần nhất · USDT / troy oz</div>
+        <div class="price" id="last">—</div>
+        <div class="hero-meta">
+          <span class="chg" id="chg">—</span>
+          <span id="symNote">Giá USDT cho 1 troy ounce vàng</span>
+        </div>
       </div>
-      <div class="pos-grid">
-        <div><div class="s">Mỗi lần funding (<span id="perLabel">8h</span>)</div><div class="v"><span id="perFunding">—</span><small>USDT</small></div></div>
-        <div><div class="s">Mỗi ngày (<span id="perDayCount">3</span> lần)</div><div class="v"><span id="perDay">—</span><small>USDT</small></div></div>
-        <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="perYear">—</span><small>USDT</small></div></div>
-      </div>
-      <div class="s" id="posNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-    </article>
-  </section>
+    </section>
 
-  <section class="panel" aria-label="Chênh lệch giá XAUUSDT với PAXGUSDT và forex">
-    <div class="panel-head">
-      <h2>Chênh lệch giá</h2>
-      <span class="chip" id="fxState"></span>
-    </div>
-    <p class="note" id="spMeta">So theo giá khớp gần nhất trên Binance và giá XAU/USD của Swissquote (giữa bid và ask).</p>
-    <div class="hsum">
-      <div><div class="label">XAU − PAXG</div><div class="v lead"><span id="spXP">—</span><small>USDT</small></div><div class="s" id="spXPSub">—</div></div>
-      <div><div class="label">XAU − forex</div><div class="v lead"><span id="spXF">—</span><small>USDT</small></div><div class="s" id="spXFSub">—</div></div>
-      <div><div class="label">Khớp XAUUSDT / PAXGUSDT</div><div class="v"><span id="spX">—</span><small>/ <span id="spP">—</span></small></div><div class="s">Giá khớp gần nhất trên Binance</div></div>
-      <div><div class="label">Forex XAU/USD (giữa)</div><div class="v" id="fxMid">—</div><div class="s" id="fxMidSub">—</div></div>
-    </div>
+    <section class="stats" aria-label="Mark price và funding">
+      <article class="stat">
+        <div class="label">Mark price</div>
+        <div class="v" id="mark">—</div>
+        <div class="s">Giá dùng tính PnL và thanh lý</div>
+      </article>
+      <article class="stat">
+        <div class="label">Funding rate</div>
+        <div class="row"><span class="v" id="rate">—</span><span class="chip" id="payer"></span></div>
+        <div class="s" id="annual">—</div>
+        <div class="s">Funding tiếp theo sau <span class="count" id="countdown">--:--:--</span> <span id="nextAt"></span></div>
+      </article>
+      <article class="stat wide">
+        <div class="pos-head">
+          <div class="label">Funding theo vị thế</div>
+          <label class="qty" for="qty">Khối lượng <input id="qty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+          <span class="chip" id="receiver"></span>
+        </div>
+        <div class="pos-grid">
+          <div><div class="s">Mỗi lần funding (<span id="perLabel">8h</span>)</div><div class="v"><span id="perFunding">—</span><small>USDT</small></div></div>
+          <div><div class="s">Mỗi ngày (<span id="perDayCount">3</span> lần)</div><div class="v"><span id="perDay">—</span><small>USDT</small></div></div>
+          <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="perYear">—</span><small>USDT</small></div></div>
+        </div>
+        <div class="s" id="posNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+      </article>
+    </section>
 
-    <div class="alert-box">
-      <div class="alert-head">
-        <div class="label">Cảnh báo XAU − forex</div>
-        <label class="qty" for="alertHi">≥ <input id="alertHi" type="number" step="0.5" value="7" inputmode="decimal"> USDT</label>
-        <label class="qty" for="alertLo">hoặc &lt; <input id="alertLo" type="number" step="0.5" value="2" inputmode="decimal"> USDT</label>
-        <button type="button" class="linkbtn" id="alertToggle" aria-pressed="false">Bật cảnh báo</button>
-        <span class="chip" id="alertZone"></span>
-      </div>
-      <p class="note" id="alertNote"></p>
-      <ul class="alert-log" id="alertLog" hidden></ul>
-      <div class="alert-head alert-phone">
-        <div class="label">Điện thoại (ntfy)</div>
-        <button type="button" class="linkbtn" id="alertTest">Gửi thử lên điện thoại</button>
-      </div>
-      <p class="note" id="alertTestResult">Chạy trên host bằng cron nên vẫn báo khi đã tắt trang. Ngưỡng đặt trong api/alert-config.php, riêng với ngưỡng ở trên.</p>
-    </div>
-
-    <div class="bs-block">
+    <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
       <div class="panel-head">
-        <h3 class="sub-h">Chênh lệch theo giờ</h3>
-        <div class="seg" role="radiogroup" aria-label="Khoảng thời gian">
-          <button type="button" id="sp-7" role="radio" data-range="7" aria-checked="false">7 ngày</button>
-          <button type="button" id="sp-30" role="radio" data-range="30" aria-checked="true">30 ngày</button>
-          <button type="button" id="sp-90" role="radio" data-range="90" aria-checked="false">90 ngày</button>
-          <button type="button" id="sp-all" role="radio" data-range="all" aria-checked="false">Từ 05/01</button>
+        <h2>SJC so với thế giới</h2>
+        <span class="chip" id="premLevel"></span>
+      </div>
+      <p class="note" id="sjcMeta">Đang tải giá SJC…</p>
+      <div class="hsum">
+        <div>
+          <div class="label">Chênh lệch bán ra</div>
+          <div class="v lead"><span id="premSell">—</span><small>triệu/lượng</small></div>
+          <div class="s" id="premSellSub">SJC bán ra − giá thế giới quy đổi</div>
+        </div>
+        <div>
+          <div class="label">SJC bán ra / mua vào</div>
+          <div class="v"><span id="sjcSell">—</span><small>/ <span id="sjcBuy">—</span> triệu</small></div>
+          <div class="s" id="sjcUsd">—</div>
+        </div>
+        <div>
+          <div class="label">Thế giới quy đổi</div>
+          <div class="v"><span id="worldVnd">—</span><small>triệu/lượng</small></div>
+          <div class="s" id="worldSub">Giá khớp XAUUSDT × 1.20565 oz × tỷ giá</div>
+        </div>
+        <div>
+          <div class="label">Chênh lệch mua vào</div>
+          <div class="v"><span id="premBuy">—</span><small>triệu/lượng</small></div>
+          <div class="s" id="premBuySub">SJC mua vào − giá thế giới quy đổi</div>
+        </div>
+      </div>
+      <div class="range" id="premRange" hidden>
+        <div class="range-track"><span class="range-avg" id="rangeAvg"></span><span class="range-now" id="rangeNow"></span></div>
+        <div class="range-labels"><span id="rangeMin"></span><span id="rangeMid"></span><span id="rangeMax"></span></div>
+      </div>
+      <p class="note" id="premStats"></p>
+      <canvas id="premChart" aria-label="Biểu đồ chênh lệch bán ra của SJC so với thế giới"></canvas>
+      <p class="note" id="premNote"></p>
+    </section>
+
+    <section class="panel" aria-label="Lịch sử funding 14 ngày">
+      <div class="panel-head">
+        <h2>Lịch sử funding 14 ngày</h2>
+      </div>
+      <div class="hist-meta">
+        <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
+        <button type="button" class="linkbtn" id="histRetry" hidden>Tải lại</button>
+      </div>
+      <div class="hsum">
+        <div><div class="label">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
+        <div><div class="label">Trung bình mỗi ngày</div><div class="v"><span id="hAvgDay">—</span><small>USDT</small></div><div class="s" id="hAvgDaySub">—</div></div>
+        <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
+        <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
+      </div>
+      <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
+      <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
+        <button type="button" id="view-day" role="tab" data-view="day" aria-selected="true">Theo ngày</button>
+        <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
+      </div>
+      <div class="table-wrap"><table id="histTable"></table></div>
+    </section>
+  </div>
+
+  <div class="tab-page" id="tab-so-sanh" role="tabpanel" aria-labelledby="tab-btn-so-sanh" hidden>
+    <section class="panel" aria-label="So sánh funding 3 sàn">
+      <div class="panel-head">
+        <h2>Funding 3 sàn</h2>
+        <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
+          <button type="button" id="ex-7" role="radio" data-exdays="7" aria-checked="true">7 ngày</button>
+          <button type="button" id="ex-30" role="radio" data-exdays="30" aria-checked="false">30 ngày</button>
         </div>
       </div>
       <div class="hist-meta">
-        <p class="note" id="spHistMeta">Đang tải giá theo giờ…</p>
-        <button type="button" class="linkbtn" id="spRetry" hidden>Tải lại</button>
+        <p class="note" id="exMeta">Đang tải giá và funding của 3 sàn…</p>
+        <button type="button" class="linkbtn" id="exRetry" hidden>Tải lại</button>
       </div>
-      <p class="note"><strong>Bấm vào một điểm trên biểu đồ</strong> để phân tích từng phút quanh thời điểm đó và xem chênh lệch đến từ đâu.</p>
-    </div>
-    <div class="bs-block">
-      <h3 class="sub-h">XAU − PAXG</h3>
-      <div class="hsum">
-        <div><div class="label">XAU cao hơn PAXG</div><div class="v" id="spPos_xp">—</div><div class="s" id="spPosSub_xp">—</div></div>
-        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_xp">—</span><small>USDT</small></div><div class="s" id="spAvgSub_xp">—</div></div>
-        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_xp">—</span><small>USDT</small></div><div class="s" id="spMaxSub_xp">—</div></div>
-        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_xp">—</span><small>USDT</small></div><div class="s" id="spMinSub_xp">—</div></div>
-      </div>
-      <p class="note" id="spBand_xp"></p>
+      <div class="table-wrap"><table id="exTable" class="ex-table"></table></div>
+      <p class="note">Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên funding được quy về cùng 8 giờ và theo năm để so sánh. USDT/ngày tính cho khối lượng ở mục Funding theo vị thế (tab XAUUSDT Binance), cho bên Short: dương là nhận, âm là trả. Ô tô đậm là funding quy năm cao nhất trong nhóm. TB là funding thực tế trung bình của khoảng đã chọn, quy theo năm. Trên điện thoại, kéo ngang bảng để xem các cột còn lại.</p>
+      <h3 class="sub-h">Funding mỗi ngày · Vàng giao ngay</h3>
+      <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span></div>
       <div class="bs-wrap">
-        <canvas id="spChart_xp" aria-label="Biểu đồ XAUUSDT trừ PAXGUSDT theo giờ"></canvas>
-        <div class="bs-guide" id="spGuide_xp" hidden></div>
-        <div class="bs-tip" id="spTip_xp" hidden></div>
+        <canvas id="exChart_gold" aria-label="Biểu đồ funding mỗi ngày của hợp đồng vàng giao ngay trên 3 sàn"></canvas>
+        <div class="bs-guide" id="exGuide_gold" hidden></div>
+        <div class="bs-tip" id="exTip_gold" hidden></div>
       </div>
-      <p class="note">XAUUSDT trừ PAXGUSDT tại giá đóng mỗi giờ. Trên 0 (xanh) là XAUUSDT cao hơn, dưới 0 (đỏ) là thấp hơn. Rê chuột hoặc chạm để xem từng giờ.</p>
-    </div>
-    <div class="bs-block">
-      <h3 class="sub-h">XAU − forex</h3>
-      <div class="hsum">
-        <div><div class="label">XAU cao hơn vàng giao ngay</div><div class="v" id="spPos_xf">—</div><div class="s" id="spPosSub_xf">—</div></div>
-        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_xf">—</span><small>USDT</small></div><div class="s" id="spAvgSub_xf">—</div></div>
-        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_xf">—</span><small>USDT</small></div><div class="s" id="spMaxSub_xf">—</div></div>
-        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_xf">—</span><small>USDT</small></div><div class="s" id="spMinSub_xf">—</div></div>
-      </div>
-      <p class="note" id="spBand_xf"></p>
+      <h3 class="sub-h">Funding mỗi ngày · Token PAXG</h3>
+      <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span></div>
       <div class="bs-wrap">
-        <canvas id="spChart_xf" aria-label="Biểu đồ XAUUSDT trừ giá vàng giao ngay theo giờ"></canvas>
-        <div class="bs-guide" id="spGuide_xf" hidden></div>
-        <div class="bs-tip" id="spTip_xf" hidden></div>
+        <canvas id="exChart_paxg" aria-label="Biểu đồ funding mỗi ngày của hợp đồng PAXG trên 3 sàn"></canvas>
+        <div class="bs-guide" id="exGuide_paxg" hidden></div>
+        <div class="bs-tip" id="exTip_paxg" hidden></div>
       </div>
-      <p class="note">XAUUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
-    </div>
-    <div class="bs-block">
-      <h3 class="sub-h">PAXG − forex</h3>
-      <div class="hsum">
-        <div><div class="label">PAXG cao hơn vàng giao ngay</div><div class="v" id="spPos_pf">—</div><div class="s" id="spPosSub_pf">—</div></div>
-        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_pf">—</span><small>USDT</small></div><div class="s" id="spAvgSub_pf">—</div></div>
-        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_pf">—</span><small>USDT</small></div><div class="s" id="spMaxSub_pf">—</div></div>
-        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_pf">—</span><small>USDT</small></div><div class="s" id="spMinSub_pf">—</div></div>
-      </div>
-      <p class="note" id="spBand_pf"></p>
-      <div class="bs-wrap">
-        <canvas id="spChart_pf" aria-label="Biểu đồ PAXGUSDT trừ giá vàng giao ngay theo giờ"></canvas>
-        <div class="bs-guide" id="spGuide_pf" hidden></div>
-        <div class="bs-tip" id="spTip_pf" hidden></div>
-      </div>
-      <p class="note">PAXGUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
-    </div>
-    <div class="bs-block" id="drill" hidden>
+      <p class="note">Mỗi điểm là tổng funding rate trong một ngày theo giờ máy, không tính hôm nay vì chưa đủ kỳ. Rê chuột hoặc chạm để xem từng ngày.</p>
+    </section>
+
+    <section class="panel" aria-label="Chênh lệch giá XAUUSDT với PAXGUSDT và forex">
       <div class="panel-head">
-        <h3 class="sub-h" id="drillTitle">Phân tích</h3>
-        <button type="button" class="linkbtn" id="drillClose">Đóng phân tích</button>
+        <h2>Chênh lệch giá</h2>
+        <span class="chip" id="fxState"></span>
       </div>
-      <p class="note" id="drillMeta"></p>
-      <p class="drill-verdict" id="drillVerdict"></p>
-      <div class="legend drill-legend"><span class="dx">XAUUSDT</span><span class="dp">PAXGUSDT</span><span class="dt">Token PAXG</span><span class="dz">0 = vàng giao ngay</span></div>
-      <div class="bs-wrap">
-        <canvas id="drillChart" aria-label="Biểu đồ từng phút: các giá trừ giá vàng giao ngay"></canvas>
-        <div class="bs-guide" id="drillGuide" hidden></div>
-        <div class="bs-tip" id="drillTip" hidden></div>
+      <p class="note" id="spMeta">So theo giá khớp gần nhất trên Binance và giá XAU/USD của Swissquote (giữa bid và ask).</p>
+      <div class="hsum">
+        <div><div class="label">XAU − PAXG</div><div class="v lead"><span id="spXP">—</span><small>USDT</small></div><div class="s" id="spXPSub">—</div></div>
+        <div><div class="label">XAU − forex</div><div class="v lead"><span id="spXF">—</span><small>USDT</small></div><div class="s" id="spXFSub">—</div></div>
+        <div><div class="label">Khớp XAUUSDT / PAXGUSDT</div><div class="v"><span id="spX">—</span><small>/ <span id="spP">—</span></small></div><div class="s">Giá khớp gần nhất trên Binance</div></div>
+        <div><div class="label">Forex XAU/USD (giữa)</div><div class="v" id="fxMid">—</div><div class="s" id="fxMidSub">—</div></div>
       </div>
-      <p class="note">Mỗi đường là một giá trừ đi giá vàng giao ngay (index XAUUSDT), từng phút. Khoảng cách giữa đường XAUUSDT và PAXGUSDT chính là XAU − PAXG. Vạch đứt đứng là phút chênh XAU − PAXG lớn nhất.</p>
-      <div class="table-wrap"><table id="drillTable"></table></div>
-    </div>
-  </section>
 
-  <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
-    <div class="panel-head">
-      <h2>SJC so với thế giới</h2>
-      <span class="chip" id="premLevel"></span>
-    </div>
-    <p class="note" id="sjcMeta">Đang tải giá SJC…</p>
-    <div class="hsum">
-      <div>
-        <div class="label">Chênh lệch bán ra</div>
-        <div class="v lead"><span id="premSell">—</span><small>triệu/lượng</small></div>
-        <div class="s" id="premSellSub">SJC bán ra − giá thế giới quy đổi</div>
+      <div class="alert-box">
+        <div class="alert-head">
+          <div class="label">Cảnh báo XAU − forex</div>
+          <label class="qty" for="alertHi">≥ <input id="alertHi" type="number" step="0.5" value="7" inputmode="decimal"> USDT</label>
+          <label class="qty" for="alertLo">hoặc &lt; <input id="alertLo" type="number" step="0.5" value="2" inputmode="decimal"> USDT</label>
+          <button type="button" class="linkbtn" id="alertToggle" aria-pressed="false">Bật cảnh báo</button>
+          <span class="chip" id="alertZone"></span>
+        </div>
+        <p class="note" id="alertNote"></p>
+        <ul class="alert-log" id="alertLog" hidden></ul>
+        <div class="alert-head alert-phone">
+          <div class="label">Điện thoại (ntfy)</div>
+          <button type="button" class="linkbtn" id="alertTest">Gửi thử lên điện thoại</button>
+        </div>
+        <p class="note" id="alertTestResult">Chạy trên host bằng cron nên vẫn báo khi đã tắt trang. Ngưỡng đặt trong api/alert-config.php, riêng với ngưỡng ở trên.</p>
       </div>
-      <div>
-        <div class="label">SJC bán ra / mua vào</div>
-        <div class="v"><span id="sjcSell">—</span><small>/ <span id="sjcBuy">—</span> triệu</small></div>
-        <div class="s" id="sjcUsd">—</div>
-      </div>
-      <div>
-        <div class="label">Thế giới quy đổi</div>
-        <div class="v"><span id="worldVnd">—</span><small>triệu/lượng</small></div>
-        <div class="s" id="worldSub">Giá khớp XAUUSDT × 1.20565 oz × tỷ giá</div>
-      </div>
-      <div>
-        <div class="label">Chênh lệch mua vào</div>
-        <div class="v"><span id="premBuy">—</span><small>triệu/lượng</small></div>
-        <div class="s" id="premBuySub">SJC mua vào − giá thế giới quy đổi</div>
-      </div>
-    </div>
-    <div class="range" id="premRange" hidden>
-      <div class="range-track"><span class="range-avg" id="rangeAvg"></span><span class="range-now" id="rangeNow"></span></div>
-      <div class="range-labels"><span id="rangeMin"></span><span id="rangeMid"></span><span id="rangeMax"></span></div>
-    </div>
-    <p class="note" id="premStats"></p>
-    <canvas id="premChart" aria-label="Biểu đồ chênh lệch bán ra của SJC so với thế giới"></canvas>
-    <p class="note" id="premNote"></p>
-  </section>
 
-  <section class="panel" aria-label="Lịch sử funding 14 ngày">
-    <div class="panel-head">
-      <h2>Lịch sử funding 14 ngày</h2>
-    </div>
-    <div class="hist-meta">
-      <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
-      <button type="button" class="linkbtn" id="histRetry" hidden>Tải lại</button>
-    </div>
-    <div class="hsum">
-      <div><div class="label">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
-      <div><div class="label">Trung bình mỗi ngày</div><div class="v"><span id="hAvgDay">—</span><small>USDT</small></div><div class="s" id="hAvgDaySub">—</div></div>
-      <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
-      <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
-    </div>
-    <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
-    <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
-      <button type="button" id="view-day" role="tab" data-view="day" aria-selected="true">Theo ngày</button>
-      <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
-    </div>
-    <div class="table-wrap"><table id="histTable"></table></div>
-  </section>
+      <div class="bs-block">
+        <div class="panel-head">
+          <h3 class="sub-h">Chênh lệch theo giờ</h3>
+          <div class="seg" role="radiogroup" aria-label="Khoảng thời gian">
+            <button type="button" id="sp-7" role="radio" data-range="7" aria-checked="false">7 ngày</button>
+            <button type="button" id="sp-30" role="radio" data-range="30" aria-checked="true">30 ngày</button>
+            <button type="button" id="sp-90" role="radio" data-range="90" aria-checked="false">90 ngày</button>
+            <button type="button" id="sp-all" role="radio" data-range="all" aria-checked="false">Từ 05/01</button>
+          </div>
+        </div>
+        <div class="hist-meta">
+          <p class="note" id="spHistMeta">Đang tải giá theo giờ…</p>
+          <button type="button" class="linkbtn" id="spRetry" hidden>Tải lại</button>
+        </div>
+        <p class="note"><strong>Bấm vào một điểm trên biểu đồ</strong> để phân tích từng phút quanh thời điểm đó và xem chênh lệch đến từ đâu.</p>
+      </div>
+      <div class="bs-block">
+        <h3 class="sub-h">XAU − PAXG</h3>
+        <div class="hsum">
+          <div><div class="label">XAU cao hơn PAXG</div><div class="v" id="spPos_xp">—</div><div class="s" id="spPosSub_xp">—</div></div>
+          <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_xp">—</span><small>USDT</small></div><div class="s" id="spAvgSub_xp">—</div></div>
+          <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_xp">—</span><small>USDT</small></div><div class="s" id="spMaxSub_xp">—</div></div>
+          <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_xp">—</span><small>USDT</small></div><div class="s" id="spMinSub_xp">—</div></div>
+        </div>
+        <p class="note" id="spBand_xp"></p>
+        <div class="bs-wrap">
+          <canvas id="spChart_xp" aria-label="Biểu đồ XAUUSDT trừ PAXGUSDT theo giờ"></canvas>
+          <div class="bs-guide" id="spGuide_xp" hidden></div>
+          <div class="bs-tip" id="spTip_xp" hidden></div>
+        </div>
+        <p class="note">XAUUSDT trừ PAXGUSDT tại giá đóng mỗi giờ. Trên 0 (xanh) là XAUUSDT cao hơn, dưới 0 (đỏ) là thấp hơn. Rê chuột hoặc chạm để xem từng giờ.</p>
+      </div>
+      <div class="bs-block">
+        <h3 class="sub-h">XAU − forex</h3>
+        <div class="hsum">
+          <div><div class="label">XAU cao hơn vàng giao ngay</div><div class="v" id="spPos_xf">—</div><div class="s" id="spPosSub_xf">—</div></div>
+          <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_xf">—</span><small>USDT</small></div><div class="s" id="spAvgSub_xf">—</div></div>
+          <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_xf">—</span><small>USDT</small></div><div class="s" id="spMaxSub_xf">—</div></div>
+          <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_xf">—</span><small>USDT</small></div><div class="s" id="spMinSub_xf">—</div></div>
+        </div>
+        <p class="note" id="spBand_xf"></p>
+        <div class="bs-wrap">
+          <canvas id="spChart_xf" aria-label="Biểu đồ XAUUSDT trừ giá vàng giao ngay theo giờ"></canvas>
+          <div class="bs-guide" id="spGuide_xf" hidden></div>
+          <div class="bs-tip" id="spTip_xf" hidden></div>
+        </div>
+        <p class="note">XAUUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
+      </div>
+      <div class="bs-block">
+        <h3 class="sub-h">PAXG − forex</h3>
+        <div class="hsum">
+          <div><div class="label">PAXG cao hơn vàng giao ngay</div><div class="v" id="spPos_pf">—</div><div class="s" id="spPosSub_pf">—</div></div>
+          <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_pf">—</span><small>USDT</small></div><div class="s" id="spAvgSub_pf">—</div></div>
+          <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_pf">—</span><small>USDT</small></div><div class="s" id="spMaxSub_pf">—</div></div>
+          <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_pf">—</span><small>USDT</small></div><div class="s" id="spMinSub_pf">—</div></div>
+        </div>
+        <p class="note" id="spBand_pf"></p>
+        <div class="bs-wrap">
+          <canvas id="spChart_pf" aria-label="Biểu đồ PAXGUSDT trừ giá vàng giao ngay theo giờ"></canvas>
+          <div class="bs-guide" id="spGuide_pf" hidden></div>
+          <div class="bs-tip" id="spTip_pf" hidden></div>
+        </div>
+        <p class="note">PAXGUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
+      </div>
+      <div class="bs-block" id="drill" hidden>
+        <div class="panel-head">
+          <h3 class="sub-h" id="drillTitle">Phân tích</h3>
+          <button type="button" class="linkbtn" id="drillClose">Đóng phân tích</button>
+        </div>
+        <p class="note" id="drillMeta"></p>
+        <p class="drill-verdict" id="drillVerdict"></p>
+        <div class="legend drill-legend"><span class="dx">XAUUSDT</span><span class="dp">PAXGUSDT</span><span class="dt">Token PAXG</span><span class="dz">0 = vàng giao ngay</span></div>
+        <div class="bs-wrap">
+          <canvas id="drillChart" aria-label="Biểu đồ từng phút: các giá trừ giá vàng giao ngay"></canvas>
+          <div class="bs-guide" id="drillGuide" hidden></div>
+          <div class="bs-tip" id="drillTip" hidden></div>
+        </div>
+        <p class="note">Mỗi đường là một giá trừ đi giá vàng giao ngay (index XAUUSDT), từng phút. Khoảng cách giữa đường XAUUSDT và PAXGUSDT chính là XAU − PAXG. Vạch đứt đứng là phút chênh XAU − PAXG lớn nhất.</p>
+        <div class="table-wrap"><table id="drillTable"></table></div>
+      </div>
+    </section>
 
-  <section class="panel" aria-label="So sánh funding XAUUSDT và PAXGUSDT">
-    <div class="panel-head">
-      <h2>So sánh funding XAUUSDT và PAXGUSDT</h2>
-      <div class="legend"><span class="lx">XAUUSDT cao hơn</span><span class="lp">PAXGUSDT cao hơn</span></div>
-    </div>
-    <div class="hist-meta">
-      <p class="note" id="cmpMeta">Đang tải lịch sử funding của 2 mã…</p>
-      <button type="button" class="linkbtn" id="cmpRetry" hidden>Tải lại</button>
-    </div>
-    <div class="hsum">
-      <div><div class="label">Ngày PAXGUSDT cao hơn</div><div class="v" id="cmpCount">—</div><div class="s" id="cmpCountSub">—</div></div>
-      <div><div class="label">Lần gần nhất PAXGUSDT cao hơn</div><div class="v" id="cmpLast">—</div><div class="s" id="cmpLastSub">—</div></div>
-      <div><div class="label">TB mỗi ngày XAUUSDT</div><div class="v" id="cmpXau">—</div><div class="s" id="cmpXauSub">—</div></div>
-      <div><div class="label">TB mỗi ngày PAXGUSDT</div><div class="v" id="cmpPaxg">—</div><div class="s" id="cmpPaxgSub">—</div></div>
-    </div>
-    <canvas id="cmpChart" aria-label="Biểu đồ chênh lệch tổng funding mỗi ngày giữa XAUUSDT và PAXGUSDT"></canvas>
-    <p class="note">Mỗi cột là tổng funding rate trong ngày của XAUUSDT trừ PAXGUSDT, tính bằng điểm %. Cột dưới 0 là ngày PAXGUSDT cao hơn.</p>
-    <h3 class="sub-h">Những ngày PAXGUSDT cao hơn</h3>
-    <div class="table-wrap"><table id="cmpTable"></table></div>
-  </section>
+    <section class="panel" aria-label="So sánh funding XAUUSDT và PAXGUSDT">
+      <div class="panel-head">
+        <h2>So sánh funding XAUUSDT và PAXGUSDT</h2>
+        <div class="legend"><span class="lx">XAUUSDT cao hơn</span><span class="lp">PAXGUSDT cao hơn</span></div>
+      </div>
+      <div class="hist-meta">
+        <p class="note" id="cmpMeta">Đang tải lịch sử funding của 2 mã…</p>
+        <button type="button" class="linkbtn" id="cmpRetry" hidden>Tải lại</button>
+      </div>
+      <div class="hsum">
+        <div><div class="label">Ngày PAXGUSDT cao hơn</div><div class="v" id="cmpCount">—</div><div class="s" id="cmpCountSub">—</div></div>
+        <div><div class="label">Lần gần nhất PAXGUSDT cao hơn</div><div class="v" id="cmpLast">—</div><div class="s" id="cmpLastSub">—</div></div>
+        <div><div class="label">TB mỗi ngày XAUUSDT</div><div class="v" id="cmpXau">—</div><div class="s" id="cmpXauSub">—</div></div>
+        <div><div class="label">TB mỗi ngày PAXGUSDT</div><div class="v" id="cmpPaxg">—</div><div class="s" id="cmpPaxgSub">—</div></div>
+      </div>
+      <canvas id="cmpChart" aria-label="Biểu đồ chênh lệch tổng funding mỗi ngày giữa XAUUSDT và PAXGUSDT"></canvas>
+      <p class="note">Mỗi cột là tổng funding rate trong ngày của XAUUSDT trừ PAXGUSDT, tính bằng điểm %. Cột dưới 0 là ngày PAXGUSDT cao hơn.</p>
+      <h3 class="sub-h">Những ngày PAXGUSDT cao hơn</h3>
+      <div class="table-wrap"><table id="cmpTable"></table></div>
+    </section>
+  </div>
 
   <footer>
     <span>Nguồn: <code>wss://fstream.binance.com/market</code>, dữ liệu public, không cần API key</span>
@@ -600,7 +658,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ranges: document.querySelectorAll('.seg [data-range]'), spHistMeta: $('spHistMeta'), spRetry: $('spRetry'),
     drill: $('drill'), drillTitle: $('drillTitle'), drillClose: $('drillClose'), drillMeta: $('drillMeta'),
     drillVerdict: $('drillVerdict'), drillChart: $('drillChart'), drillGuide: $('drillGuide'), drillTip: $('drillTip'),
-    drillTable: $('drillTable')
+    drillTable: $('drillTable'),
+    tabBtns: document.querySelectorAll('.main-tabs [data-tab]'), exMeta: $('exMeta'), exRetry: $('exRetry'),
+    exTable: $('exTable'), exDaysBtns: document.querySelectorAll('.seg [data-exdays]')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -773,6 +833,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (cmpDirty) { cmpDirty = false; drawCompare(); }
     if (spDirty) { spDirty = false; SP_KEYS.forEach(drawSpreadChart); }
     if (drillDirty) { drillDirty = false; drawDrill(); }
+    if (exDirty) { exDirty = false; drawExChart('gold'); drawExChart('paxg'); }
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -830,6 +891,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     renderCountdown(now);
     if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(sym); loadCompare(); }
+    if (tab === 'so-sanh') renderExchanges();
   }
 
   // ---------- Biểu đồ ----------
@@ -2151,6 +2213,263 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       null);
   }
 
+  // ---------- Funding 3 sàn: Binance, Bybit, Hyperliquid ----------
+  // Binance lấy trực tiếp; Bybit và Hyperliquid qua api/exchanges.php trên host.
+  const EX_API = 'api/exchanges.php';
+  const EX_ROWS = [
+    { group: 'gold', key: 'binance:XAUUSDT', venue: 'Binance', name: 'XAUUSDT' },
+    { group: 'gold', key: 'bybit:XAUUSDT', venue: 'Bybit', name: 'XAUUSDT' },
+    { group: 'gold', key: 'hyperliquid:xyz:GOLD', venue: 'Hyperliquid', name: 'xyz:GOLD' },
+    { group: 'paxg', key: 'binance:PAXGUSDT', venue: 'Binance', name: 'PAXGUSDT' },
+    { group: 'paxg', key: 'bybit:PAXGUSDT', venue: 'Bybit', name: 'PAXGUSDT' },
+    { group: 'paxg', key: 'hyperliquid:PAXG', venue: 'Hyperliquid', name: 'PAXG' }
+  ];
+  const EX_GROUPS = { gold: 'Vàng giao ngay', paxg: 'Token PAXG' };
+  const EX_COLORS = { Binance: '--gold', Bybit: '--blue', Hyperliquid: '--violet' };
+  let exDays = 7, exLive = {}, exHist = {}, exErrors = [], exLoading = false, exFetchedAt = null, exDirty = true;
+  let bnIntervals = null;
+  const exDaily = { gold: [], paxg: [] }, exGeom = {};
+
+  async function loadBnIntervals() {
+    if (bnIntervals) return;
+    bnIntervals = {};
+    try {
+      const r = await fetch(REST_BASE + '/fapi/v1/fundingInfo', { cache: 'no-store' });
+      if (!r.ok) return;
+      for (const x of await r.json()) bnIntervals[x.symbol] = Number(x.fundingIntervalHours) || 8;
+    } catch (e) {
+      // Không lấy được thì dùng chu kỳ mặc định 8h
+    }
+  }
+
+  async function bnLive(symbol) {
+    const r = await fetch(REST_BASE + '/fapi/v1/premiumIndex?symbol=' + symbol, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    return { price: null, mark: +d.markPrice, rate: +d.lastFundingRate, intervalH: bnIntervals[symbol] || 8, next: +d.nextFundingTime };
+  }
+
+  // withHistory: tải cả lịch sử funding (khi mở trang, đổi khoảng ngày, hoặc 30 phút một lần)
+  async function loadExchanges(withHistory) {
+    const days = exDays;
+    exLoading = true;
+    renderExchanges();
+    await loadBnIntervals();
+    const since = Date.now() - days * 864e5;
+    const host = location.protocol === 'file:'
+      ? Promise.reject(new Error('Bybit và Hyperliquid cần mở trang từ host có thư mục api/'))
+      : fetch(EX_API + (withHistory ? '?days=' + days : ''), { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/exchanges.php trả HTTP ' + r.status))));
+    const jobs = [bnLive('XAUUSDT'), bnLive('PAXGUSDT'), host];
+    if (withHistory) jobs.push(fetchFundingSince('XAUUSDT', since), fetchFundingSince('PAXGUSDT', since));
+    const res = await Promise.allSettled(jobs);
+    if (days !== exDays) return;
+    const errors = [];
+    const live = {};
+    ['XAUUSDT', 'PAXGUSDT'].forEach((s, n) => {
+      if (res[n].status === 'fulfilled') live['binance:' + s] = res[n].value;
+      else errors.push('Binance: không lấy được ' + s + ' (' + res[n].reason.message + ').');
+    });
+    if (res[2].status === 'fulfilled') {
+      const data = res[2].value || {};
+      Object.assign(live, data.live || {});
+      if (withHistory && data.history) Object.keys(data.history).forEach((k) => { exHist[k] = data.history[k]; });
+      (data.errors || []).forEach((m) => errors.push(m));
+      exFetchedAt = data.fetchedAt || Date.now();
+    } else {
+      errors.push(res[2].reason.message + '.');
+    }
+    if (withHistory) {
+      ['XAUUSDT', 'PAXGUSDT'].forEach((s, n) => {
+        const r = res[3 + n];
+        if (r.status === 'fulfilled') exHist['binance:' + s] = r.value.map((x) => [x.t, x.rate]);
+        else errors.push('Binance: không lấy được lịch sử funding ' + s + '.');
+      });
+      buildExDaily();
+    }
+    exLive = live;
+    exErrors = errors;
+    exLoading = false;
+    renderExchanges();
+  }
+
+  // Tổng funding rate mỗi ngày (theo giờ máy) của từng hợp đồng, chỉ các ngày đủ trong khoảng đã chọn
+  function buildExDaily() {
+    const todayKey = dayKey(Date.now());
+    const first = new Date();
+    first.setHours(0, 0, 0, 0);
+    first.setDate(first.getDate() - exDays);
+    for (const group of Object.keys(exDaily)) {
+      const byDay = new Map();
+      for (let k = 0; k < exDays; k++) {
+        const d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + k);
+        byDay.set(dayKey(d.getTime()), { t: d.getTime(), v: {} });
+      }
+      for (const row of EX_ROWS.filter((r) => r.group === group)) {
+        for (const [t, rate] of exHist[row.key] || []) {
+          const key = dayKey(t);
+          if (key === todayKey || !byDay.has(key)) continue;
+          const day = byDay.get(key);
+          day.v[row.venue] = (day.v[row.venue] || 0) + rate * 100;
+        }
+      }
+      exDaily[group] = Array.from(byDay.values());
+    }
+    exDirty = true;
+    schedule();
+  }
+
+  function renderExchanges() {
+    const q = parseFloat(el.qty.value);
+    const qOk = Number.isFinite(q) && q >= 0;
+    el.exRetry.hidden = exLoading || !exErrors.length;
+    el.exMeta.textContent = exLoading && !Object.keys(exLive).length
+      ? 'Đang tải giá và funding của 3 sàn…'
+      : 'Cập nhật lúc ' + clock(exFetchedAt || Date.now()) + ', tự tải lại mỗi phút.' + (exErrors.length ? ' ' + exErrors.join(' ') : '');
+    const priceOf = (row) => {
+      const L = exLive[row.key];
+      if (row.venue === 'Binance' && lastBy[row.name] != null) return lastBy[row.name];
+      return L ? (L.price || L.mark) : null;
+    };
+    const ref = priceOf(EX_ROWS[0]);
+    const since = Date.now() - exDays * 864e5;
+    const stats = EX_ROWS.map((row) => {
+      const L = exLive[row.key];
+      const price = priceOf(row);
+      const perDay = L ? (L.rate * 24) / L.intervalH : null;
+      const hist = (exHist[row.key] || []).filter(([t]) => t >= since);
+      const histAnnual = hist.length ? (hist.reduce((a, [, r]) => a + r, 0) / exDays) * 365 * 100 : null;
+      return {
+        row, L, price,
+        per8h: L ? (L.rate * 8) / L.intervalH : null,
+        annual: perDay != null ? perDay * 365 * 100 : null,
+        usdtDay: perDay != null && price && qOk ? price * q * perDay : null,
+        histAnnual
+      };
+    });
+    const best = {};
+    for (const s of stats) {
+      if (s.annual != null && (best[s.row.group] == null || s.annual > best[s.row.group])) best[s.row.group] = s.annual;
+    }
+    const hhmm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+    const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    // Cột funding đứng trước để trên điện thoại thấy ngay, giá và độ lệch để sau
+    let html = '<thead><tr><th>Hợp đồng</th><th>Quy năm</th><th>TB ' + exDays + ' ngày</th><th>Funding kỳ này</th><th>Quy về 8h</th>'
+      + '<th>USDT/ngày' + (qOk ? ' (' + q + ' oz)' : '') + '</th><th>Kỳ tới</th><th>Giá</th><th>Lệch XAU Binance</th></tr></thead>';
+    let group = null;
+    for (const s of stats) {
+      if (s.row.group !== group) {
+        group = s.row.group;
+        html += (html.includes('<tbody>') ? '</tbody>' : '') + '<tbody><tr class="grp"><td colspan="9">' + EX_GROUPS[group] + '</td></tr>';
+      }
+      const L = s.L;
+      const diff = s.price != null && ref != null && s.row !== EX_ROWS[0] ? s.price - ref : null;
+      const isBest = s.annual != null && s.annual === best[group];
+      html += '<tr><td>' + s.row.venue + ' · ' + s.row.name + '</td>'
+        + '<td' + (isBest ? ' class="best"' : tone(s.annual)) + '>' + (s.annual != null ? signed(s.annual, 2) + '%' : '—') + '</td>'
+        + '<td' + tone(s.histAnnual) + '>' + (s.histAnnual != null ? signed(s.histAnnual, 2) + '%' : '—') + '</td>'
+        + '<td>' + (L ? signed(L.rate * 100, 4) + '% / ' + L.intervalH + 'h' : '—') + '</td>'
+        + '<td' + tone(s.per8h) + '>' + (s.per8h != null ? signed(s.per8h * 100, 4) + '%' : '—') + '</td>'
+        + '<td' + tone(s.usdtDay) + '>' + (s.usdtDay != null ? signedMoney(s.usdtDay) : '—') + '</td>'
+        + '<td>' + (L && L.next ? hhmm(L.next) : '—') + '</td>'
+        + '<td>' + (s.price != null ? fmt2.format(s.price) : '—') + '</td>'
+        + '<td' + tone(diff) + '>' + (diff != null ? signed(diff, 2) : '—') + '</td></tr>';
+    }
+    el.exTable.innerHTML = html + '</tbody>';
+  }
+
+  function drawExChart(group) {
+    const c = $('exChart_' + group);
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    exGeom[group] = null;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const days = exDaily[group].filter((d) => Object.keys(d.v).length);
+    if (days.length < 2) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    const L = 2, R = 64, T = 10, B = 24;
+    const pw = w - L - R, ph = h - T - B;
+    const venues = Object.keys(EX_COLORS);
+    let lo = 0, hi = 0;
+    for (const d of days) for (const v of venues) if (d.v[v] != null) { lo = Math.min(lo, d.v[v]); hi = Math.max(hi, d.v[v]); }
+    if (hi - lo < 0.001) hi = lo + 0.001;
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    const dec = Math.min(5, (String(+step.toPrecision(3)).split('.')[1] || '').length);
+    const t0 = days[0].t, t1 = days[days.length - 1].t, span = Math.max(t1 - t0, 1);
+    const X = (t) => L + ((t - t0) / span) * pw;
+    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
+    exGeom[group] = { X, L, pw, t0, span };
+
+    ctx.font = '11px ' + tok('--mono');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const ticks = Math.round((hi - lo) / step);
+    for (let k = 0; k <= ticks; k++) {
+      const v = lo + k * step;
+      const zero = Math.abs(v) < step / 1e6;
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.strokeStyle = zero ? tok('--muted') : tok('--line');
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      ctx.fillStyle = tok('--muted');
+      ctx.fillText((zero ? '0' : signed(v, dec)) + '%', L + pw + 8, y);
+    }
+
+    ctx.lineJoin = 'round';
+    for (const venue of venues) {
+      const pts = days.filter((d) => d.v[venue] != null);
+      if (!pts.length) continue;
+      const color = tok(EX_COLORS[venue]);
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      pts.forEach((d, n) => (n ? ctx.lineTo(X(d.t), Y(d.v[venue])) : ctx.moveTo(X(d.t), Y(d.v[venue]))));
+      ctx.stroke();
+      for (const d of pts) { ctx.beginPath(); ctx.arc(X(d.t), Y(d.v[venue]), 2.5, 0, Math.PI * 2); ctx.fill(); }
+    }
+
+    ctx.fillStyle = tok('--muted');
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillText(dm(t0), L, h - 6);
+    ctx.textAlign = 'center';
+    ctx.fillText(dm(t0 + span / 2), L + pw / 2, h - 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(dm(t1), L + pw, h - 6);
+  }
+
+  function bindExTip(group) {
+    bindChartTip($('exChart_' + group), $('exTip_' + group), $('exGuide_' + group),
+      () => exDaily[group].filter((d) => Object.keys(d.v).length), () => exGeom[group],
+      (d) => dm(d.t) + ' · ' + Object.keys(EX_COLORS).map((v) => v + ' ' + (d.v[v] != null ? signed(d.v[v], 4) + '%' : '—')).join(' · '),
+      null);
+  }
+
+  // ---------- Hai tab: XAUUSDT Binance và So sánh ----------
+  const TABS = { xau: $('tab-xau'), 'so-sanh': $('tab-so-sanh') };
+  let tab = 'xau';
+  function setTab(name, updateHash) {
+    tab = TABS[name] ? name : 'xau';
+    Object.keys(TABS).forEach((k) => { TABS[k].hidden = k !== tab; });
+    el.tabBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+    if (updateHash) history.replaceState(null, '', tab === 'so-sanh' ? '#so-sanh' : location.pathname + location.search);
+    try { localStorage.setItem('gold-perp-live.tab', tab); } catch (e) { /* bỏ qua */ }
+    if (tab === 'so-sanh') renderExchanges();
+    redraw();
+  }
+
   // ---------- Chọn hợp đồng ----------
   function resetView() {
     [el.last, el.mark, el.rate, el.annual, el.chg, el.updated].forEach((n) => {
@@ -2192,6 +2511,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderPosition();
     renderHistory();
     renderCompare();
+    renderExchanges();
   });
   el.cmpRetry.addEventListener('click', loadCompare);
   el.spRetry.addEventListener('click', loadSpread);
@@ -2234,7 +2554,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }));
   el.histRetry.addEventListener('click', () => loadHistory(sym));
 
-  const redraw = () => { barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; drillDirty = true; schedule(); };
+  const redraw = () => { barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; drillDirty = true; exDirty = true; schedule(); };
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(redraw);
     ro.observe(el.bars);
@@ -2242,6 +2562,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ro.observe(el.cmpChart);
     SP_KEYS.forEach((key) => ro.observe($('spChart_' + key)));
     ro.observe(el.drillChart);
+    ['gold', 'paxg'].forEach((g) => ro.observe($('exChart_' + g)));
   } else {
     window.addEventListener('resize', redraw);
   }
@@ -2250,15 +2571,32 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) redraw(); });
 
-  let saved = null;
-  try { saved = localStorage.getItem('gold-perp-live.symbol'); } catch (e) { /* bỏ qua */ }
-  setSymbol(SYMBOLS[saved] ? saved : 'XAUUSDT');
+  // Phần 1 chỉ theo dõi XAUUSDT; PAXGUSDT chỉ còn dùng trong phần So sánh
+  setSymbol('XAUUSDT');
+
+  ['gold', 'paxg'].forEach(bindExTip);
+  el.exRetry.addEventListener('click', () => loadExchanges(true));
+  el.exDaysBtns.forEach((b) => b.addEventListener('click', () => {
+    const days = Number(b.dataset.exdays);
+    if (days === exDays) return;
+    exDays = days;
+    el.exDaysBtns.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+    loadExchanges(true);
+  }));
+  el.tabBtns.forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab, true)));
+  window.addEventListener('hashchange', () => setTab(location.hash === '#so-sanh' ? 'so-sanh' : 'xau', false));
+  let savedTab = null;
+  try { savedTab = localStorage.getItem('gold-perp-live.tab'); } catch (e) { /* bỏ qua */ }
+  setTab(location.hash === '#so-sanh' ? 'so-sanh' : (savedTab || 'xau'), false);
   setInterval(tick, 1000);
   loadSjc();
   loadXauKlines();
   loadCompare();
   loadSpread();
   setInterval(loadSpread, 60 * 60 * 1000);
+  loadExchanges(true);
+  setInterval(() => loadExchanges(false), 60 * 1000);
+  setInterval(() => loadExchanges(true), 30 * 60 * 1000);
   loadFx();
   setInterval(loadFx, FX_REFRESH_MS);
   setInterval(loadSjc, SJC_REFRESH_MS);
