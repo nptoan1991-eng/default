@@ -10,6 +10,8 @@ Dashboard xem dữ liệu live của hợp đồng vàng vĩnh cửu, gồm 3 ta
 
 Upload nguyên thư mục `gold-perp-live/` lên host PHP rồi mở `https://<tên-miền>/gold-perp-live/`. Trang chính là `index.html` nên web server tự mở khi vào link thư mục.
 
+Bản đóng gói sẵn: `gold-perp-live.zip` ở thư mục gốc repo. Gói không có `api/alert-config.php` (chứa kênh ntfy và cron key), nên upload đè lên thư mục cũ trên host thì cấu hình đang dùng vẫn giữ nguyên.
+
 ```
 gold-perp-live/
 ├── index.html          trang dashboard
