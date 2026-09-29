@@ -8,6 +8,9 @@
  * - Báo một lần khi vừa vào vùng; phải ra khỏi vùng 'gap' USDT mới báo lại.
  *   Không báo khi forex đang nghỉ. Không lấy được giá 3 lần liền thì báo lỗi một lần.
  *
+ * Mỗi lần chạy khi forex đang giao dịch cũng ghi XAU − forex và PAXG − forex theo giờ
+ * (spread-lib.php) để trang vẽ lịch sử.
+ *
  * Cấu hình: alert-config.php (chép từ alert-config.example.php).
  * Gửi thử: php alert-check.php test, hoặc nút "Gửi thử lên điện thoại" trên trang
  * (gọi alert-check.php?test=1, trả JSON, tối đa 1 lần mỗi phút, không cần key).
@@ -15,8 +18,9 @@
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 require __DIR__ . '/fx-lib.php';
+require __DIR__ . '/spread-lib.php';
 
-define('XAU_URL', 'https://fapi.binance.com/fapi/v1/ticker/price?symbol=XAUUSDT');
+define('PRICE_URL', 'https://fapi.binance.com/fapi/v1/ticker/price?symbol=');
 define('ALERT_STATE_FILE', __DIR__ . '/alert_state.json');
 define('ALERT_LOCK_FILE', __DIR__ . '/alert.lock');
 define('FAILS_BEFORE_NOTICE', 3);
@@ -100,12 +104,12 @@ function ntfy_send($cfg, $title, $message, $priority, $tags) {
     return $code >= 200 && $code < 300;
 }
 
-function fetch_xau(&$error) {
+function fetch_price($symbol, &$error) {
     $log = [];
-    $raw = fx_fetch(XAU_URL, $log);
+    $raw = fx_fetch(PRICE_URL . $symbol, $log);
     $json = $raw !== false ? json_decode($raw, true) : null;
     if (isset($json['price']) && is_numeric($json['price']) && $json['price'] > 0) return (float) $json['price'];
-    $error = 'Không lấy được giá XAUUSDT từ Binance (HTTP ' . (isset($log['http_code']) ? $log['http_code'] : 0) . ')'
+    $error = 'Không lấy được giá ' . $symbol . ' từ Binance (HTTP ' . (isset($log['http_code']) ? $log['http_code'] : 0) . ')'
         . (isset($log['http_code']) && $log['http_code'] == 451 ? ', Binance chặn khu vực của host' : '');
     return null;
 }
@@ -116,7 +120,7 @@ function fmt_signed($v) {
 
 // Lấy giá
 $error = null;
-$xau = fetch_xau($error);
+$xau = fetch_price('XAUUSDT', $error);
 $fxDebug = [];
 $fx = fx_get(false, $fxDebug);
 $quote = isset($fx['quote']) ? $fx['quote'] : null;
@@ -167,6 +171,12 @@ if ($error) {
         $state['zone'] = null;
         $lines[] = 'Forex đang nghỉ, không báo.';
     } else {
+        // Ghi lịch sử theo giờ; PAXG lỗi thì chỉ thiếu phần PAXG − forex
+        $paxgError = null;
+        $paxg = fetch_price('PAXGUSDT', $paxgError);
+        spread_log(fx_now_ms(), $xau, $paxg, $mid);
+        if ($paxg !== null) $lines[] = '· PAXG − forex ' . fmt_signed($paxg - $mid) . ' USDT';
+
         $hi = (float) $cfg['high'];
         $lo = (float) $cfg['low'];
         $gap = (float) $cfg['gap'];

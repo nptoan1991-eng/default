@@ -14,11 +14,13 @@ gold-perp-live/
     ├── sjc-price.php   lấy giá SJC và tỷ giá cho trang
     ├── fx-price.php    lấy giá XAU/USD trên sàn forex (Swissquote) cho trang
     ├── fx-lib.php      phần lấy giá forex dùng chung
-    ├── alert-check.php cảnh báo XAU − forex qua ntfy, chạy bằng cron
-    └── alert-config.example.php   cấu hình mẫu cho cảnh báo
+    ├── alert-check.php cảnh báo XAU − forex qua ntfy và ghi chênh lệch theo giờ, chạy bằng cron
+    ├── alert-config.example.php   cấu hình mẫu cho cảnh báo
+    ├── spread-lib.php  ghi nhật ký XAU/PAXG − giá Swissquote theo giờ
+    └── spread-history.php   đọc nhật ký đó cho trang
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json`, `alert.lock` và `site.json` (link trang, dùng cho thông báo) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) và `spread_history.json` (chênh lệch theo giờ) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
@@ -35,7 +37,6 @@ Chọn hợp đồng ở góc trên bên phải. Lựa chọn được nhớ cho
 | Chu kỳ funding | REST `GET /fapi/v1/fundingInfo`, mặc định 8h nếu không lấy được |
 | Funding theo vị thế (USDT mỗi kỳ, mỗi ngày, mỗi năm) | `mark × khối lượng × |funding rate|`, nhân số kỳ mỗi ngày và 365 ngày. Khối lượng nhập trên trang, mặc định 1 oz |
 
-Biểu đồ giá khớp trong phiên ghi lại từ lúc mở trang, giữ 15 phút gần nhất (mỗi giây một điểm).
 
 ## Lịch sử funding 14 ngày
 
@@ -60,7 +61,16 @@ So theo **giá khớp** gần nhất trên Binance và giá XAU/USD trên sàn f
 - **XAU − PAXG** và **XAU − forex** live, bằng USDT và %.
 - **Giá forex**: `api/fx-price.php` lấy bid/ask XAU/USD từ feed công khai của Swissquote, cache 5 giây; trang lấy lại mỗi 10 giây và dùng giá giữa (bid + ask) / 2. Feed này không có tài liệu chính thức và chặn gọi thẳng từ trình duyệt nên phải đi qua host. IC Markets không có API giá công khai (chỉ có cTrader Open API / FIX cần tài khoản) nên dùng Swissquote làm đại diện. Kiểm tra bằng `api/fx-price.php?debug=1`.
 - Giá forex cũ hơn 3 phút thì trang báo forex đang nghỉ (17:00 thứ Sáu đến 18:00 Chủ nhật giờ New York). Lúc đó Binance vẫn chạy nên XAU − forex không phản ánh chênh lệch thật.
-- **XAU − PAXG theo giờ**: nến 1 giờ giá khớp của 2 mã (`/fapi/v1/klines`), chọn 7, 30 (mặc định), 90 ngày hoặc từ 05/01/2026, tự tải lại mỗi giờ. Biểu đồ có đường 0, trên 0 (xanh) là XAUUSDT cao hơn. Thống kê % số giờ XAU cao hơn, trung bình, dương/âm lớn nhất kèm thời điểm và khoảng 90% số giờ nằm trong.
+- **Chênh lệch theo giờ**: 3 biểu đồ XAU − PAXG, XAU − forex và PAXG − forex, chọn 7, 30 (mặc định), 90 ngày hoặc từ 05/01/2026, tự tải lại mỗi giờ. Mỗi biểu đồ có đường 0 (trên 0 tô xanh), thống kê % số giờ dương, trung bình, dương/âm lớn nhất kèm thời điểm và khoảng 90% số giờ nằm trong.
+  - XAU − PAXG: nến 1 giờ giá khớp của 2 mã (`/fapi/v1/klines`).
+  - XAU − forex, PAXG − forex: giá vàng giao ngay cho quá khứ lấy theo **index XAUUSDT** (`/fapi/v1/indexPriceKlines`, Binance tổng hợp từ các nhà cung cấp dữ liệu vàng). Giờ nào host có ghi thì dùng **giá Swissquote thật** (vùng nền xám trên biểu đồ), kèm cao/thấp trong giờ. Host ghi mỗi lần cron `alert-check.php` chạy khi forex đang giao dịch (`spread_history.json`, giữ 400 ngày). Không tính giờ thị trường vàng nghỉ: 17:00 thứ Sáu tới 18:00 Chủ nhật và 17:00–18:00 mỗi ngày (giờ New York); ngày lễ chưa được loại.
+- **Phân tích một thời điểm**: bấm vào một điểm trên biểu đồ theo giờ để xem từng phút từ 2 giờ trước tới 1 giờ sau thời điểm đó, gồm XAUUSDT, PAXGUSDT, token PAXG (index PAXGUSDT, giá token trên các sàn giao ngay) và vàng giao ngay (index XAUUSDT), cùng funding kỳ gần nhất. Tại phút chênh XAU − PAXG lớn nhất, trang tách chênh lệch thành 3 phần và ghi phần nào chiếm nhiều nhất:
+
+  ```
+  XAU − PAXG = (XAUUSDT − vàng) − (token PAXG − vàng) − (PAXGUSDT − token PAXG)
+  ```
+
+  Nếu lúc đó thị trường vàng đang nghỉ, trang ghi chú phần "lệch khỏi vàng giao ngay" kém tin cậy vì index XAUUSDT tính theo sổ lệnh.
 
 ### Cảnh báo XAU − forex
 

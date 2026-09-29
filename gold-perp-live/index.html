@@ -19,6 +19,7 @@
   --gold-fill: rgba(140, 104, 18, 0.16);
   --gold-fill0: rgba(140, 104, 18, 0);
   --idx: #7A8287;
+  --blue: #2E68AE;
   --up: #0E7A46;
   --down: #BF2E29;
   --warn: #A95A08;
@@ -38,6 +39,7 @@
     --gold-fill: rgba(214, 176, 90, 0.20);
     --gold-fill0: rgba(214, 176, 90, 0);
     --idx: #858C91;
+    --blue: #6FA6E6;
     --up: #3CC47F;
     --down: #EF625B;
     --warn: #EEA24E;
@@ -55,6 +57,7 @@
   --gold-fill: rgba(214, 176, 90, 0.20);
   --gold-fill0: rgba(214, 176, 90, 0);
   --idx: #858C91;
+  --blue: #6FA6E6;
   --up: #3CC47F;
   --down: #EF625B;
   --warn: #EEA24E;
@@ -236,6 +239,15 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .bs-block .sub-h { margin: 0; font: 600 13.5px var(--mono); letter-spacing: 0.02em; }
 .bs-wrap { position: relative; margin-top: 10px; }
 .bs-wrap canvas { height: 200px; margin-top: 0; touch-action: pan-y; }
+.drill-legend { margin-top: 10px; flex-wrap: wrap; }
+.drill-legend .dp::before { border-top-color: var(--blue); }
+.drill-legend .dt::before { border-top: 2px dashed var(--muted); }
+.drill-legend .dz::before { border-top: 1.5px solid var(--ink); }
+.drill-verdict { margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--warn); background: var(--bg); font-weight: 600; }
+.drill-verdict:empty { display: none; }
+#drillChart { height: 240px; }
+#drill { scroll-margin-top: 16px; }
+.bs-wrap canvas.clickable { cursor: pointer; }
 .bs-guide { position: absolute; top: 10px; bottom: 24px; width: 1px; background: var(--ink); opacity: 0.35; pointer-events: none; }
 .bs-tip {
   position: absolute; top: -8px; padding: 3px 8px; border-radius: 6px;
@@ -367,7 +379,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
     <div class="bs-block">
       <div class="panel-head">
-        <h3 class="sub-h">XAU − PAXG theo giờ</h3>
+        <h3 class="sub-h">Chênh lệch theo giờ</h3>
         <div class="seg" role="radiogroup" aria-label="Khoảng thời gian">
           <button type="button" id="sp-7" role="radio" data-range="7" aria-checked="false">7 ngày</button>
           <button type="button" id="sp-30" role="radio" data-range="30" aria-checked="true">30 ngày</button>
@@ -376,24 +388,75 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         </div>
       </div>
       <div class="hist-meta">
-        <p class="note" id="spHistMeta">Đang tải giá khớp theo giờ…</p>
+        <p class="note" id="spHistMeta">Đang tải giá theo giờ…</p>
         <button type="button" class="linkbtn" id="spRetry" hidden>Tải lại</button>
       </div>
-      <div class="hsum">
-        <div><div class="label">XAU cao hơn PAXG</div><div class="v" id="spPos">—</div><div class="s" id="spPosSub">—</div></div>
-        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg">—</span><small>USDT</small></div><div class="s" id="spAvgSub">—</div></div>
-        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax">—</span><small>USDT</small></div><div class="s" id="spMaxSub">—</div></div>
-        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin">—</span><small>USDT</small></div><div class="s" id="spMinSub">—</div></div>
-      </div>
-      <p class="note" id="spBand"></p>
-      <div class="bs-wrap">
-        <canvas id="spChart" aria-label="Biểu đồ XAUUSDT trừ PAXGUSDT theo giờ"></canvas>
-        <div class="bs-guide" id="spGuide" hidden></div>
-        <div class="bs-tip" id="spTip" hidden></div>
-      </div>
-      <p class="note">Giá đóng nến 1 giờ của XAUUSDT trừ PAXGUSDT, nên các lần giãn ngắn bên trong một giờ có thể không thấy. Trên 0 (xanh) là XAUUSDT cao hơn, dưới 0 (đỏ) là thấp hơn. Rê chuột hoặc chạm vào biểu đồ để xem từng giờ.</p>
+      <p class="note"><strong>Bấm vào một điểm trên biểu đồ</strong> để phân tích từng phút quanh thời điểm đó và xem chênh lệch đến từ đâu.</p>
     </div>
-    <p class="note">Thị trường forex nghỉ từ 17:00 thứ Sáu đến 18:00 Chủ nhật (giờ New York). Lúc đó giá forex đứng yên còn Binance vẫn chạy, nên XAU − forex cuối tuần không phản ánh chênh lệch thật.</p>
+    <div class="bs-block">
+      <h3 class="sub-h">XAU − PAXG</h3>
+      <div class="hsum">
+        <div><div class="label">XAU cao hơn PAXG</div><div class="v" id="spPos_xp">—</div><div class="s" id="spPosSub_xp">—</div></div>
+        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_xp">—</span><small>USDT</small></div><div class="s" id="spAvgSub_xp">—</div></div>
+        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_xp">—</span><small>USDT</small></div><div class="s" id="spMaxSub_xp">—</div></div>
+        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_xp">—</span><small>USDT</small></div><div class="s" id="spMinSub_xp">—</div></div>
+      </div>
+      <p class="note" id="spBand_xp"></p>
+      <div class="bs-wrap">
+        <canvas id="spChart_xp" aria-label="Biểu đồ XAUUSDT trừ PAXGUSDT theo giờ"></canvas>
+        <div class="bs-guide" id="spGuide_xp" hidden></div>
+        <div class="bs-tip" id="spTip_xp" hidden></div>
+      </div>
+      <p class="note">XAUUSDT trừ PAXGUSDT tại giá đóng mỗi giờ. Trên 0 (xanh) là XAUUSDT cao hơn, dưới 0 (đỏ) là thấp hơn. Rê chuột hoặc chạm để xem từng giờ.</p>
+    </div>
+    <div class="bs-block">
+      <h3 class="sub-h">XAU − forex</h3>
+      <div class="hsum">
+        <div><div class="label">XAU cao hơn vàng giao ngay</div><div class="v" id="spPos_xf">—</div><div class="s" id="spPosSub_xf">—</div></div>
+        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_xf">—</span><small>USDT</small></div><div class="s" id="spAvgSub_xf">—</div></div>
+        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_xf">—</span><small>USDT</small></div><div class="s" id="spMaxSub_xf">—</div></div>
+        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_xf">—</span><small>USDT</small></div><div class="s" id="spMinSub_xf">—</div></div>
+      </div>
+      <p class="note" id="spBand_xf"></p>
+      <div class="bs-wrap">
+        <canvas id="spChart_xf" aria-label="Biểu đồ XAUUSDT trừ giá vàng giao ngay theo giờ"></canvas>
+        <div class="bs-guide" id="spGuide_xf" hidden></div>
+        <div class="bs-tip" id="spTip_xf" hidden></div>
+      </div>
+      <p class="note">XAUUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
+    </div>
+    <div class="bs-block">
+      <h3 class="sub-h">PAXG − forex</h3>
+      <div class="hsum">
+        <div><div class="label">PAXG cao hơn vàng giao ngay</div><div class="v" id="spPos_pf">—</div><div class="s" id="spPosSub_pf">—</div></div>
+        <div><div class="label">Chênh trung bình</div><div class="v"><span id="spAvg_pf">—</span><small>USDT</small></div><div class="s" id="spAvgSub_pf">—</div></div>
+        <div><div class="label">Dương lớn nhất</div><div class="v"><span id="spMax_pf">—</span><small>USDT</small></div><div class="s" id="spMaxSub_pf">—</div></div>
+        <div><div class="label">Âm lớn nhất</div><div class="v"><span id="spMin_pf">—</span><small>USDT</small></div><div class="s" id="spMinSub_pf">—</div></div>
+      </div>
+      <p class="note" id="spBand_pf"></p>
+      <div class="bs-wrap">
+        <canvas id="spChart_pf" aria-label="Biểu đồ PAXGUSDT trừ giá vàng giao ngay theo giờ"></canvas>
+        <div class="bs-guide" id="spGuide_pf" hidden></div>
+        <div class="bs-tip" id="spTip_pf" hidden></div>
+      </div>
+      <p class="note">PAXGUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
+    </div>
+    <div class="bs-block" id="drill" hidden>
+      <div class="panel-head">
+        <h3 class="sub-h" id="drillTitle">Phân tích</h3>
+        <button type="button" class="linkbtn" id="drillClose">Đóng phân tích</button>
+      </div>
+      <p class="note" id="drillMeta"></p>
+      <p class="drill-verdict" id="drillVerdict"></p>
+      <div class="legend drill-legend"><span class="dx">XAUUSDT</span><span class="dp">PAXGUSDT</span><span class="dt">Token PAXG</span><span class="dz">0 = vàng giao ngay</span></div>
+      <div class="bs-wrap">
+        <canvas id="drillChart" aria-label="Biểu đồ từng phút: các giá trừ giá vàng giao ngay"></canvas>
+        <div class="bs-guide" id="drillGuide" hidden></div>
+        <div class="bs-tip" id="drillTip" hidden></div>
+      </div>
+      <p class="note">Mỗi đường là một giá trừ đi giá vàng giao ngay (index XAUUSDT), từng phút. Khoảng cách giữa đường XAUUSDT và PAXGUSDT chính là XAU − PAXG. Vạch đứt đứng là phút chênh XAU − PAXG lớn nhất.</p>
+      <div class="table-wrap"><table id="drillTable"></table></div>
+    </div>
   </section>
 
   <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
@@ -431,14 +494,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <p class="note" id="premStats"></p>
     <canvas id="premChart" aria-label="Biểu đồ chênh lệch bán ra của SJC so với thế giới"></canvas>
     <p class="note" id="premNote"></p>
-  </section>
-
-  <section class="panel" aria-label="Biểu đồ giá khớp trong phiên">
-    <div class="panel-head">
-      <h2>Giá khớp trong phiên</h2>
-    </div>
-    <canvas id="chart" aria-label="Biểu đồ giá khớp trong phiên"></canvas>
-    <p class="note" id="chartNote">Đang thu thập dữ liệu. Biểu đồ bắt đầu từ lúc mở trang.</p>
   </section>
 
   <section class="panel" aria-label="Lịch sử funding 14 ngày">
@@ -503,6 +558,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const REST_BASE = 'https://fapi.binance.com';
   const SJC_API = 'api/sjc-price.php';              // file PHP đặt cùng host với trang
   const FX_API = 'api/fx-price.php';
+  const SPREAD_API = 'api/spread-history.php';
   const FX_REFRESH_MS = 10 * 1000;
   const FX_STALE_MS = 3 * 60 * 1000;                // giá forex cũ hơn 3 phút coi như thị trường đang nghỉ
   const OZ_PER_LUONG = 37.5 / 31.1034768;           // 1 lượng = 37.5 g, 1 troy oz = 31.1034768 g
@@ -510,7 +566,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const KLINE_REFRESH_MS = 60 * 60 * 1000;
   const PREM_DAYS = 30;
   const PREM_MIN_SAMPLES = 24;                      // cần ít nhất 1 ngày dữ liệu theo giờ để so sánh
-  const MAX_POINTS = 900;      // 15 phút, mỗi giây một điểm mark price
   const NO_DATA_MS = 10000;    // đã kết nối mà không có dữ liệu
   const STALE_MS = 5000;       // dữ liệu chậm
   const DEAD_MS = 30000;       // coi như đứt, mở lại kết nối
@@ -522,7 +577,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     rate: $('rate'), payer: $('payer'), annual: $('annual'),
     countdown: $('countdown'), nextAt: $('nextAt'),
     status: $('status'), statusText: $('statusText'), notice: $('notice'),
-    updated: $('updated'), chart: $('chart'), chartNote: $('chartNote'),
+    updated: $('updated'),
     qty: $('qty'), receiver: $('receiver'), perLabel: $('perLabel'), perDayCount: $('perDayCount'),
     perFunding: $('perFunding'), perDay: $('perDay'), perYear: $('perYear'), posNote: $('posNote'),
     seg: document.querySelectorAll('.seg [data-sym]'),
@@ -543,9 +598,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     alertHi: $('alertHi'), alertLo: $('alertLo'), alertToggle: $('alertToggle'), alertZone: $('alertZone'),
     alertNote: $('alertNote'), alertLog: $('alertLog'), alertTest: $('alertTest'), alertTestResult: $('alertTestResult'), alertBar: $('alertBar'), alertText: $('alertText'), alertClose: $('alertClose'),
     ranges: document.querySelectorAll('.seg [data-range]'), spHistMeta: $('spHistMeta'), spRetry: $('spRetry'),
-    spPos: $('spPos'), spPosSub: $('spPosSub'), spAvg: $('spAvg'), spAvgSub: $('spAvgSub'),
-    spMax: $('spMax'), spMaxSub: $('spMaxSub'), spMin: $('spMin'), spMinSub: $('spMinSub'), spBand: $('spBand'),
-    spChart: $('spChart'), spGuide: $('spGuide'), spTip: $('spTip')
+    drill: $('drill'), drillTitle: $('drillTitle'), drillClose: $('drillClose'), drillMeta: $('drillMeta'),
+    drillVerdict: $('drillVerdict'), drillChart: $('drillChart'), drillGuide: $('drillGuide'), drillTip: $('drillTip'),
+    drillTable: $('drillTable')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
 
@@ -565,7 +620,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let retry = 0, retryAt = 0, retryTimer = null;
   let openedAt = 0, lastMsgAt = 0, gotData = false;
   let intervalH = 8, intervalKnown = false;
-  let prevLast = null, flashTimer = null, frame = 0, chartDirty = true;
+  let prevLast = null, flashTimer = null, frame = 0;
   let hist = null, histError = null, histLoading = false, histDueAt = 0, histDays = [], barsDirty = true;
   let view = 'day';
   // Giá khớp gần nhất của cả 2 mã, dùng cho chênh lệch giá và SJC (SJC luôn so với XAUUSDT)
@@ -577,7 +632,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let s = fresh();
 
   function fresh() {
-    return { last: null, chgPct: null, mark: null, rate: null, next: null, E: null, series: [] };
+    return { last: null, chgPct: null, mark: null, rate: null, next: null, E: null };
   }
 
   // ---------- Kết nối ----------
@@ -671,10 +726,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         s.mark = +d.p; s.rate = +d.r; s.next = +d.T; s.E = d.E;
         // Tải lại lịch sử 30 giây sau mỗi lần chốt funding
         if (!histDueAt && s.next > Date.now()) histDueAt = s.next + 30000;
-        // Biểu đồ trong phiên: mỗi giây một điểm giá khớp (chưa có thì tạm dùng mark)
-        s.series.push({ t: d.E, v: s.last != null ? s.last : s.mark });
-        if (s.series.length > MAX_POINTS) s.series.shift();
-        chartDirty = true;
         break;
       case 'aggTrade':
         s.last = +d.p; s.E = d.E;
@@ -715,13 +766,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       renderPosition();
     }
     if (s.E) el.updated.textContent = clock(s.E);
-    if (chartDirty) { chartDirty = false; drawChart(); }
     if (barsDirty) { barsDirty = false; drawBars(); }
     renderSpread();
     if (sjcDirty) { sjcDirty = false; renderSjc(); }
     if (premDirty) { premDirty = false; drawPrem(); }
     if (cmpDirty) { cmpDirty = false; drawCompare(); }
-    if (spDirty) { spDirty = false; drawSpreadChart(); }
+    if (spDirty) { spDirty = false; SP_KEYS.forEach(drawSpreadChart); }
+    if (drillDirty) { drillDirty = false; drawDrill(); }
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -786,93 +837,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const p = Math.pow(10, Math.floor(Math.log10(raw)));
     const f = raw / p;
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
-  }
-
-  function drawChart() {
-    const c = el.chart;
-    const ctx = c.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const w = c.clientWidth, h = c.clientHeight;
-    if (!w || !h) return;
-    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
-      c.width = Math.round(w * dpr);
-      c.height = Math.round(h * dpr);
-    }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const pts = s.series;
-    el.chartNote.textContent = pts.length < 2
-      ? 'Đang thu thập dữ liệu. Biểu đồ bắt đầu từ lúc mở trang.'
-      : 'Ghi từ lúc mở trang, giữ 15 phút gần nhất (' + pts.length + ' điểm, mỗi giây một điểm).';
-    if (pts.length < 2) return;
-
-    const cs = getComputedStyle(document.documentElement);
-    const tok = (n) => cs.getPropertyValue(n).trim();
-    const L = 2, R = 76, T = 10, B = 24;
-    const pw = w - L - R, ph = h - T - B;
-
-    let lo = Infinity, hi = -Infinity;
-    for (const p of pts) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
-    if (hi - lo < 0.4) { const mid = (hi + lo) / 2; lo = mid - 0.2; hi = mid + 0.2; }
-    const step = niceStep((hi - lo) / 4);
-    lo = Math.floor(lo / step) * step;
-    hi = Math.ceil(hi / step) * step;
-
-    const t0 = pts[0].t, t1 = pts[pts.length - 1].t, span = Math.max(t1 - t0, 1);
-    const X = (t) => L + ((t - t0) / span) * pw;
-    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
-    const end = pts[pts.length - 1];
-    const endY = Y(end.v);
-
-    // Lưới và nhãn trục giá
-    ctx.font = '11px ' + tok('--mono');
-    ctx.lineWidth = 1;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'left';
-    for (let v = lo; v <= hi + step / 2; v += step) {
-      const y = Math.round(Y(v)) + 0.5;
-      ctx.strokeStyle = tok('--line');
-      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
-      if (Math.abs(y - endY) > 14) {
-        ctx.fillStyle = tok('--muted');
-        ctx.fillText(fmt2.format(v), L + pw + 8, y);
-      }
-    }
-
-    // Nhãn thời gian
-    ctx.fillStyle = tok('--muted');
-    ctx.textBaseline = 'alphabetic';
-    ctx.textAlign = 'left';
-    ctx.fillText(clock(t0), L, h - 6);
-    ctx.textAlign = 'right';
-    ctx.fillText(clock(t1), L + pw, h - 6);
-
-    // Vùng dưới đường giá
-    const grad = ctx.createLinearGradient(0, T, 0, T + ph);
-    grad.addColorStop(0, tok('--gold-fill'));
-    grad.addColorStop(1, tok('--gold-fill0'));
-    ctx.beginPath();
-    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
-    ctx.lineTo(X(t1), T + ph); ctx.lineTo(X(t0), T + ph); ctx.closePath();
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    ctx.strokeStyle = tok('--gold');
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
-    ctx.stroke();
-
-    // Điểm cuối và nhãn giá hiện tại
-    ctx.fillStyle = tok('--gold');
-    ctx.beginPath(); ctx.arc(X(end.t), endY, 3.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillRect(L + pw + 3, endY - 9, R - 5, 18);
-    ctx.fillStyle = tok('--surface');
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(fmt2.format(end.v), L + pw + 8, endY + 0.5);
   }
 
   // ---------- Lịch sử funding 14 ngày ----------
@@ -1489,7 +1453,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // ---------- Chênh lệch giá: XAUUSDT với PAXGUSDT và với forex ----------
   const SP_LABEL = { 7: '7 ngày gần nhất', 30: '30 ngày gần nhất', 90: '90 ngày gần nhất', all: 'từ 05/01/2026' };
   const ALERT_GAP = 0.5; // phải ra khỏi vùng ít nhất 0.5 USDT mới báo lại
-  let spRange = '30', spPts = [], spGeom = null, spError = null, spLoading = false, spDirty = true;
+  let spRange = '30', spError = null, spLoading = false, spDirty = true;
   let alertOn = false, alertZone = null, audioCtx = null;
   const alertLog = [];
 
@@ -1682,7 +1646,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.alertTest.disabled = false;
   }
 
-  // ---------- XAU − PAXG theo giờ ----------
+  // ---------- Chênh lệch theo giờ: XAU − PAXG, XAU − forex, PAXG − forex ----------
+  // Giá vàng giao ngay cho quá khứ: index XAUUSDT (Binance tổng hợp từ các nhà cung cấp dữ liệu vàng).
+  // Giờ nào host có ghi giá Swissquote (spread-history.php) thì dùng giá đó thay cho index.
+  const SP_KEYS = ['xp', 'xf', 'pf'];
+  const SP_REST = { xp: 'XAU bằng hoặc thấp hơn', xf: 'XAU bằng hoặc thấp hơn', pf: 'PAXG bằng hoặc thấp hơn' };
+  const SP_VS = { xp: 'PAXGUSDT', xf: 'vàng giao ngay', pf: 'vàng giao ngay' };
+  const spSeries = { xp: [], xf: [], pf: [] }, spGeom = {};
+  let spLogFirst = null;
+
+  // Thị trường vàng nghỉ (giờ New York): 17:00 thứ Sáu tới 18:00 Chủ nhật, và 17:00–18:00 các ngày khác
+  const nyParts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', hourCycle: 'h23' });
+  function goldClosedAt(t) {
+    const parts = nyParts.formatToParts(new Date(t));
+    const wd = parts.find((x) => x.type === 'weekday').value;
+    const h = Number(parts.find((x) => x.type === 'hour').value) % 24;
+    return wd === 'Sat' || (wd === 'Fri' && h >= 17) || (wd === 'Sun' && h < 18) || h === 17;
+  }
+
   // Nến 1 giờ, trả về [openTime, close, closeTime]; mỗi lần tối đa 1500 nến
   async function fetchHourly(path, param, symbol, since) {
     const out = [];
@@ -1698,6 +1679,21 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     return out;
   }
 
+  // Nhật ký giá Swissquote do host ghi; không có (mở file trực tiếp, chưa cài cron) thì bỏ qua
+  async function loadSpreadLog(range) {
+    const none = { rows: [], firstAt: null };
+    if (location.protocol === 'file:') return none;
+    try {
+      const days = range === 'all' ? Math.ceil((Date.now() - CMP_START) / 864e5) + 1 : Number(range);
+      const r = await fetch(SPREAD_API + '?days=' + days, { cache: 'no-store' });
+      if (!r.ok) return none;
+      const data = await r.json();
+      return { rows: Array.isArray(data.rows) ? data.rows : [], firstAt: data.firstAt || null };
+    } catch (e) {
+      return none;
+    }
+  }
+
   async function loadSpread() {
     const range = spRange;
     const since = range === 'all' ? CMP_START : Date.now() - Number(range) * 864e5;
@@ -1705,18 +1701,38 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     spError = null;
     renderSpreadHistory();
     try {
-      const [xk, pk] = await Promise.all([
+      const [xk, pk, gk, log] = await Promise.all([
         fetchHourly('/fapi/v1/klines', 'symbol', 'XAUUSDT', since),
-        fetchHourly('/fapi/v1/klines', 'symbol', 'PAXGUSDT', since)
+        fetchHourly('/fapi/v1/klines', 'symbol', 'PAXGUSDT', since),
+        fetchHourly('/fapi/v1/indexPriceKlines', 'pair', 'XAUUSDT', since),
+        loadSpreadLog(range)
       ]);
       if (range !== spRange) return;
       const paxg = new Map(pk.map((k) => [k[0], k[1]]));
+      const gold = new Map(gk.map((k) => [k[0], k[1]]));
+      const logByHour = new Map(log.rows.map((r) => [r.h, r]));
       const now = Date.now();
+      const point = (t, v, base, src, extra) => Object.assign({ t, v, pct: (v / base) * 100, src }, extra || {});
+      SP_KEYS.forEach((key) => { spSeries[key] = []; });
       // Chỉ lấy nến đã đóng; t là giờ đóng nến (vd 14:00)
-      spPts = xk.filter((k) => k[2] <= now && paxg.has(k[0])).map((k) => {
-        const p = paxg.get(k[0]);
-        return { t: k[2] + 1, v: k[1] - p, pct: ((k[1] - p) / p) * 100 };
-      });
+      for (const k of xk) {
+        if (k[2] > now) continue;
+        const t = k[2] + 1, x = k[1], p = paxg.get(k[0]);
+        if (p != null) spSeries.xp.push(point(t, x - p, p, 'kl'));
+        const row = logByHour.get(k[0]);
+        if (row && row.fx) {
+          // Giờ host có ghi: giá Swissquote và giá Binance lấy cùng lúc, kèm cao/thấp trong giờ
+          if (row.xau != null) spSeries.xf.push(point(t, row.xau - row.fx, row.fx, 'log', { hi: row.xfMax, lo: row.xfMin }));
+          if (row.paxg != null) spSeries.pf.push(point(t, row.paxg - row.fx, row.fx, 'log', { hi: row.pfMax, lo: row.pfMin }));
+        } else {
+          const g = gold.get(k[0]);
+          if (g != null && !goldClosedAt(k[2])) {
+            spSeries.xf.push(point(t, x - g, g, 'idx'));
+            if (p != null) spSeries.pf.push(point(t, p - g, g, 'idx'));
+          }
+        }
+      }
+      spLogFirst = log.firstAt;
     } catch (e) {
       if (range !== spRange) return;
       spError = e.message || String(e);
@@ -1728,48 +1744,69 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   function renderSpreadHistory() {
     el.spRetry.hidden = !spError;
     el.spHistMeta.textContent = spError
-      ? 'Không tải được giá khớp theo giờ (' + spError + ').'
-      : spLoading ? 'Đang tải giá khớp theo giờ, ' + SP_LABEL[spRange] + '…'
-      : 'XAUUSDT − PAXGUSDT tại giá đóng mỗi giờ, ' + SP_LABEL[spRange] + '.';
-    const outs = [el.spPos, el.spAvg, el.spMax, el.spMin, el.spPosSub, el.spAvgSub, el.spMaxSub, el.spMinSub];
-    const pts = spPts;
+      ? 'Không tải được giá theo giờ (' + spError + ').'
+      : spLoading ? 'Đang tải giá theo giờ, ' + SP_LABEL[spRange] + '…'
+      : 'Chênh lệch tại giá đóng mỗi giờ, ' + SP_LABEL[spRange] + '. Giá vàng giao ngay lấy theo index XAUUSDT (Binance tổng hợp giá vàng từ các nhà cung cấp dữ liệu). '
+        + (spLogFirst ? 'Từ ' + stamp(spLogFirst) + ', giờ nào host có ghi thì dùng giá Swissquote thật. ' : 'Host chưa ghi giá Swissquote nào (cần cron cảnh báo đang chạy). ')
+        + 'XAU − forex và PAXG − forex không tính giờ thị trường vàng nghỉ (17:00 thứ Sáu tới 18:00 Chủ nhật và 17:00–18:00 mỗi ngày, giờ New York).';
+    SP_KEYS.forEach(renderSpreadStats);
     spDirty = true;
     schedule();
+  }
+
+  function renderSpreadStats(key) {
+    const q = (id) => $(id + '_' + key);
+    const pts = spSeries[key];
     if (!pts.length) {
-      outs.forEach((n) => { n.textContent = '—'; });
-      el.spBand.textContent = '';
+      ['spPos', 'spAvg', 'spMax', 'spMin', 'spPosSub', 'spAvgSub', 'spMaxSub', 'spMinSub'].forEach((id) => { q(id).textContent = '—'; });
+      q('spBand').textContent = '';
       return;
     }
     const n = pts.length;
-    let max = pts[0], min = pts[0], sum = 0, sumPct = 0, above = 0;
+    let max = pts[0], min = pts[0], sum = 0, sumPct = 0, above = 0, hi = null, lo = null;
     for (const p of pts) {
       if (p.v > max.v) max = p;
       if (p.v < min.v) min = p;
       sum += p.v;
       sumPct += p.pct;
       if (p.v > 0) above++;
+      if (p.hi != null && (hi == null || p.hi > hi.v)) hi = { v: p.hi, t: p.t };
+      if (p.lo != null && (lo == null || p.lo < lo.v)) lo = { v: p.lo, t: p.t };
     }
     const pick = (list, f) => list[Math.min(list.length - 1, Math.max(0, Math.round(f * (list.length - 1))))];
     const vs = pts.map((p) => p.v).sort((a, b) => a - b);
     const ps = pts.map((p) => p.pct).sort((a, b) => a - b);
-    el.spPos.textContent = Math.round((above / n) * 100) + '%';
-    el.spPosSub.textContent = above + ' / ' + n + ' giờ, còn lại XAU bằng hoặc thấp hơn';
-    el.spAvg.textContent = signed(sum / n, 2);
-    el.spAvgSub.textContent = signed(sumPct / n, 4) + '% so với PAXGUSDT';
-    el.spMax.textContent = signed(max.v, 2);
-    el.spMaxSub.textContent = signed(max.pct, 3) + '% lúc ' + stamp(max.t);
-    el.spMin.textContent = signed(min.v, 2);
-    el.spMinSub.textContent = signed(min.pct, 3) + '% lúc ' + stamp(min.t);
-    el.spBand.textContent = '90% số giờ nằm trong khoảng ' + signed(pick(vs, 0.05), 2) + ' đến ' + signed(pick(vs, 0.95), 2)
-      + ' USDT (' + signed(pick(ps, 0.05), 3) + '% đến ' + signed(pick(ps, 0.95), 3) + '%).';
+    q('spPos').textContent = Math.round((above / n) * 100) + '%';
+    q('spPosSub').textContent = above + ' / ' + n + ' giờ, còn lại ' + SP_REST[key];
+    q('spAvg').textContent = signed(sum / n, 2);
+    q('spAvgSub').textContent = signed(sumPct / n, 4) + '% so với ' + SP_VS[key];
+    q('spMax').textContent = signed(max.v, 2);
+    q('spMaxSub').textContent = signed(max.pct, 3) + '% lúc ' + stamp(max.t);
+    q('spMin').textContent = signed(min.v, 2);
+    q('spMinSub').textContent = signed(min.pct, 3) + '% lúc ' + stamp(min.t);
+    q('spBand').textContent = '90% số giờ nằm trong khoảng ' + signed(pick(vs, 0.05), 2) + ' đến ' + signed(pick(vs, 0.95), 2)
+      + ' USDT (' + signed(pick(ps, 0.05), 3) + '% đến ' + signed(pick(ps, 0.95), 3) + '%).'
+      + (hi ? ' Trong giờ theo nhật ký host: cao nhất ' + signed(hi.v, 2) + ' (giờ kết thúc ' + stamp(hi.t) + '), thấp nhất ' + signed(lo.v, 2) + ' (giờ kết thúc ' + stamp(lo.t) + ').' : '');
   }
 
-  function drawSpreadChart() {
-    const c = el.spChart;
+  // Tách thành các đoạn liền nhau, để đường không nối qua giờ thị trường nghỉ
+  function segmentsOf(pts, maxGap) {
+    const segs = [];
+    let cur = [];
+    for (const p of pts) {
+      if (cur.length && p.t - cur[cur.length - 1].t > maxGap) { segs.push(cur); cur = []; }
+      cur.push(p);
+    }
+    if (cur.length) segs.push(cur);
+    return segs;
+  }
+
+  function drawSpreadChart(key) {
+    const c = $('spChart_' + key);
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const w = c.clientWidth, h = c.clientHeight;
-    spGeom = null;
+    spGeom[key] = null;
     if (!w || !h) return;
     if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
       c.width = Math.round(w * dpr);
@@ -1777,7 +1814,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const pts = spPts;
+    const pts = spSeries[key];
+    c.classList.toggle('clickable', pts.length > 1);
     if (pts.length < 2) return;
 
     const cs = getComputedStyle(document.documentElement);
@@ -1795,10 +1833,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const X = (t) => L + ((t - t0) / span) * pw;
     const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
     const y0 = Y(0);
-    spGeom = { X, L, pw, t0, span };
+    spGeom[key] = { X, L, pw, t0, span };
+
+    // Nền xám cho đoạn dùng giá Swissquote do host ghi
+    ctx.font = '11px ' + tok('--mono');
+    const firstLog = pts.find((p) => p.src === 'log');
+    if (firstLog) {
+      const xl = X(firstLog.t);
+      ctx.fillStyle = tok('--line');
+      ctx.globalAlpha = 0.45;
+      ctx.fillRect(xl, T, L + pw - xl, ph);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = tok('--muted');
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      if (L + pw - xl > 70) ctx.fillText('Swissquote', xl + 4, T + 2);
+    }
 
     // Lưới và nhãn trục USDT
-    ctx.font = '11px ' + tok('--mono');
     ctx.lineWidth = 1;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -1815,13 +1867,16 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       ctx.fillText(zero ? '0' : signed(v, dec), L + pw + 8, y);
     }
 
-    // Vùng trên 0 tô xanh, dưới 0 tô đỏ
+    // Vùng trên 0 tô xanh, dưới 0 tô đỏ; đường đứt đoạn ở chỗ thiếu dữ liệu
+    const segs = segmentsOf(pts, 1.5 * 36e5);
     const area = () => {
       ctx.beginPath();
-      ctx.moveTo(X(t0), y0);
-      for (const p of pts) ctx.lineTo(X(p.t), Y(p.v));
-      ctx.lineTo(X(t1), y0);
-      ctx.closePath();
+      for (const seg of segs) {
+        ctx.moveTo(X(seg[0].t), y0);
+        for (const p of seg) ctx.lineTo(X(p.t), Y(p.v));
+        ctx.lineTo(X(seg[seg.length - 1].t), y0);
+        ctx.closePath();
+      }
     };
     ctx.globalAlpha = 0.35;
     ctx.save();
@@ -1837,7 +1892,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.globalAlpha = 0.55;
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    pts.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
+    for (const seg of segs) seg.forEach((p, n) => (n ? ctx.lineTo(X(p.t), Y(p.v)) : ctx.moveTo(X(p.t), Y(p.v))));
     ctx.stroke();
     ctx.globalAlpha = 1;
 
@@ -1855,27 +1910,245 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.fillText(dm(t1), L + pw, h - 6);
   }
 
-  function bindSpreadTip() {
-    const c = el.spChart, tip = el.spTip, guide = el.spGuide;
+  // Tìm điểm gần thời điểm t nhất (pts đã sắp theo thời gian)
+  function nearestPoint(pts, t) {
+    let a = 0, b = pts.length - 1;
+    while (b - a > 1) { const mid = (a + b) >> 1; if (pts[mid].t < t) a = mid; else b = mid; }
+    return Math.abs(pts[a].t - t) <= Math.abs(pts[b].t - t) ? pts[a] : pts[b];
+  }
+
+  // Tooltip và vạch dọc khi rê chuột / chạm; describe(p) trả nội dung, onPick(p) chạy khi bấm
+  function bindChartTip(canvas, tip, guide, getPts, getGeom, describe, onPick) {
     const hide = () => { tip.hidden = true; guide.hidden = true; };
+    const find = (e) => {
+      const pts = getPts(), g = getGeom();
+      if (!pts || pts.length < 2 || !g) return null;
+      const rect = canvas.getBoundingClientRect();
+      return { p: nearestPoint(pts, g.t0 + ((e.clientX - rect.left - g.L) / g.pw) * g.span), g, rect };
+    };
     const show = (e) => {
-      const pts = spPts, g = spGeom;
-      if (pts.length < 2 || !g) return hide();
-      const rect = c.getBoundingClientRect();
-      const t = g.t0 + ((e.clientX - rect.left - g.L) / g.pw) * g.span;
-      let a = 0, b = pts.length - 1;
-      while (b - a > 1) { const mid = (a + b) >> 1; if (pts[mid].t < t) a = mid; else b = mid; }
-      const p = Math.abs(pts[a].t - t) <= Math.abs(pts[b].t - t) ? pts[a] : pts[b];
-      const x = g.X(p.t);
+      const hit = find(e);
+      if (!hit) return hide();
+      const x = hit.g.X(hit.p.t);
       guide.style.left = x + 'px';
       guide.hidden = false;
-      tip.textContent = stamp(p.t) + ' · ' + signed(p.v, 2) + ' USDT (' + signed(p.pct, 3) + '%)';
+      tip.textContent = describe(hit.p);
       tip.hidden = false;
-      tip.style.left = Math.min(Math.max(0, x - tip.offsetWidth / 2), rect.width - tip.offsetWidth) + 'px';
+      tip.style.left = Math.min(Math.max(0, x - tip.offsetWidth / 2), hit.rect.width - tip.offsetWidth) + 'px';
     };
-    c.addEventListener('pointermove', show);
-    c.addEventListener('pointerdown', show);
-    c.addEventListener('pointerleave', hide);
+    canvas.addEventListener('pointermove', show);
+    canvas.addEventListener('pointerdown', show);
+    canvas.addEventListener('pointerleave', hide);
+    if (onPick) canvas.addEventListener('click', (e) => { const hit = find(e); if (hit) onPick(hit.p); });
+  }
+
+  function bindSpreadTip(key) {
+    bindChartTip($('spChart_' + key), $('spTip_' + key), $('spGuide_' + key),
+      () => spSeries[key], () => spGeom[key],
+      (p) => stamp(p.t) + ' · ' + signed(p.v, 2) + ' USDT (' + signed(p.pct, 3) + '%)'
+        + (p.src === 'log' ? ' · Swissquote' + (p.hi != null ? ', trong giờ ' + signed(p.lo, 2) + ' đến ' + signed(p.hi, 2) : '') : p.src === 'idx' ? ' · vàng theo index' : '')
+        + ' · bấm để phân tích',
+      (p) => openDrill(p.t));
+  }
+
+  // ---------- Phân tích từng phút quanh một thời điểm ----------
+  const DRILL_BEFORE = 120 * 6e4, DRILL_AFTER = 60 * 6e4;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let drill = null, drillGeom = null, drillDirty = false, drillSeq = 0;
+
+  // Nến 1 phút → Map(openTime → giá đóng)
+  async function fetchMinutes(path, param, symbol, start, end) {
+    const r = await fetch(REST_BASE + path + '?' + param + '=' + symbol + '&interval=1m&startTime=' + start + '&endTime=' + end + '&limit=500', { cache: 'no-store' });
+    if (!r.ok) throw new Error(symbol + ' HTTP ' + r.status);
+    const rows = await r.json();
+    return new Map(rows.map((k) => [+k[0], +k[4]]));
+  }
+
+  async function fetchFundingAround(symbol, start, end) {
+    try {
+      const r = await fetch(REST_BASE + '/fapi/v1/fundingRate?symbol=' + symbol + '&startTime=' + (start - 12 * 36e5) + '&endTime=' + end + '&limit=20', { cache: 'no-store' });
+      if (!r.ok) return [];
+      return (await r.json()).map((x) => ({ t: +x.fundingTime, rate: +x.fundingRate }));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function openDrill(t) {
+    const seq = ++drillSeq;
+    const start = Math.floor((t - DRILL_BEFORE) / 6e4) * 6e4;
+    const end = Math.min(t + DRILL_AFTER, Date.now());
+    el.drill.hidden = false;
+    el.drillTitle.textContent = 'Phân tích quanh ' + stamp(t);
+    el.drillMeta.textContent = 'Đang tải dữ liệu từng phút…';
+    el.drillVerdict.textContent = '';
+    el.drillTable.innerHTML = '';
+    drill = null;
+    drillDirty = true;
+    schedule();
+    el.drill.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+    try {
+      const [X, P, G, K, fx, fp] = await Promise.all([
+        fetchMinutes('/fapi/v1/klines', 'symbol', 'XAUUSDT', start, end),
+        fetchMinutes('/fapi/v1/klines', 'symbol', 'PAXGUSDT', start, end),
+        fetchMinutes('/fapi/v1/indexPriceKlines', 'pair', 'XAUUSDT', start, end),
+        fetchMinutes('/fapi/v1/indexPriceKlines', 'pair', 'PAXGUSDT', start, end),
+        fetchFundingAround('XAUUSDT', start, end),
+        fetchFundingAround('PAXGUSDT', start, end)
+      ]);
+      if (seq !== drillSeq) return;
+      const rows = [];
+      for (const [m, x] of X) {
+        const p = P.get(m), g = G.get(m), k = K.get(m);
+        if (p == null || g == null || k == null) continue;
+        // t là cuối phút; x: XAUUSDT, p: PAXGUSDT, k: token PAXG (index PAXGUSDT), g: vàng giao ngay (index XAUUSDT)
+        rows.push({ t: m + 6e4, x, p, k, g, xg: x - g, pg: p - g, kg: k - g, xp: x - p });
+      }
+      rows.sort((a, b) => a.t - b.t);
+      drill = { t, start, rows, fx, fp };
+      renderDrill();
+    } catch (e) {
+      if (seq !== drillSeq) return;
+      el.drillMeta.textContent = 'Không tải được dữ liệu từng phút (' + (e.message || e) + ').';
+    }
+  }
+
+  function renderDrill() {
+    const d = drill;
+    drillDirty = true;
+    schedule();
+    if (!d.rows.length) {
+      el.drillMeta.textContent = 'Không có đủ dữ liệu từng phút của cả 4 giá trong khoảng này.';
+      return;
+    }
+    let peak = d.rows[0];
+    for (const r of d.rows) if (Math.abs(r.xp) > Math.abs(peak.xp)) peak = r;
+    d.peak = peak;
+    let gMin = Infinity, gMax = -Infinity;
+    for (const r of d.rows) { gMin = Math.min(gMin, r.g); gMax = Math.max(gMax, r.g); }
+    const closed = goldClosedAt(peak.t - 1);
+    el.drillMeta.textContent = 'Từng phút từ ' + stamp(d.start) + ' đến ' + stamp(d.rows[d.rows.length - 1].t)
+      + '. Giá vàng giao ngay dao động ' + (gMax - gMin).toFixed(2) + ' USDT (' + (((gMax - gMin) / gMin) * 100).toFixed(2) + '%) trong khoảng này.'
+      + (closed ? ' Lúc chênh lớn nhất, thị trường vàng đang nghỉ: index XAUUSDT tính theo sổ lệnh chứ không theo giá vàng thật, nên phần "lệch khỏi vàng giao ngay" kém tin cậy.' : '');
+
+    // XAU − PAXG = (XAUUSDT − vàng) − (token PAXG − vàng) − (PAXGUSDT − token PAXG)
+    const parts = [
+      { name: 'XAUUSDT lệch khỏi vàng giao ngay', v: peak.xg, why: 'hợp đồng XAU giao dịch khác giá vàng thật, thường do vị thế dồn một phía hoặc thanh lý dây chuyền' },
+      { name: 'Token PAXG lệch khỏi vàng giao ngay (đổi dấu)', v: -peak.kg, why: 'thị trường crypto định giá token PAXG khác vàng thật, thường khi tiền rút khỏi hoặc đổ vào crypto' },
+      { name: 'PAXGUSDT lệch khỏi token PAXG (đổi dấu)', v: -(peak.p - peak.k), why: 'hợp đồng PAXG giao dịch khác giá token PAXG, thường do vị thế dồn một phía' }
+    ];
+    const total = parts.reduce((a, x) => a + Math.abs(x.v), 0) || 1;
+    const main = parts.reduce((a, x) => (Math.abs(x.v) > Math.abs(a.v) ? x : a));
+    const lastFunding = (list) => {
+      const done = list.filter((f) => f.t <= peak.t);
+      const f = done[done.length - 1];
+      return f ? signed(f.rate * 100, 4) + '% (kỳ ' + stamp(f.t) + ')' : '—';
+    };
+    const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    let html = '<thead><tr><th>Lúc ' + stamp(peak.t) + '</th><th>USDT</th><th>Tỷ trọng</th></tr></thead><tbody>'
+      + '<tr><td><strong>XAU − PAXG</strong></td><td' + tone(peak.xp) + '><strong>' + signed(peak.xp, 2) + '</strong></td><td></td></tr>';
+    for (const part of parts) {
+      html += '<tr><td>' + part.name + '</td><td' + tone(part.v) + '>' + signed(part.v, 2) + '</td><td>' + Math.round((Math.abs(part.v) / total) * 100) + '%</td></tr>';
+    }
+    html += '</tbody><tbody>'
+      + '<tr><td>Giá XAUUSDT</td><td>' + fmt2.format(peak.x) + '</td><td></td></tr>'
+      + '<tr><td>Giá PAXGUSDT</td><td>' + fmt2.format(peak.p) + '</td><td></td></tr>'
+      + '<tr><td>Token PAXG (index PAXGUSDT)</td><td>' + fmt2.format(peak.k) + '</td><td></td></tr>'
+      + '<tr><td>Vàng giao ngay (index XAUUSDT)</td><td>' + fmt2.format(peak.g) + '</td><td></td></tr>'
+      + '<tr><td>Funding XAUUSDT kỳ gần nhất</td><td colspan="2">' + lastFunding(d.fx) + '</td></tr>'
+      + '<tr><td>Funding PAXGUSDT kỳ gần nhất</td><td colspan="2">' + lastFunding(d.fp) + '</td></tr>'
+      + '</tbody>';
+    el.drillTable.innerHTML = html;
+    el.drillVerdict.textContent = 'Chênh XAU − PAXG lớn nhất ' + signed(peak.xp, 2) + ' USDT lúc ' + stamp(peak.t) + '. Phần lớn ('
+      + Math.round((Math.abs(main.v) / total) * 100) + '%) đến từ: ' + main.name.replace(' (đổi dấu)', '') + ' (' + signed(main.v, 2) + ' USDT), tức là ' + main.why + '.';
+  }
+
+  function drawDrill() {
+    const c = el.drillChart;
+    const ctx = c.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    drillGeom = null;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const rows = drill && drill.rows;
+    if (!rows || rows.length < 2) return;
+
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    const L = 2, R = 64, T = 10, B = 24;
+    const pw = w - L - R, ph = h - T - B;
+    let lo = 0, hi = 0;
+    for (const r of rows) { lo = Math.min(lo, r.xg, r.pg, r.kg); hi = Math.max(hi, r.xg, r.pg, r.kg); }
+    if (hi - lo < 0.02) { lo -= 0.01; hi += 0.01; }
+    const step = niceStep((hi - lo) / 4);
+    lo = Math.floor(lo / step) * step;
+    hi = Math.ceil(hi / step) * step;
+    const dec = Math.min(4, (String(+step.toPrecision(3)).split('.')[1] || '').length);
+    const t0 = rows[0].t, t1 = rows[rows.length - 1].t, span = Math.max(t1 - t0, 1);
+    const X = (t) => L + ((t - t0) / span) * pw;
+    const Y = (v) => T + ((hi - v) / (hi - lo)) * ph;
+    drillGeom = { X, L, pw, t0, span };
+
+    ctx.font = '11px ' + tok('--mono');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const ticks = Math.round((hi - lo) / step);
+    for (let k = 0; k <= ticks; k++) {
+      const v = lo + k * step;
+      const zero = Math.abs(v) < step / 1e6;
+      const y = Math.round(Y(v)) + 0.5;
+      ctx.strokeStyle = zero ? tok('--ink') : tok('--line');
+      ctx.lineWidth = zero ? 1.5 : 1;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
+      ctx.fillStyle = tok('--muted');
+      ctx.fillText(zero ? '0' : signed(v, dec), L + pw + 8, y);
+    }
+
+    // Vạch phút chênh XAU − PAXG lớn nhất
+    if (drill.peak) {
+      const xp = Math.round(X(drill.peak.t)) + 0.5;
+      ctx.strokeStyle = tok('--warn');
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(xp, T); ctx.lineTo(xp, T + ph); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    const line = (key, color, dash, width) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      rows.forEach((r, n) => (n ? ctx.lineTo(X(r.t), Y(r[key])) : ctx.moveTo(X(r.t), Y(r[key]))));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    ctx.lineJoin = 'round';
+    line('kg', tok('--muted'), [5, 3], 1.5);
+    line('pg', tok('--blue'), [], 2);
+    line('xg', tok('--gold'), [], 2);
+
+    ctx.fillStyle = tok('--muted');
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillText(clock(t0).slice(0, 5), L, h - 6);
+    ctx.textAlign = 'center';
+    ctx.fillText(clock(t0 + span / 2).slice(0, 5), L + pw / 2, h - 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(clock(t1).slice(0, 5), L + pw, h - 6);
+  }
+
+  function bindDrillTip() {
+    bindChartTip(el.drillChart, el.drillTip, el.drillGuide,
+      () => (drill ? drill.rows : null), () => drillGeom,
+      (r) => clock(r.t).slice(0, 5) + ' · XAU−PAXG ' + signed(r.xp, 2) + ' · XAU ' + signed(r.xg, 2) + ' · PAXG ' + signed(r.pg, 2) + ' · token ' + signed(r.kg, 2) + ' so với vàng',
+      null);
   }
 
   // ---------- Chọn hợp đồng ----------
@@ -1897,12 +2170,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     sym = next;
     try { localStorage.setItem('gold-perp-live.symbol', sym); } catch (e) { /* bỏ qua */ }
     s = fresh();
-    prevLast = null; gotData = false; retry = 0; chartDirty = true;
+    prevLast = null; gotData = false; retry = 0;
     el.notice.hidden = true;
     el.seg.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.sym === sym)));
     el.symNote.textContent = SYMBOLS[sym];
     resetView();
-    drawChart();
     hist = null; histError = null; histDueAt = 0;
     loadFundingInterval(sym);
     loadHistory(sym);
@@ -1929,7 +2201,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.ranges.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
     loadSpread();
   }));
-  bindSpreadTip();
+  SP_KEYS.forEach(bindSpreadTip);
+  bindDrillTip();
+  el.drillClose.addEventListener('click', () => { drillSeq++; el.drill.hidden = true; });
 
   // Cảnh báo: ngưỡng và trạng thái bật được nhớ lại; âm thanh cần một lần bấm vào trang
   try {
@@ -1960,14 +2234,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }));
   el.histRetry.addEventListener('click', () => loadHistory(sym));
 
-  const redraw = () => { chartDirty = true; barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; schedule(); };
+  const redraw = () => { barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; drillDirty = true; schedule(); };
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(redraw);
-    ro.observe(el.chart);
     ro.observe(el.bars);
     ro.observe(el.premChart);
     ro.observe(el.cmpChart);
-    ro.observe(el.spChart);
+    SP_KEYS.forEach((key) => ro.observe($('spChart_' + key)));
+    ro.observe(el.drillChart);
   } else {
     window.addEventListener('resize', redraw);
   }
