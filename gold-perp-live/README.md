@@ -1,8 +1,9 @@
 # Gold Perp Live
 
-Dashboard xem dữ liệu live của hợp đồng vàng (và dầu) vĩnh cửu, gồm 4 tab:
+Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu, gồm 5 tab:
 
 - **XAUUSDT**: hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới và lịch sử funding 14 ngày của sàn đang chọn.
+- **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang, lịch sử funding 14 ngày của sàn đang chọn. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding 14 ngày.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 ngày. Chỉ tải dữ liệu khi mở tab này.
 - **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
@@ -19,7 +20,7 @@ gold-perp-live/
 ├── README.md
 └── api/
     ├── sjc-price.php   lấy giá SJC và tỷ giá cho trang
-    ├── fx-price.php    lấy giá XAU/USD trên sàn forex (Swissquote) cho trang
+    ├── fx-price.php    lấy giá XAU/USD (hoặc XAG/USD với ?inst=XAG) trên sàn forex (Swissquote) cho trang
     ├── fx-lib.php      phần lấy giá forex dùng chung
     ├── alert-check.php cảnh báo Bybit XAU − forex và PAXG − forex qua ntfy, ghi chênh lệch theo giờ, chạy bằng cron
     ├── alert-config.example.php   cấu hình mẫu cho cảnh báo
@@ -28,11 +29,11 @@ gold-perp-live/
     └── exchanges.php   giá, funding và lịch sử funding hợp đồng vàng trên Bybit và Hyperliquid
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
-Trang nhớ tab và sub tab mở gần nhất. Link có `#paxg` mở thẳng tab PAXGUSDT Binance, `#dau` mở tab Dầu WTI, `#so-sanh` mở tab So sánh.
+Trang nhớ tab và sub tab mở gần nhất. Link có `#xag` mở thẳng tab XAGUSDT, `#paxg` mở tab PAXGUSDT Binance, `#dau` mở tab Dầu WTI, `#so-sanh` mở tab So sánh.
 
 Trang chỉ nhận dữ liệu của phần đang xem: sub tab Binance (mark, funding, 24h của XAUUSDT Binance) và tab Dầu WTI mở thêm luồng khi bấm vào và đóng luồng khi rời đi. Giá khớp XAUUSDT Binance vẫn luôn nhận vì khung SJC và tab So sánh cần.
 
@@ -87,6 +88,16 @@ Tab So sánh. Bảng live chia theo tài sản gốc:
 - Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên bảng quy về **cùng 8 giờ** và **theo năm**. Có thêm USDT/ngày cho khối lượng đang nhập (bên Short), kỳ funding tới, giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là funding quy năm cao nhất trong nhóm.
 - Lịch sử 7 hoặc 30 ngày: funding thực tế trung bình quy năm của từng hợp đồng, và biểu đồ tổng funding mỗi ngày của 3 sàn cho từng nhóm.
 - Kiểm tra: mở `api/exchanges.php?debug=1` để xem dữ liệu thô từng lần gọi Bybit và Hyperliquid. Nếu sàn nào đổi định dạng, gửi nội dung trang debug để sửa.
+
+## XAGUSDT (bạc)
+
+Tab `#xag`, giống tab XAUUSDT nhưng cho hợp đồng bạc XAGUSDT (giá USDT cho 1 troy ounce bạc).
+
+- **Sub tab Bybit** (mặc định, WebSocket `tickers.XAGUSDT`): giá khớp, % 24h, mark, funding, đếm ngược, funding theo vị thế. Ô khối lượng bạc (oz) riêng với vàng, dùng chung cho hai sub tab.
+- **Sub tab Binance**: cùng các mục đó cho XAGUSDT Binance (`xagusdt@markPrice@1s`, `xagusdt@ticker`, chỉ mở khi bấm), kèm chênh lệch Bybit − Binance về giá, mark và funding quy năm.
+- **XAGUSDT Bybit so với forex**: Bybit XAG − forex và Binance XAG − forex, giá bạc XAG/USD của Swissquote qua `api/fx-price.php?inst=XAG` (cache 5 giây, trang lấy lại mỗi 10 giây).
+- **Cảnh báo Bybit XAG − forex** trên trang: mặc định **≥ 0.3** hoặc **< −0.3** USDT, ra khỏi vùng 0.05 USDT mới báo lại, dùng chung nút bật/tắt với các cảnh báo khác. Khi đang bật cảnh báo, trang nhận giá bạc cả khi xem tab khác. Chưa có cảnh báo bạc qua điện thoại.
+- **Lịch sử funding 14 ngày** theo sub tab đang chọn (Bybit qua `api/exchanges.php`, có XAGUSDT trong danh sách mã Bybit).
 
 ## Dầu WTI
 

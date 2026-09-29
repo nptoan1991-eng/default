@@ -348,6 +348,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   <nav class="main-tabs" role="tablist" aria-label="Phần của trang">
     <button type="button" id="tab-btn-xau" role="tab" data-tab="xau" aria-controls="tab-xau" aria-selected="true">XAUUSDT</button>
+    <button type="button" id="tab-btn-xag" role="tab" data-tab="xag" aria-controls="tab-xag" aria-selected="false">XAGUSDT</button>
     <button type="button" id="tab-btn-paxg" role="tab" data-tab="paxg" aria-controls="tab-paxg" aria-selected="false">PAXGUSDT Binance</button>
     <button type="button" id="tab-btn-dau" role="tab" data-tab="dau" aria-controls="tab-dau" aria-selected="false">Dầu WTI</button>
     <button type="button" id="tab-btn-so-sanh" role="tab" data-tab="so-sanh" aria-controls="tab-so-sanh" aria-selected="false">So sánh</button>
@@ -537,6 +538,130 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
       </div>
       <div class="table-wrap"><table id="histTable"></table></div>
+    </section>
+  </div>
+
+  <div class="tab-page" id="tab-xag" role="tabpanel" aria-labelledby="tab-btn-xag" hidden>
+    <div class="seg sub-tabs" role="tablist" aria-label="Sàn giao dịch bạc">
+      <button type="button" id="agsub-btn-bybit" role="tab" data-agsub="bybit" aria-controls="agsub-bybit" aria-selected="true">Bybit</button>
+      <button type="button" id="agsub-btn-binance" role="tab" data-agsub="binance" aria-controls="agsub-binance" aria-selected="false">Binance</button>
+    </div>
+
+    <div class="sub-page" id="agsub-bybit" role="tabpanel" aria-labelledby="agsub-btn-bybit">
+      <section class="hero" aria-label="Giá khớp XAGUSDT trên Bybit">
+        <div>
+          <div class="label">XAGUSDT · Bybit · USDT / troy oz</div>
+          <div class="price" id="agyLast">—</div>
+          <div class="hero-meta">
+            <span class="chg" id="agyChg">—</span>
+            <span>Giá USDT cho 1 troy ounce bạc</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Mark price và funding XAGUSDT Bybit">
+        <article class="stat">
+          <div class="label">Mark price</div>
+          <div class="v" id="agyMark">—</div>
+          <div class="s">Giá dùng tính PnL và thanh lý</div>
+        </article>
+        <article class="stat">
+          <div class="label">Funding rate</div>
+          <div class="row"><span class="v" id="agyRate">—</span><span class="chip" id="agyPayer"></span></div>
+          <div class="s" id="agyAnnual">—</div>
+          <div class="s">Funding tiếp theo sau <span class="count" id="agyCountdown">--:--:--</span> <span id="agyNextAt"></span></div>
+        </article>
+        <article class="stat wide">
+          <div class="pos-head">
+            <div class="label">Funding theo vị thế</div>
+            <label class="qty" for="agyQty">Khối lượng <input id="agyQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+            <span class="chip" id="agyReceiver"></span>
+          </div>
+          <div class="pos-grid">
+            <div><div class="s">Mỗi lần funding (<span id="agyPerLabel">8h</span>)</div><div class="v"><span id="agyPerFunding">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi ngày (<span id="agyPerDayCount">3</span> lần)</div><div class="v"><span id="agyPerDay">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="agyPerYear">—</span><small>USDT</small></div></div>
+          </div>
+          <div class="s" id="agyPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+        </article>
+      </section>
+    </div>
+
+    <div class="sub-page" id="agsub-binance" role="tabpanel" aria-labelledby="agsub-btn-binance" hidden>
+      <section class="hero" aria-label="Giá khớp XAGUSDT trên Binance">
+        <div>
+          <div class="label">XAGUSDT · Binance · USDT / troy oz</div>
+          <div class="price" id="agbLast">—</div>
+          <div class="hero-meta">
+            <span class="chg" id="agbChg">—</span>
+            <span>Giá USDT cho 1 troy ounce bạc</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Mark price và funding XAGUSDT Binance">
+        <article class="stat">
+          <div class="label">Mark price</div>
+          <div class="v" id="agbMark">—</div>
+          <div class="s">Giá dùng tính PnL và thanh lý</div>
+        </article>
+        <article class="stat">
+          <div class="label">Funding rate</div>
+          <div class="row"><span class="v" id="agbRate">—</span><span class="chip" id="agbPayer"></span></div>
+          <div class="s" id="agbAnnual">—</div>
+          <div class="s">Funding tiếp theo sau <span class="count" id="agbCountdown">--:--:--</span> <span id="agbNextAt"></span></div>
+        </article>
+        <article class="stat wide">
+          <div class="pos-head">
+            <div class="label">Funding theo vị thế</div>
+            <label class="qty" for="agbQty">Khối lượng <input id="agbQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+            <span class="chip" id="agbReceiver"></span>
+          </div>
+          <div class="pos-grid">
+            <div><div class="s">Mỗi lần funding (<span id="agbPerLabel">8h</span>)</div><div class="v"><span id="agbPerFunding">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi ngày (<span id="agbPerDayCount">3</span> lần)</div><div class="v"><span id="agbPerDay">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="agbPerYear">—</span><small>USDT</small></div></div>
+          </div>
+          <div class="s" id="agbPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+        </article>
+      </section>
+
+      <section class="panel" aria-label="XAGUSDT Bybit so với Binance">
+        <div class="panel-head">
+          <h2>So với Bybit</h2>
+        </div>
+        <p class="note">Chênh lệch tính Bybit trừ Binance, theo số liệu hiện tại.</p>
+        <div class="hsum">
+          <div><div class="label">Giá khớp Bybit − Binance</div><div class="v"><span id="agbGapLast">—</span><small>USDT</small></div><div class="s" id="agbGapLastSub">—</div></div>
+          <div><div class="label">Mark Bybit − Binance</div><div class="v"><span id="agbGapMark">—</span><small>USDT</small></div><div class="s" id="agbGapMarkSub">—</div></div>
+          <div><div class="label">Funding Bybit − Binance</div><div class="v"><span id="agbGap">—</span><small>%/năm</small></div><div class="s" id="agbGapSub">—</div></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" aria-label="XAGUSDT Bybit so với forex">
+      <div class="panel-head">
+        <h2>XAGUSDT Bybit so với forex</h2>
+        <span class="chip" data-fxag="state"></span>
+      </div>
+      <p class="note">So theo giá khớp gần nhất trên Bybit và giá bạc XAG/USD của Swissquote (giữa bid và ask), giá forex lấy lại mỗi 10 giây. <span data-fxag="err"></span></p>
+      <div class="hsum">
+        <div><div class="label">Bybit XAG − forex</div><div class="v lead"><span id="agFx">—</span><small>USDT</small></div><div class="s" id="agFxSub">—</div></div>
+        <div><div class="label">Binance XAG − forex</div><div class="v"><span id="agBnFx">—</span><small>USDT</small></div><div class="s" id="agBnFxSub">—</div></div>
+        <div><div class="label">Forex XAG/USD (giữa)</div><div class="v" data-fxag="mid">—</div><div class="s" data-fxag="sub">—</div></div>
+      </div>
+      <div class="alert-box">
+        <div class="alert-head">
+          <div class="label">Cảnh báo Bybit XAG − forex</div>
+          <label class="qty" for="alertHi_xag">≥ <input id="alertHi_xag" type="number" step="0.05" value="0.3" inputmode="decimal"> USDT</label>
+          <label class="qty" for="alertLo_xag">hoặc &lt; <input id="alertLo_xag" type="number" step="0.05" value="-0.3" inputmode="decimal"> USDT</label>
+          <button type="button" class="linkbtn alert-toggle" aria-pressed="false">Bật cảnh báo</button>
+          <span class="chip" id="alertZone_xag"></span>
+        </div>
+        <p class="note alert-note"></p>
+        <ul class="alert-log" id="alertLog_xag" hidden></ul>
+        <p class="note alert-phone">Cảnh báo bạc chỉ chạy trên trang (khi bật cảnh báo, trang nhận giá bạc cả khi đang xem tab khác), chưa gửi qua điện thoại.</p>
+      </div>
     </section>
   </div>
 
@@ -924,7 +1049,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     oilDaysBtns: document.querySelectorAll('.seg [data-oildays]'),
     byFx: $('byFx'), byFxSub: $('byFxSub'), bnFx: $('bnFx'), bnFxSub: $('bnFxSub'),
     pgFx: $('pgFx'), pgFxSub: $('pgFxSub'), pgTk: $('pgTk'), pgTkSub: $('pgTkSub'),
-    histPanel: $('histPanel'), histWhich: $('histWhich')
+    histPanel: $('histPanel'), histWhich: $('histWhich'),
+    agSubBtns: document.querySelectorAll('.sub-tabs [data-agsub]'), agSubBybit: $('agsub-bybit'), agSubBinance: $('agsub-binance'),
+    agyQty: $('agyQty'), agbQty: $('agbQty'), agFx: $('agFx'), agFxSub: $('agFxSub'), agBnFx: $('agBnFx'), agBnFxSub: $('agBnFxSub'),
+    fxAgMids: document.querySelectorAll('[data-fxag="mid"]'), fxAgSubs: document.querySelectorAll('[data-fxag="sub"]'),
+    fxAgStates: document.querySelectorAll('[data-fxag="state"]'), fxAgErrs: document.querySelectorAll('[data-fxag="err"]')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
   // Hai ô Funding theo vị thế: XAUUSDT Bybit (id có tiền tố by) và PAXGUSDT Binance, dùng chung khối lượng
@@ -932,7 +1061,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const id = (n) => $(pre ? pre + n[0].toUpperCase() + n.slice(1) : n);
     return { receiver: id('receiver'), perLabel: id('perLabel'), perDayCount: id('perDayCount'), perFunding: id('perFunding'), perDay: id('perDay'), perYear: id('perYear'), posNote: id('posNote') };
   };
-  const POS_BN = posBox(''), POS_BY = posBox('by'), POS_BX = posBox('bx');
+  const POS_BN = posBox(''), POS_BY = posBox('by'), POS_BX = posBox('bx'), POS_AGY = posBox('agy'), POS_AGB = posBox('agb');
 
   const fmt2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const signed = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
@@ -960,17 +1089,18 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
   let xauKlines = [], premSeries = [], premNow = null, premAvg = null;
   let cmp = null, cmpError = null, cmpLoading = false, cmpDays = [], cmpDirty = true;
-  let fxData = null, fxError = null;
+  let fxData = null, fxError = null, fxAg = null, fxAgError = null;
   let s = fresh();
   // Hợp đồng Binance chỉ nhận khi đang xem: XAUUSDT (sub tab Binance), CLUSDT (tab Dầu WTI)
-  const bnX = fresh(), bnCL = fresh();
-  const bnSide = { XAUUSDT: bnX, CLUSDT: bnCL };
+  const bnX = fresh(), bnCL = fresh(), bnAG = fresh();
+  const bnSide = { XAUUSDT: bnX, CLUSDT: bnCL, XAGUSDT: bnAG };
   const bnExtra = new Set(); // luồng đang mở thêm ngoài luồng PAXGUSDT và giá khớp XAUUSDT
   let bnReqId = 0;
   // Bybit: XAUUSDT (khung chính) luôn nhận, CLUSDT chỉ khi mở tab Dầu WTI
   const by = { last: null, chgPct: null, mark: null, rate: null, next: null, intervalH: null, E: null };
   const byCL = { last: null, chgPct: null, mark: null, rate: null, next: null, intervalH: null, E: null };
-  const bySide = { XAUUSDT: by, CLUSDT: byCL };
+  const byAG = { last: null, chgPct: null, mark: null, rate: null, next: null, intervalH: null, E: null };
+  const bySide = { XAUUSDT: by, CLUSDT: byCL, XAGUSDT: byAG };
   const byTopics = new Set(['XAUUSDT']);
   let byWs = null, byRetry = 0, byRetryAt = 0, byRetryTimer = null, byPing = null;
   let byOpenedAt = 0, byMsgAt = 0, byGot = false, byPrev = null;
@@ -1248,6 +1378,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (drillDirty) { drillDirty = false; drawDrill(); }
     if (tab === 'xau' && xauSub === 'binance') renderBinanceXau();
     if (tab === 'dau') renderOil();
+    if (tab === 'xag') renderSilver();
     if (exDirty) { exDirty = false; drawExChart('gold'); drawExChart('paxg'); drawExChart('oil'); }
   }
 
@@ -1316,14 +1447,15 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     let v, name;
     if (tab === 'paxg') { v = s.last; name = 'PAXGUSDT Binance'; }
     else if (tab === 'dau') { v = byValOf('CLUSDT', 'last'); name = 'CLUSDT Bybit'; }
+    else if (tab === 'xag') { v = agSub === 'binance' ? bnSideVal(AG, 'last') : byValOf(AG, 'last'); name = 'XAGUSDT ' + (agSub === 'binance' ? 'Binance' : 'Bybit'); }
     else if (tab === 'xau' && xauSub === 'binance') { v = bnXVal('last'); name = 'XAUUSDT Binance'; }
     else { v = byVal('last'); name = 'XAUUSDT Bybit'; }
-    document.title = v != null ? (tab === 'dau' ? fmtOil.format(v) : fmt2.format(v)) + ' · ' + name + ' | Gold Perp Live' : 'Gold Perp Live';
+    document.title = v != null ? (tab === 'dau' || tab === 'xag' ? fmtOil.format(v) : fmt2.format(v)) + ' · ' + name + ' | Gold Perp Live' : 'Gold Perp Live';
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
-  function renderPositionBox(box, mark, rate, iv) {
-    const q = parseFloat(el.qty.value);
+  function renderPositionBox(box, mark, rate, iv, qStr) {
+    const q = parseFloat(qStr != null ? qStr : el.qty.value);
     const qOk = Number.isFinite(q) && q >= 0;
     const perDayN = 24 / iv;
     box.perLabel.textContent = iv + 'h';
@@ -1350,6 +1482,44 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderPositionBox(POS_BX, bnXVal('mark'), bnXVal('rate'), bnIv('XAUUSDT'));
   }
 
+  // ---------- Tab XAGUSDT: sub tab Bybit (chính) và Binance ----------
+  const AG = 'XAGUSDT';
+  const blockPrev = {};
+  // Khung giá + mark + funding dùng chung cho một hợp đồng; pre là tiền tố id (vd agy, agb)
+  function renderContractBlock(pre, v, iv, known, fmt) {
+    const g = (id) => $(pre + id);
+    if (v.last != null) {
+      g('Last').textContent = fmt.format(v.last);
+      if (blockPrev[pre] != null && v.last !== blockPrev[pre]) flash(g('Last'), v.last > blockPrev[pre] ? 'up' : 'down');
+      blockPrev[pre] = v.last;
+    }
+    if (v.chgPct != null) {
+      g('Chg').textContent = signed(v.chgPct, 2) + '% trong 24h';
+      g('Chg').dataset.dir = dir(v.chgPct);
+    }
+    if (v.mark != null) g('Mark').textContent = fmt.format(v.mark);
+    if (v.rate != null) {
+      g('Rate').textContent = signed(v.rate * 100, 4) + '%';
+      g('Payer').textContent = v.rate > 0 ? 'Long trả Short' : v.rate < 0 ? 'Short trả Long' : '';
+      g('Annual').textContent = '≈ ' + signed(v.rate * (24 / iv) * 365 * 100, 2) + '%/năm · chu kỳ ' + iv + 'h' + (known ? '' : ' (mặc định)');
+    }
+  }
+
+  function renderSilver() {
+    const y = { last: byValOf(AG, 'last'), chgPct: byAG.chgPct, mark: byValOf(AG, 'mark'), rate: byValOf(AG, 'rate') };
+    const yiv = byIntervalOf(AG);
+    renderContractBlock('agy', y, yiv, byAG.intervalH || (exLive['bybit:' + AG] && exLive['bybit:' + AG].intervalH), fmtOil);
+    renderPositionBox(POS_AGY, y.mark, y.rate, yiv, el.agyQty.value);
+    if (agSub !== 'binance') return;
+    const b = { last: bnSideVal(AG, 'last'), chgPct: bnAG.chgPct, mark: bnSideVal(AG, 'mark'), rate: bnSideVal(AG, 'rate') };
+    const biv = bnIv(AG);
+    renderContractBlock('agb', b, biv, bnIntervals && bnIntervals[AG], fmtOil);
+    renderPositionBox(POS_AGB, b.mark, b.rate, biv, el.agbQty.value);
+    setGap($('agbGapLast'), $('agbGapLastSub'), y.last, b.last, 3, () => 'Bybit ' + fmtOil.format(y.last) + ' · Binance ' + fmtOil.format(b.last));
+    setGap($('agbGapMark'), $('agbGapMarkSub'), y.mark, b.mark, 3, () => 'Bybit ' + fmtOil.format(y.mark) + ' · Binance ' + fmtOil.format(b.mark));
+    setGap($('agbGap'), $('agbGapSub'), y.rate != null ? y.rate * (24 / yiv) * 365 * 100 : null, b.rate != null ? b.rate * (24 / biv) * 365 * 100 : null, 2, shortBetter);
+  }
+
   function flash(node, d) {
     node.classList.remove('up', 'down');
     node.classList.add(d);
@@ -1369,6 +1539,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     countdownTo(byVal('next'), now, el.byCountdown, el.byNextAt);
     countdownTo(s.next, now, el.countdown, el.nextAt);
     if (xauSub === 'binance') countdownTo(bnXVal('next'), now, el.bxCountdown, el.bxNextAt);
+    if (tab === 'xag') {
+      countdownTo(byValOf(AG, 'next'), now, $('agyCountdown'), $('agyNextAt'));
+      if (agSub === 'binance') countdownTo(bnSideVal(AG, 'next'), now, $('agbCountdown'), $('agbNextAt'));
+    }
     if (tab === 'dau') {
       countdownTo(byValOf(OIL, 'next'), now, $('oilCd_by'), $('oilAt_by'));
       countdownTo(bnSideVal(OIL, 'next'), now, $('oilCd_bn'), $('oilAt_bn'));
@@ -1415,19 +1589,22 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   // ---------- Lịch sử funding 14 ngày ----------
   // Một khung dùng chung: tab XAUUSDT xem Bybit (mặc định) hoặc Binance, tab PAXGUSDT xem PAXGUSDT Binance
-  const HIST_NAME = { 'bybit:XAUUSDT': 'Bybit XAUUSDT', 'binance:XAUUSDT': 'Binance XAUUSDT', 'binance:PAXGUSDT': 'Binance PAXGUSDT' };
+  const HIST_NAME = {
+    'bybit:XAUUSDT': 'Bybit XAUUSDT', 'binance:XAUUSDT': 'Binance XAUUSDT', 'binance:PAXGUSDT': 'Binance PAXGUSDT',
+    'bybit:XAGUSDT': 'Bybit XAGUSDT', 'binance:XAGUSDT': 'Binance XAGUSDT'
+  };
 
   // Mark hoặc thời điểm funding kế tiếp của hợp đồng đang xem lịch sử
   function histLive(key) {
-    if (histSource === 'bybit:XAUUSDT') return byVal(key);
-    if (histSource === 'binance:XAUUSDT') return bnXVal(key);
-    return s[key];
+    const [ex, symbol] = (histSource || 'binance:' + sym).split(':');
+    if (ex === 'bybit') return byValOf(symbol, key);
+    return symbol === sym ? s[key] : bnSideVal(symbol, key);
   }
 
   function histInterval() {
-    if (histSource === 'bybit:XAUUSDT') return byInterval();
-    const symbol = histSource ? histSource.split(':')[1] : sym;
-    return symbol === sym ? intervalH : (bnIntervals && bnIntervals[symbol]) || 8;
+    const [ex, symbol] = (histSource || 'binance:' + sym).split(':');
+    if (ex === 'bybit') return byIntervalOf(symbol);
+    return symbol === sym ? intervalH : bnIv(symbol);
   }
 
   async function loadHistory() {
@@ -1480,11 +1657,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     loadHistory();
   }
 
-  // Chuyển khung lịch sử sang tab đang xem: tab XAUUSDT theo sub tab Bybit / Binance, tab PAXGUSDT là PAXGUSDT
+  // Chuyển khung lịch sử sang tab đang xem: tab XAUUSDT / XAGUSDT theo sub tab Bybit / Binance, tab PAXGUSDT là PAXGUSDT
   function placeHistory() {
-    if (tab !== 'xau' && tab !== 'paxg') return;
+    if (tab !== 'xau' && tab !== 'paxg' && tab !== 'xag') return;
     TABS[tab].appendChild(el.histPanel);
-    setHistSource(tab === 'paxg' ? 'binance:PAXGUSDT' : xauSub === 'binance' ? 'binance:XAUUSDT' : 'bybit:XAUUSDT');
+    setHistSource(tab === 'paxg' ? 'binance:PAXGUSDT'
+      : tab === 'xag' ? (agSub === 'binance' ? 'binance:' : 'bybit:') + AG
+      : xauSub === 'binance' ? 'binance:XAUUSDT' : 'bybit:XAUUSDT');
   }
 
   function renderHistory() {
@@ -2074,11 +2253,34 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // ---------- Chênh lệch giá: XAUUSDT với PAXGUSDT và với forex ----------
   const SP_LABEL = { 7: '7 ngày gần nhất', 30: '30 ngày gần nhất', 90: '90 ngày gần nhất', all: 'từ 05/01/2026' };
   const ALERT_GAP = 0.5; // phải ra khỏi vùng ít nhất 0.5 USDT mới báo lại
+  const ALERT_GAP_AG = 0.05; // riêng cảnh báo bạc
   let spRange = '30', spError = null, spLoading = false, spDirty = true;
   let alertOn = false, audioCtx = null;
 
-  const fxMid = () => (fxData ? (fxData.bid + fxData.ask) / 2 : null);
-  const fxOpen = () => !!fxData && !(fxData.ts && Date.now() - fxData.ts > FX_STALE_MS);
+  const fxMidOf = (f) => (f ? (f.bid + f.ask) / 2 : null);
+  const fxOpenOf = (f) => !!f && !(f.ts && Date.now() - f.ts > FX_STALE_MS);
+  const fxMid = () => fxMidOf(fxData);
+  const fxOpen = () => fxOpenOf(fxData);
+
+  // Giá bạc XAG/USD: chỉ lấy khi đang xem tab XAGUSDT hoặc khi đang bật cảnh báo
+  async function loadFxAg() {
+    if (location.protocol === 'file:') {
+      fxAgError = 'Giá forex cần mở trang từ host có thư mục api/ đi kèm.';
+      schedule();
+      return;
+    }
+    try {
+      const r = await fetch(FX_API + '?inst=XAG', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      if (!data || !(data.bid > 0) || !(data.ask > 0)) throw new Error((data && data.errors && data.errors.join(' ')) || 'chưa có giá');
+      fxAg = data;
+      fxAgError = null;
+    } catch (e) {
+      fxAgError = 'Không lấy được giá bạc XAG/USD từ ' + FX_API + ' (' + (e.message || e) + ').';
+    }
+    schedule();
+  }
 
   async function loadFx() {
     if (location.protocol === 'file:') {
@@ -2099,14 +2301,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     schedule();
   }
 
-  function setDiff(valEl, subEl, d, base, what) {
+  function setDiff(valEl, subEl, d, base, what, dec) {
     if (d == null || !base) {
       valEl.textContent = '—';
       delete valEl.dataset.dir;
       subEl.textContent = '—';
       return;
     }
-    valEl.textContent = signed(d, 2);
+    valEl.textContent = signed(d, dec || 2);
     valEl.dataset.dir = dir(d);
     subEl.textContent = signed((d / base) * 100, 3) + '% so với ' + what;
   }
@@ -2147,13 +2349,36 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       + (notes.length ? ' ' + notes.join(' ') : '');
     checkAlert('xau', vsFx(bx));
     checkAlert('paxg', vsFx(p));
+
+    // Bạc: XAGUSDT so với XAG/USD
+    const agMid = fxMidOf(fxAg), ay = byValOf(AG, 'last'), ab = bnSideVal(AG, 'last');
+    const agVs = (v) => (v != null && agMid ? v - agMid : null);
+    setDiff(el.agFx, el.agFxSub, agVs(ay), agMid, 'forex', 3);
+    setDiff(el.agBnFx, el.agBnFxSub, agVs(ab), agMid, 'forex', 3);
+    let agState = '', agClosed = false, agSubText;
+    if (!fxAg) {
+      agSubText = fxAgError ? 'Chưa có giá forex' : 'Đang tải giá XAG/USD…';
+    } else {
+      agClosed = !fxOpenOf(fxAg);
+      agState = agClosed ? 'Forex đang nghỉ hoặc chưa có giá mới' : 'Forex đang giao dịch';
+      agSubText = 'Bid ' + fmtOil.format(fxAg.bid) + ' · Ask ' + fmtOil.format(fxAg.ask) + ' · spread ' + (fxAg.ask - fxAg.bid).toFixed(3) + ' · lúc ' + clock(fxAg.ts || fxAg.fetchedAt);
+    }
+    const agNotes = [];
+    if (fxAg && fxAg.errors && fxAg.errors.length) agNotes.push(fxAg.errors.join(' '));
+    if (fxAgError) agNotes.push(fxAgError + (fxAg ? ' Đang hiện giá lấy lúc trước.' : ''));
+    el.fxAgMids.forEach((n) => { n.textContent = agMid ? fmtOil.format(agMid) : '—'; });
+    el.fxAgSubs.forEach((n) => { n.textContent = agSubText; });
+    el.fxAgStates.forEach((n) => { n.textContent = agState; n.classList.toggle('hot', agClosed); });
+    el.fxAgErrs.forEach((n) => { n.textContent = agNotes.join(' '); });
+    checkAlert('xag', agVs(ay));
   }
 
   // ---------- Cảnh báo so với forex: XAUUSDT Bybit và PAXGUSDT Binance ----------
   // Mỗi cảnh báo có ngưỡng, vùng và nhật ký riêng; bật/tắt, thông báo và âm thanh dùng chung
   const ALERTS = {
     xau: { what: 'Bybit XAU − forex', keys: ['gold-perp-live.alertHi', 'gold-perp-live.alertLo'] },
-    paxg: { what: 'PAXG − forex', keys: ['gold-perp-live.paxgAlertHi', 'gold-perp-live.paxgAlertLo'] }
+    paxg: { what: 'PAXG − forex', keys: ['gold-perp-live.paxgAlertHi', 'gold-perp-live.paxgAlertLo'] },
+    xag: { what: 'Bybit XAG − forex', keys: ['gold-perp-live.xagAlertHi', 'gold-perp-live.xagAlertLo'], silver: true }
   };
   Object.keys(ALERTS).forEach((k) => {
     Object.assign(ALERTS[k], { zone: null, log: [], hi: $('alertHi_' + k), lo: $('alertLo_' + k), zoneEl: $('alertZone_' + k), logEl: $('alertLog_' + k) });
@@ -2174,7 +2399,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       a.zoneEl.classList.add('hot');
       return;
     }
-    if (d == null || !fxOpen()) {
+    if (d == null || !fxOpenOf(a.silver ? fxAg : fxData)) {
       // Forex nghỉ thì giá forex đứng yên, không báo; khi mở lại sẽ xét lại từ đầu
       a.zone = null;
       a.zoneEl.textContent = d == null ? '' : 'Forex đang nghỉ, tạm không báo';
@@ -2183,8 +2408,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     let zone = a.zone;
     if (d >= lim.hi) zone = 'high';
     else if (d < lim.lo) zone = 'low';
-    else if (zone === 'high' && d < lim.hi - ALERT_GAP) zone = 'mid';
-    else if (zone === 'low' && d >= lim.lo + ALERT_GAP) zone = 'mid';
+    // Bạc chênh nhỏ hơn vàng nhiều nên khoảng ra khỏi vùng cũng nhỏ hơn
+    const gap = a.silver ? ALERT_GAP_AG : ALERT_GAP;
+    if (zone === 'high' && d < lim.hi - gap) zone = 'mid';
+    else if (zone === 'low' && d >= lim.lo + gap) zone = 'mid';
     else if (zone == null) zone = 'mid';
     if (zone !== a.zone) {
       a.zone = zone;
@@ -2198,7 +2425,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   function fireAlert(k, zone, d, lim) {
     const a = ALERTS[k];
-    const text = a.what + ' ' + signed(d, 2) + ' USDT, ' + (zone === 'high' ? 'từ ' + lim.hi + ' trở lên' : 'dưới ' + lim.lo);
+    const text = a.what + ' ' + signed(d, a.silver ? 3 : 2) + ' USDT, ' + (zone === 'high' ? 'từ ' + lim.hi + ' trở lên' : 'dưới ' + lim.lo);
     a.log.unshift({ t: Date.now(), text });
     if (a.log.length > 10) a.log.pop();
     a.logEl.hidden = false;
@@ -2246,9 +2473,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         : Notification.permission === 'denied' ? 'Thông báo trình duyệt đang bị chặn, mở cài đặt của trang để cho phép.'
         : 'Thông báo trình duyệt: chưa cho phép.';
       const sound = audioCtx && audioCtx.state === 'running' ? 'Âm thanh: bật.' : 'Âm thanh: bấm vào trang một lần để bật.';
-      parts = ['Đang bật cho cả hai cảnh báo (Bybit XAU và PAXG).', perm, sound];
+      parts = ['Đang bật cho cả ba cảnh báo (Bybit XAU, PAXG, Bybit XAG).', perm, sound];
     }
-    parts.push('Báo một lần khi chênh lệch vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở; muốn nhận cả khi tắt trang thì dùng cảnh báo qua điện thoại (ntfy).');
+    parts.push('Báo một lần khi chênh lệch vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT (bạc ' + ALERT_GAP_AG + ' USDT) mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở; muốn nhận cả khi tắt trang thì dùng cảnh báo qua điện thoại (ntfy).');
     const text = parts.join(' ');
     el.alertNotes.forEach((n) => { n.textContent = text; });
   }
@@ -2268,6 +2495,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     if (!on) el.alertBar.hidden = true;
     renderAlertNote();
+    syncLazy(); // cảnh báo bạc cần giá bạc cả khi không xem tab XAGUSDT
   }
 
   // Nút gửi thử: gọi alert-check.php trên host, giống chạy lệnh "php alert-check.php test"
@@ -3221,8 +3449,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }
 
   // ---------- Tab: XAUUSDT (sub tab Bybit / Binance), PAXGUSDT Binance, Dầu WTI, So sánh ----------
-  const TABS = { xau: $('tab-xau'), paxg: $('tab-paxg'), dau: $('tab-dau'), 'so-sanh': $('tab-so-sanh') };
-  let tab = 'xau', xauSub = 'bybit';
+  const TABS = { xau: $('tab-xau'), xag: $('tab-xag'), paxg: $('tab-paxg'), dau: $('tab-dau'), 'so-sanh': $('tab-so-sanh') };
+  let tab = 'xau', xauSub = 'bybit', agSub = 'bybit';
   const tabFromHash = () => { const h = location.hash.slice(1); return TABS[h] && h !== 'xau' ? h : null; };
   function setTab(name, updateHash) {
     tab = TABS[name] ? name : 'xau';
@@ -3248,8 +3476,33 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     redraw();
   }
 
+  function setAgSub(name, fromClick) {
+    agSub = name === 'binance' ? 'binance' : 'bybit';
+    el.agSubBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.agsub === agSub)));
+    el.agSubBybit.hidden = agSub !== 'bybit';
+    el.agSubBinance.hidden = agSub !== 'binance';
+    if (!fromClick) return;
+    try { localStorage.setItem('gold-perp-live.agSub', agSub); } catch (e) { /* bỏ qua */ }
+    syncLazy();
+    placeHistory();
+    redraw();
+  }
+
   // Chỉ nhận dữ liệu của phần đang xem: rời sub tab Binance hoặc tab Dầu WTI thì đóng luồng đó
+  let fxAgTimer = null;
   function syncLazy() {
+    const ag = tab === 'xag';
+    // Bạc: Bybit và giá forex khi xem tab hoặc khi bật cảnh báo; Binance chỉ khi xem tab (mark, funding chỉ ở sub tab Binance)
+    byWant(AG, ag || alertOn);
+    bnWant(['xagusdt@aggTrade'], ag);
+    bnWant(['xagusdt@markPrice@1s', 'xagusdt@ticker'], ag && agSub === 'binance');
+    if ((ag || alertOn) && !fxAgTimer) {
+      loadFxAg();
+      fxAgTimer = setInterval(loadFxAg, FX_REFRESH_MS);
+    } else if (!(ag || alertOn) && fxAgTimer) {
+      clearInterval(fxAgTimer);
+      fxAgTimer = null;
+    }
     bnWant(['xauusdt@markPrice@1s', 'xauusdt@ticker'], tab === 'xau' && xauSub === 'binance');
     const oil = tab === 'dau';
     bnWant(['clusdt@aggTrade', 'clusdt@markPrice@1s', 'clusdt@ticker'], oil);
@@ -3348,6 +3601,21 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let savedSub = null;
   try { savedSub = localStorage.getItem('gold-perp-live.xauSub'); } catch (e) { /* bỏ qua */ }
   setXauSub(savedSub, false);
+  let savedAgSub = null;
+  try { savedAgSub = localStorage.getItem('gold-perp-live.agSub'); } catch (e) { /* bỏ qua */ }
+  setAgSub(savedAgSub, false);
+  el.agSubBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.agsub !== agSub) setAgSub(b.dataset.agsub, true); }));
+  // Ô khối lượng bạc (oz) dùng chung cho 2 sub tab, riêng với vàng
+  const agQtyInputs = [el.agyQty, el.agbQty];
+  try {
+    const aq = localStorage.getItem('gold-perp-live.agQty');
+    if (aq !== null) agQtyInputs.forEach((inp) => { inp.value = aq; });
+  } catch (e) { /* bỏ qua */ }
+  agQtyInputs.forEach((inp) => inp.addEventListener('input', () => {
+    agQtyInputs.forEach((other) => { if (other !== inp) other.value = inp.value; });
+    try { localStorage.setItem('gold-perp-live.agQty', inp.value); } catch (e) { /* bỏ qua */ }
+    schedule();
+  }));
   el.subBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.sub !== xauSub) setXauSub(b.dataset.sub, true); }));
 
   // Tab dầu: khối lượng theo thùng (nhớ lại), khoảng lịch sử 7 / 30 ngày

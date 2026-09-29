@@ -1,7 +1,7 @@
 <?php
 /**
  * Giá vàng XAU/USD trên thị trường forex cho trang Gold Perp Live (nguồn Swissquote, xem fx-lib.php).
- * Thêm ?debug=1 để xem dữ liệu thô và các bộ giá đọc được.
+ * ?inst=XAG lấy giá bạc XAG/USD. Thêm ?debug=1 để xem dữ liệu thô và các bộ giá đọc được.
  */
 
 require __DIR__ . '/fx-lib.php';
@@ -13,13 +13,15 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('Access-Control-Allow-Origin: *');
 
-$state = fx_get($DEBUG, $debug);
+$inst = fx_inst(isset($_GET['inst']) ? strtoupper((string) $_GET['inst']) : 'XAU');
+$state = fx_get($DEBUG, $debug, $inst);
 remember_page_url(); // để cảnh báo qua cron biết link trang khi bấm vào thông báo
 
 $q = isset($state['quote']) ? $state['quote'] : null;
 $out = [
     'status' => isset($state['status']) ? $state['status'] : 'error',
     'source' => 'Swissquote',
+    'instrument' => $inst . '/USD',
     'bid' => $q ? $q['bid'] : null,
     'ask' => $q ? $q['ask'] : null,
     'profile' => $q ? $q['profile'] : null,

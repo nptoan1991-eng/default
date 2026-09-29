@@ -1,9 +1,9 @@
 <?php
 /**
- * Lấy giá vàng XAU/USD trên thị trường forex từ feed công khai của Swissquote.
+ * Lấy giá vàng XAU/USD (và bạc XAG/USD) trên thị trường forex từ feed công khai của Swissquote.
  * Dùng chung cho fx-price.php (trang dashboard) và alert-check.php (cảnh báo qua cron).
  * Feed này không có tài liệu chính thức và chặn gọi thẳng từ trình duyệt (CORS).
- * Kết quả được cache vài giây trong fx_state.json (thư mục cần quyền ghi).
+ * Kết quả được cache vài giây trong fx_state.json, bạc trong fx_state_xag.json (thư mục cần quyền ghi).
  */
 
 define('FX_URL', 'https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD');
@@ -14,6 +14,21 @@ define('FX_TIMEOUT', 5);
 define('FX_VERIFY_SSL', true); // đổi thành false nếu debug báo lỗi curl 60 (host thiếu chứng chỉ CA)
 define('FX_STALE_MS', 3 * 60 * 1000); // giá forex cũ hơn 3 phút coi như thị trường đang nghỉ
 define('SITE_FILE', __DIR__ . '/site.json');
+
+// Kim loại hỗ trợ và khoảng giá hợp lệ (để bỏ qua số lạ trong feed)
+function fx_inst($inst) {
+    return $inst === 'XAG' ? 'XAG' : 'XAU';
+}
+function fx_range($inst) {
+    return $inst === 'XAG' ? [1, 1000] : [500, 100000];
+}
+function fx_url($inst) {
+    return str_replace('/XAU/USD', '/' . $inst . '/USD', FX_URL);
+}
+// Vàng giữ tên file cũ, bạc thêm hậu tố _xag
+function fx_path($file, $inst) {
+    return $inst === 'XAU' ? $file : preg_replace('/(\.\w+)$/', '_' . strtolower($inst) . '$1', $file);
+}
 
 
 function fx_now_ms() {
@@ -71,9 +86,10 @@ function fx_find_quotes($node, $ts, &$out) {
 }
 
 // Ưu tiên bộ giá "prime" (spread hẹp nhất của Swissquote), rồi giá mới nhất, rồi spread nhỏ nhất
-function fx_pick($quotes) {
-    $valid = array_values(array_filter($quotes, function ($q) {
-        return $q['bid'] > 500 && $q['bid'] < 100000 && $q['ask'] >= $q['bid'];
+function fx_pick($quotes, $inst = 'XAU') {
+    list($lo, $hi) = fx_range($inst);
+    $valid = array_values(array_filter($quotes, function ($q) use ($lo, $hi) {
+        return $q['bid'] > $lo && $q['bid'] < $hi && $q['ask'] >= $q['bid'];
     }));
     if (!$valid) return null;
     $prime = array_values(array_filter($valid, function ($q) { return strtolower($q['profile']) === 'prime'; }));
@@ -90,32 +106,33 @@ function fx_pick($quotes) {
     return $q;
 }
 
-function fx_read_state() {
-    if (!is_readable(FX_STATE_FILE)) return [];
-    $data = json_decode((string) @file_get_contents(FX_STATE_FILE), true);
+function fx_read_state($inst = 'XAU') {
+    $file = fx_path(FX_STATE_FILE, $inst);
+    if (!is_readable($file)) return [];
+    $data = json_decode((string) @file_get_contents($file), true);
     return is_array($data) ? $data : [];
 }
 
-function fx_refresh($state, &$debug) {
+function fx_refresh($state, &$debug, $inst = 'XAU') {
     $state['errors'] = [];
-    $raw = fx_fetch(FX_URL, $debug);
+    $raw = fx_fetch(fx_url($inst), $debug);
     $quote = null;
     if ($raw !== false) {
         $json = json_decode($raw, true);
         $quotes = [];
         fx_find_quotes($json, 0, $quotes);
         $debug['quotes_found'] = count($quotes);
-        $quote = fx_pick($quotes);
+        $quote = fx_pick($quotes, $inst);
     }
     if ($quote) {
         $state['quote'] = $quote;
         $state['status'] = 'live';
     } else {
-        $state['errors'][] = 'Không lấy được giá XAU/USD từ Swissquote' . (isset($state['quote']) ? ', đang dùng giá lấy lúc trước.' : '.');
+        $state['errors'][] = 'Không lấy được giá ' . $inst . '/USD từ Swissquote' . (isset($state['quote']) ? ', đang dùng giá lấy lúc trước.' : '.');
         $state['status'] = isset($state['quote']) ? 'stale' : 'error';
     }
     $state['fetchedAt'] = fx_now_ms();
-    @file_put_contents(FX_STATE_FILE, json_encode($state), LOCK_EX);
+    @file_put_contents(fx_path(FX_STATE_FILE, $inst), json_encode($state), LOCK_EX);
     return $state;
 }
 
@@ -124,14 +141,15 @@ function fx_is_fresh($state) {
 }
 
 // Trả trạng thái giá forex, gọi lại Swissquote khi cache đã cũ (hoặc khi $force)
-function fx_get($force, &$debug) {
-    $state = fx_read_state();
+function fx_get($force, &$debug, $inst = 'XAU') {
+    $inst = fx_inst($inst);
+    $state = fx_read_state($inst);
     if ($force || !fx_is_fresh($state)) {
         // Khoá để nhiều người mở trang cùng lúc không cùng gọi Swissquote
-        $lock = @fopen(FX_LOCK_FILE, 'c');
+        $lock = @fopen(fx_path(FX_LOCK_FILE, $inst), 'c');
         if ($lock) flock($lock, LOCK_EX);
-        $state = fx_read_state();
-        if ($force || !fx_is_fresh($state)) $state = fx_refresh($state, $debug);
+        $state = fx_read_state($inst);
+        if ($force || !fx_is_fresh($state)) $state = fx_refresh($state, $debug, $inst);
         if ($lock) {
             flock($lock, LOCK_UN);
             fclose($lock);

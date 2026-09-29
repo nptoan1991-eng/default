@@ -23,7 +23,7 @@ define('EX_LOCK_FILE', __DIR__ . '/exchanges.lock');
 define('EX_LIVE_TTL_MS', 30 * 1000);
 define('EX_HIST_TTL_MS', 30 * 60 * 1000);
 
-$BYBIT_SYMBOLS = ['XAUUSDT', 'PAXGUSDT', 'CLUSDT']; // CLUSDT: dầu WTI cho tab Dầu WTI
+$BYBIT_SYMBOLS = ['XAUUSDT', 'PAXGUSDT', 'CLUSDT', 'XAGUSDT']; // CLUSDT: tab Dầu WTI, XAGUSDT: tab XAGUSDT
 $HL_COINS = ['xyz:GOLD' => 'xyz', 'PAXG' => '']; // tên hợp đồng => dex (HIP-3), '' là dex chính
 
 $DEBUG = isset($_GET['debug']);
