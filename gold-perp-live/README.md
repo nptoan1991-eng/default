@@ -1,9 +1,10 @@
 # Gold Perp Live
 
-Dashboard xem dữ liệu live của hợp đồng vàng vĩnh cửu, gồm 3 tab:
+Dashboard xem dữ liệu live của hợp đồng vàng (và dầu) vĩnh cửu, gồm 4 tab:
 
-- **XAUUSDT**: XAUUSDT trên **Bybit là chính** (giá khớp, mark price, funding và đếm ngược, funding theo vị thế), XAUUSDT trên **Binance là phụ** để đối chiếu, Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới, lịch sử funding 14 ngày (chọn Bybit hoặc Binance).
+- **XAUUSDT**: hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới và lịch sử funding 14 ngày của sàn đang chọn.
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding 14 ngày.
+- **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 ngày. Chỉ tải dữ liệu khi mở tab này.
 - **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 ## Cách dùng
@@ -31,7 +32,9 @@ Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, 
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
-Trang nhớ tab mở gần nhất. Link có `#paxg` mở thẳng tab PAXGUSDT Binance, `#so-sanh` mở tab So sánh.
+Trang nhớ tab và sub tab mở gần nhất. Link có `#paxg` mở thẳng tab PAXGUSDT Binance, `#dau` mở tab Dầu WTI, `#so-sanh` mở tab So sánh.
+
+Trang chỉ nhận dữ liệu của phần đang xem: sub tab Binance (mark, funding, 24h của XAUUSDT Binance) và tab Dầu WTI mở thêm luồng khi bấm vào và đóng luồng khi rời đi. Giá khớp XAUUSDT Binance vẫn luôn nhận vì khung SJC và tab So sánh cần.
 
 ## Dữ liệu hiển thị
 
@@ -41,6 +44,7 @@ Trang nhớ tab mở gần nhất. Link có `#paxg` mở thẳng tab PAXGUSDT Bi
 | --- | --- |
 | Giá khớp, % thay đổi 24h, mark price, funding rate, giờ funding tiếp theo, chu kỳ funding | Bản đầu là snapshot đủ trường, sau đó Bybit chỉ gửi các trường vừa đổi nên trang ghép dần. Trang ping 20 giây một lần để giữ kết nối |
 | Dự phòng khi chưa kết nối được Bybit | Giá và funding lấy qua host (`api/exchanges.php`, cập nhật mỗi phút), trang hiện thông báo |
+| CLUSDT (tab Dầu WTI) | Chủ đề `tickers.CLUSDT` trên cùng kết nối, chỉ đăng ký khi mở tab |
 
 **Binance**, WebSocket `wss://fstream.binance.com/market/stream`:
 
@@ -48,19 +52,19 @@ Trang nhớ tab mở gần nhất. Link có `#paxg` mở thẳng tab PAXGUSDT Bi
 | --- | --- |
 | Giá khớp gần nhất | `<symbol>@aggTrade`, luôn nhận cả XAUUSDT và PAXGUSDT |
 | % thay đổi 24h (PAXGUSDT) | `paxgusdt@ticker` |
-| Mark price, funding rate, giờ funding tiếp theo | `paxgusdt@markPrice@1s` (tab PAXGUSDT, kèm index = giá token PAXG) và `xauusdt@markPrice@1s` (khung phụ XAUUSDT Binance) |
+| Mark price, funding rate, giờ funding tiếp theo | `paxgusdt@markPrice@1s` (tab PAXGUSDT, kèm index = giá token PAXG); `xauusdt@markPrice@1s` và `xauusdt@ticker` chỉ khi mở sub tab Binance; `clusdt@aggTrade`, `clusdt@markPrice@1s`, `clusdt@ticker` chỉ khi mở tab Dầu WTI. Trang thêm và bớt luồng bằng lệnh `SUBSCRIBE` / `UNSUBSCRIBE` trên kết nối đang chạy |
 | Chu kỳ funding | REST `GET /fapi/v1/fundingInfo`, mặc định 8h nếu không lấy được |
 
 Chung cho cả hai sàn:
 
 - **Funding quy năm** = `funding rate × (24 / chu kỳ) × 365`.
 - **Funding theo vị thế** (USDT mỗi kỳ, mỗi ngày, mỗi năm) = `mark × khối lượng × |funding rate|`, nhân số kỳ mỗi ngày và 365 ngày. Ô khối lượng ở tab XAUUSDT và tab PAXGUSDT là một (mặc định 1 oz), sửa ô nào ô kia theo.
-- **Khung phụ XAUUSDT Binance**: giá khớp, mark, funding của Binance, kèm chênh lệch Bybit − Binance về giá, mark và funding quy năm (dương là bên Short trên Bybit có lợi hơn về funding).
+- **Sub tab Binance**: giá khớp, mark, funding, funding theo vị thế của XAUUSDT Binance, kèm chênh lệch Bybit − Binance về giá, mark và funding quy năm (dương là bên Short trên Bybit có lợi hơn về funding).
 
 
 ## Lịch sử funding 14 ngày
 
-Một khung dùng chung: ở tab XAUUSDT chọn **Bybit** (mặc định) hoặc **Binance**, ở tab PAXGUSDT là PAXGUSDT Binance. Tự tải lại sau mỗi lần chốt funding.
+Một khung dùng chung: ở tab XAUUSDT theo sub tab đang chọn (**Bybit** hoặc **Binance**), ở tab PAXGUSDT là PAXGUSDT Binance. Tự tải lại sau mỗi lần chốt funding.
 
 - Binance: REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate, mark price lúc chốt).
 - Bybit: qua `api/exchanges.php?days=14`. Host lấy `/v5/market/funding/history` và mark price theo giờ `/v5/market/mark-price-kline` để có mark lúc chốt từng kỳ. Kỳ nào thiếu mark thì dùng mark hiện tại và đánh dấu ≈.
@@ -83,6 +87,15 @@ Tab So sánh. Bảng live chia theo tài sản gốc:
 - Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên bảng quy về **cùng 8 giờ** và **theo năm**. Có thêm USDT/ngày cho khối lượng đang nhập (bên Short), kỳ funding tới, giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là funding quy năm cao nhất trong nhóm.
 - Lịch sử 7 hoặc 30 ngày: funding thực tế trung bình quy năm của từng hợp đồng, và biểu đồ tổng funding mỗi ngày của 3 sàn cho từng nhóm.
 - Kiểm tra: mở `api/exchanges.php?debug=1` để xem dữ liệu thô từng lần gọi Bybit và Hyperliquid. Nếu sàn nào đổi định dạng, gửi nội dung trang debug để sửa.
+
+## Dầu WTI
+
+Tab `#dau`, so sánh **CLUSDT** (hợp đồng vĩnh cửu theo hợp đồng tương lai dầu thô WTI, giá USDT cho 1 thùng) trên Bybit và Binance. Hai sàn chốt funding mỗi 4 giờ và giao dịch 24/7.
+
+- **Live**: giá khớp, % 24h, mark, funding kỳ này, funding quy năm và đếm ngược tới kỳ sau của từng sàn; chênh lệch Bybit − Binance về giá khớp, mark và funding quy năm.
+- **Funding theo vị thế**: nhập số thùng (mặc định 1, trang nhớ lại). Bảng USDT mỗi kỳ, mỗi ngày, mỗi năm của từng sàn cho bên Short (dương là nhận).
+- **Lịch sử funding 7 / 30 ngày**: funding trung bình quy năm, tổng rate, tổng USDT cho số thùng đang nhập (theo mark lúc chốt từng kỳ), số kỳ và % kỳ dương của từng sàn; biểu đồ và bảng tổng funding mỗi ngày của hai sàn. Tự tải lại 1 phút sau mỗi kỳ funding.
+- Nguồn: Binance trực tiếp (`/fapi/v1/fundingRate`, WebSocket), Bybit qua WebSocket và `api/exchanges.php` (CLUSDT có trong danh sách mã Bybit của file này).
 
 ## So sánh funding XAUUSDT và PAXGUSDT
 

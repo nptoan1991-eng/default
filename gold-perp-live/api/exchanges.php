@@ -3,9 +3,10 @@
  * Giá và funding các hợp đồng vàng trên Bybit và Hyperliquid cho khung "Funding 3 sàn"
  * (Binance do trang tự lấy). Đi qua host để trình duyệt không bị chặn và gom về một định dạng.
  * Tab XAUUSDT cũng dùng file này: lịch sử funding Bybit 14 ngày (kèm mark lúc chốt từng kỳ),
- * và giá/funding Bybit dự phòng khi WebSocket của Bybit chưa kết nối được.
+ * và giá/funding Bybit dự phòng khi WebSocket của Bybit chưa kết nối được. Tab Dầu WTI dùng
+ * giá/funding và lịch sử funding Bybit CLUSDT.
  *
- * - Bybit: XAUUSDT, PAXGUSDT (REST v5, funding theo chu kỳ của từng mã, thường 8 giờ)
+ * - Bybit: XAUUSDT, PAXGUSDT, CLUSDT (REST v5, funding theo chu kỳ của từng mã: vàng thường 8 giờ, dầu 4 giờ)
  * - Hyperliquid: xyz:GOLD (thị trường HIP-3 của TradeXYZ), PAXG (funding mỗi giờ)
  *
  * ?days=N lấy thêm lịch sử funding N ngày (tối đa 60). ?debug=1 xem dữ liệu thô từng lần gọi.
@@ -22,7 +23,7 @@ define('EX_LOCK_FILE', __DIR__ . '/exchanges.lock');
 define('EX_LIVE_TTL_MS', 30 * 1000);
 define('EX_HIST_TTL_MS', 30 * 60 * 1000);
 
-$BYBIT_SYMBOLS = ['XAUUSDT', 'PAXGUSDT'];
+$BYBIT_SYMBOLS = ['XAUUSDT', 'PAXGUSDT', 'CLUSDT']; // CLUSDT: dầu WTI cho tab Dầu WTI
 $HL_COINS = ['xyz:GOLD' => 'xyz', 'PAXG' => '']; // tên hợp đồng => dex (HIP-3), '' là dex chính
 
 $DEBUG = isset($_GET['debug']);

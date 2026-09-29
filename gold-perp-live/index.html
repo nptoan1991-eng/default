@@ -251,8 +251,22 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .main-tabs button:hover { color: var(--ink); }
 .main-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gold); }
 .tab-page { display: grid; gap: 18px; }
+.sub-tabs { justify-self: start; }
+.sub-tabs button { font: 600 13.5px var(--sans); padding: 6px 16px; }
+.sub-page { display: grid; gap: 18px; }
+/* Tab dầu: hai sàn đặt cạnh nhau */
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.venue { display: grid; gap: 4px; align-content: start; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.venue-price { font: 500 34px/1.1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; transition: color 0.9s ease-out; }
+.venue-price.up { color: var(--up); transition: none; }
+.venue-price.down { color: var(--down); transition: none; }
+.venue .chg { font-size: 13px; }
+.venue-rows { margin: 8px 0 0; display: grid; gap: 6px; }
+.venue-rows > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; font-size: 13px; }
+.venue-rows dt { color: var(--muted); }
+.venue-rows dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
 /* Cho phép các khung co lại để bảng rộng tự cuộn ngang bên trong, không kéo rộng cả trang */
-.wrap > *, .tab-page > * { min-width: 0; }
+.wrap > *, .tab-page > *, .sub-page > * { min-width: 0; }
 .ex-table tr.grp td { padding-top: 14px; font: 600 12px var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); text-align: left; }
 .ex-table td.best { font-weight: 700; color: var(--gold); }
 /* Tên hợp đồng đứng yên khi cuộn ngang bảng trên điện thoại */
@@ -301,11 +315,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 }
 @media (max-width: 460px) {
   .main-tabs button { padding: 10px 8px; font-size: 14px; }
+  .duo { grid-template-columns: minmax(0, 1fr); }
   .stats { grid-template-columns: minmax(0, 1fr); }
   .pos-grid { grid-template-columns: minmax(0, 1fr); }
   canvas { height: 210px; }
 }
-@media (prefers-reduced-motion: reduce) { .price { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .price, .venue-price { transition: none; } }
 </style>
 </head>
 <body>
@@ -334,60 +349,107 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   <nav class="main-tabs" role="tablist" aria-label="Phần của trang">
     <button type="button" id="tab-btn-xau" role="tab" data-tab="xau" aria-controls="tab-xau" aria-selected="true">XAUUSDT</button>
     <button type="button" id="tab-btn-paxg" role="tab" data-tab="paxg" aria-controls="tab-paxg" aria-selected="false">PAXGUSDT Binance</button>
+    <button type="button" id="tab-btn-dau" role="tab" data-tab="dau" aria-controls="tab-dau" aria-selected="false">Dầu WTI</button>
     <button type="button" id="tab-btn-so-sanh" role="tab" data-tab="so-sanh" aria-controls="tab-so-sanh" aria-selected="false">So sánh</button>
   </nav>
 
   <div class="tab-page" id="tab-xau" role="tabpanel" aria-labelledby="tab-btn-xau">
-    <section class="hero" aria-label="Giá khớp XAUUSDT trên Bybit">
-      <div>
-        <div class="label">XAUUSDT · Bybit · USDT / troy oz</div>
-        <div class="price" id="byLast">—</div>
-        <div class="hero-meta">
-          <span class="chg" id="byChg">—</span>
-          <span>Giá USDT cho 1 troy ounce vàng</span>
-        </div>
-      </div>
-    </section>
+    <div class="seg sub-tabs" role="tablist" aria-label="Sàn giao dịch">
+      <button type="button" id="sub-btn-bybit" role="tab" data-sub="bybit" aria-controls="sub-bybit" aria-selected="true">Bybit</button>
+      <button type="button" id="sub-btn-binance" role="tab" data-sub="binance" aria-controls="sub-binance" aria-selected="false">Binance</button>
+    </div>
 
-    <section class="stats" aria-label="Mark price và funding XAUUSDT Bybit">
-      <article class="stat">
-        <div class="label">Mark price</div>
-        <div class="v" id="byMark">—</div>
-        <div class="s">Giá dùng tính PnL và thanh lý</div>
-      </article>
-      <article class="stat">
-        <div class="label">Funding rate</div>
-        <div class="row"><span class="v" id="byRate">—</span><span class="chip" id="byPayer"></span></div>
-        <div class="s" id="byAnnual">—</div>
-        <div class="s">Funding tiếp theo sau <span class="count" id="byCountdown">--:--:--</span> <span id="byNextAt"></span></div>
-      </article>
-      <article class="stat wide">
-        <div class="pos-head">
-          <div class="label">Funding theo vị thế</div>
-          <label class="qty" for="byQty">Khối lượng <input id="byQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-          <span class="chip" id="byReceiver"></span>
+    <div class="sub-page" id="sub-bybit" role="tabpanel" aria-labelledby="sub-btn-bybit">
+      <section class="hero" aria-label="Giá khớp XAUUSDT trên Bybit">
+        <div>
+          <div class="label">XAUUSDT · Bybit · USDT / troy oz</div>
+          <div class="price" id="byLast">—</div>
+          <div class="hero-meta">
+            <span class="chg" id="byChg">—</span>
+            <span>Giá USDT cho 1 troy ounce vàng</span>
+          </div>
         </div>
-        <div class="pos-grid">
-          <div><div class="s">Mỗi lần funding (<span id="byPerLabel">8h</span>)</div><div class="v"><span id="byPerFunding">—</span><small>USDT</small></div></div>
-          <div><div class="s">Mỗi ngày (<span id="byPerDayCount">3</span> lần)</div><div class="v"><span id="byPerDay">—</span><small>USDT</small></div></div>
-          <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="byPerYear">—</span><small>USDT</small></div></div>
-        </div>
-        <div class="s" id="byPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-      </article>
-    </section>
+      </section>
 
-    <section class="panel" aria-label="XAUUSDT trên Binance">
-      <div class="panel-head">
-        <h2>XAUUSDT Binance · phụ</h2>
-      </div>
-      <p class="note">Cùng hợp đồng vàng giao ngay trên Binance, để đối chiếu với Bybit ở trên. Chênh lệch tính Bybit trừ Binance.</p>
-      <div class="hsum">
-        <div><div class="label">Giá khớp</div><div class="v" id="bxLast">—</div><div class="s" id="bxLastSub">—</div></div>
-        <div><div class="label">Mark price</div><div class="v" id="bxMark">—</div><div class="s" id="bxMarkSub">—</div></div>
-        <div><div class="label">Funding rate</div><div class="v" id="bxRate">—</div><div class="s" id="bxRateSub">—</div></div>
-        <div><div class="label">Funding Bybit − Binance</div><div class="v"><span id="bxGap">—</span><small>%/năm</small></div><div class="s" id="bxGapSub">—</div></div>
-      </div>
-    </section>
+      <section class="stats" aria-label="Mark price và funding XAUUSDT Bybit">
+        <article class="stat">
+          <div class="label">Mark price</div>
+          <div class="v" id="byMark">—</div>
+          <div class="s">Giá dùng tính PnL và thanh lý</div>
+        </article>
+        <article class="stat">
+          <div class="label">Funding rate</div>
+          <div class="row"><span class="v" id="byRate">—</span><span class="chip" id="byPayer"></span></div>
+          <div class="s" id="byAnnual">—</div>
+          <div class="s">Funding tiếp theo sau <span class="count" id="byCountdown">--:--:--</span> <span id="byNextAt"></span></div>
+        </article>
+        <article class="stat wide">
+          <div class="pos-head">
+            <div class="label">Funding theo vị thế</div>
+            <label class="qty" for="byQty">Khối lượng <input id="byQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+            <span class="chip" id="byReceiver"></span>
+          </div>
+          <div class="pos-grid">
+            <div><div class="s">Mỗi lần funding (<span id="byPerLabel">8h</span>)</div><div class="v"><span id="byPerFunding">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi ngày (<span id="byPerDayCount">3</span> lần)</div><div class="v"><span id="byPerDay">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="byPerYear">—</span><small>USDT</small></div></div>
+          </div>
+          <div class="s" id="byPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+        </article>
+      </section>
+    </div>
+
+    <div class="sub-page" id="sub-binance" role="tabpanel" aria-labelledby="sub-btn-binance" hidden>
+      <section class="hero" aria-label="Giá khớp XAUUSDT trên Binance">
+        <div>
+          <div class="label">XAUUSDT · Binance · USDT / troy oz</div>
+          <div class="price" id="bxLast">—</div>
+          <div class="hero-meta">
+            <span class="chg" id="bxChg">—</span>
+            <span>Giá USDT cho 1 troy ounce vàng</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Mark price và funding XAUUSDT Binance">
+        <article class="stat">
+          <div class="label">Mark price</div>
+          <div class="v" id="bxMark">—</div>
+          <div class="s">Giá dùng tính PnL và thanh lý</div>
+        </article>
+        <article class="stat">
+          <div class="label">Funding rate</div>
+          <div class="row"><span class="v" id="bxRate">—</span><span class="chip" id="bxPayer"></span></div>
+          <div class="s" id="bxAnnual">—</div>
+          <div class="s">Funding tiếp theo sau <span class="count" id="bxCountdown">--:--:--</span> <span id="bxNextAt"></span></div>
+        </article>
+        <article class="stat wide">
+          <div class="pos-head">
+            <div class="label">Funding theo vị thế</div>
+            <label class="qty" for="bxQty">Khối lượng <input id="bxQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+            <span class="chip" id="bxReceiver"></span>
+          </div>
+          <div class="pos-grid">
+            <div><div class="s">Mỗi lần funding (<span id="bxPerLabel">8h</span>)</div><div class="v"><span id="bxPerFunding">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi ngày (<span id="bxPerDayCount">3</span> lần)</div><div class="v"><span id="bxPerDay">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="bxPerYear">—</span><small>USDT</small></div></div>
+          </div>
+          <div class="s" id="bxPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+        </article>
+      </section>
+
+      <section class="panel" aria-label="XAUUSDT Bybit so với Binance">
+        <div class="panel-head">
+          <h2>So với Bybit</h2>
+        </div>
+        <p class="note">Chênh lệch tính Bybit trừ Binance, theo số liệu hiện tại.</p>
+        <div class="hsum">
+          <div><div class="label">Giá khớp Bybit − Binance</div><div class="v"><span id="bxGapLast">—</span><small>USDT</small></div><div class="s" id="bxGapLastSub">—</div></div>
+          <div><div class="label">Mark Bybit − Binance</div><div class="v"><span id="bxGapMark">—</span><small>USDT</small></div><div class="s" id="bxGapMarkSub">—</div></div>
+          <div><div class="label">Funding Bybit − Binance</div><div class="v"><span id="bxGap">—</span><small>%/năm</small></div><div class="s" id="bxGapSub">—</div></div>
+        </div>
+      </section>
+    </div>
 
     <section class="panel" aria-label="XAUUSDT Bybit so với forex">
       <div class="panel-head">
@@ -458,10 +520,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <section class="panel" id="histPanel" aria-label="Lịch sử funding 14 ngày">
       <div class="panel-head">
         <h2>Lịch sử funding 14 ngày · <span id="histWhich">Bybit XAUUSDT</span></h2>
-        <div class="seg" id="histSrc" role="radiogroup" aria-label="Sàn">
-          <button type="button" role="radio" data-hsrc="bybit:XAUUSDT" aria-checked="true">Bybit</button>
-          <button type="button" role="radio" data-hsrc="binance:XAUUSDT" aria-checked="false">Binance</button>
-        </div>
       </div>
       <div class="hist-meta">
         <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
@@ -577,6 +635,77 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         </div>
         <p class="note">PAXGUSDT trừ giá vàng giao ngay. Vùng nền xám là các giờ có giá Swissquote do host ghi. Không tính giờ thị trường vàng nghỉ.</p>
       </div>
+    </section>
+  </div>
+
+  <div class="tab-page" id="tab-dau" role="tabpanel" aria-labelledby="tab-btn-dau" hidden>
+    <section class="panel" aria-label="CLUSDT trên Bybit và Binance">
+      <div class="panel-head">
+        <h2>CLUSDT · Dầu thô WTI</h2>
+      </div>
+      <p class="note" id="oilMeta">Hợp đồng vĩnh cửu theo giá hợp đồng tương lai dầu thô WTI (CL), giá USDT cho 1 thùng. Cả hai sàn chốt funding mỗi 4 giờ và giao dịch 24/7.</p>
+      <div class="duo">
+        <article class="venue">
+          <div class="label">Bybit</div>
+          <div class="venue-price" id="oilLast_by">—</div>
+          <div class="chg" id="oilChg_by">—</div>
+          <dl class="venue-rows">
+            <div><dt>Mark price</dt><dd id="oilMark_by">—</dd></div>
+            <div><dt>Funding kỳ này</dt><dd><span class="chip" id="oilPayer_by"></span> <span id="oilRate_by">—</span></dd></div>
+            <div><dt>Quy năm</dt><dd id="oilAnnual_by">—</dd></div>
+            <div><dt>Kỳ tới sau</dt><dd><span id="oilCd_by">--:--:--</span> <span id="oilAt_by"></span></dd></div>
+          </dl>
+        </article>
+        <article class="venue">
+          <div class="label">Binance</div>
+          <div class="venue-price" id="oilLast_bn">—</div>
+          <div class="chg" id="oilChg_bn">—</div>
+          <dl class="venue-rows">
+            <div><dt>Mark price</dt><dd id="oilMark_bn">—</dd></div>
+            <div><dt>Funding kỳ này</dt><dd><span class="chip" id="oilPayer_bn"></span> <span id="oilRate_bn">—</span></dd></div>
+            <div><dt>Quy năm</dt><dd id="oilAnnual_bn">—</dd></div>
+            <div><dt>Kỳ tới sau</dt><dd><span id="oilCd_bn">--:--:--</span> <span id="oilAt_bn"></span></dd></div>
+          </dl>
+        </article>
+      </div>
+      <div class="hsum">
+        <div><div class="label">Giá khớp Bybit − Binance</div><div class="v"><span id="oilGapLast">—</span><small>USDT</small></div><div class="s" id="oilGapLastSub">—</div></div>
+        <div><div class="label">Mark Bybit − Binance</div><div class="v"><span id="oilGapMark">—</span><small>USDT</small></div><div class="s" id="oilGapMarkSub">—</div></div>
+        <div><div class="label">Funding Bybit − Binance</div><div class="v"><span id="oilGapRate">—</span><small>%/năm</small></div><div class="s" id="oilGapRateSub">—</div></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Funding CLUSDT theo vị thế">
+      <div class="panel-head">
+        <h2>Funding theo vị thế</h2>
+        <label class="qty" for="oilQty">Khối lượng <input id="oilQty" type="number" min="0" step="1" value="1" inputmode="decimal"> thùng</label>
+      </div>
+      <div class="table-wrap"><table id="oilPosTable"></table></div>
+      <p class="note">Giá trị vị thế = mark × số thùng. Số liệu của bên Short: dương là nhận, âm là trả, bên Long ngược dấu. Ước tính theo funding rate hiện tại, rate đổi theo từng kỳ nên số thực nhận sẽ khác.</p>
+    </section>
+
+    <section class="panel" aria-label="Lịch sử funding CLUSDT">
+      <div class="panel-head">
+        <h2>Lịch sử funding</h2>
+        <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding dầu">
+          <button type="button" id="oil-7" role="radio" data-oildays="7" aria-checked="true">7 ngày</button>
+          <button type="button" id="oil-30" role="radio" data-oildays="30" aria-checked="false">30 ngày</button>
+        </div>
+      </div>
+      <div class="hist-meta">
+        <p class="note" id="oilHistMeta">Lịch sử funding tải khi mở tab này.</p>
+        <button type="button" class="linkbtn" id="oilRetry" hidden>Tải lại</button>
+      </div>
+      <div class="table-wrap"><table id="oilSumTable"></table></div>
+      <h3 class="sub-h">Tổng funding mỗi ngày</h3>
+      <div class="legend ex-legend"><span class="ey">Bybit</span><span class="eb">Binance</span></div>
+      <div class="bs-wrap">
+        <canvas id="exChart_oil" aria-label="Biểu đồ tổng funding mỗi ngày của CLUSDT trên Bybit và Binance"></canvas>
+        <div class="bs-guide" id="exGuide_oil" hidden></div>
+        <div class="bs-tip" id="exTip_oil" hidden></div>
+      </div>
+      <p class="note">Mỗi điểm là tổng funding rate trong một ngày theo giờ máy, không tính hôm nay vì chưa đủ kỳ. Rê chuột hoặc chạm để xem từng ngày.</p>
+      <div class="table-wrap"><table id="oilDayTable"></table></div>
     </section>
   </div>
 
@@ -784,11 +913,18 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     byStatus: $('byStatus'), byStatusText: $('byStatusText'), byNotice: $('byNotice'),
     byLast: $('byLast'), byChg: $('byChg'), byMark: $('byMark'), byRate: $('byRate'), byPayer: $('byPayer'), byAnnual: $('byAnnual'),
     byCountdown: $('byCountdown'), byNextAt: $('byNextAt'), byQty: $('byQty'),
-    bxLast: $('bxLast'), bxLastSub: $('bxLastSub'), bxMark: $('bxMark'), bxMarkSub: $('bxMarkSub'),
-    bxRate: $('bxRate'), bxRateSub: $('bxRateSub'), bxGap: $('bxGap'), bxGapSub: $('bxGapSub'),
+    subBtns: document.querySelectorAll('.sub-tabs [data-sub]'), subBybit: $('sub-bybit'), subBinance: $('sub-binance'),
+    bxLast: $('bxLast'), bxChg: $('bxChg'), bxMark: $('bxMark'), bxRate: $('bxRate'), bxPayer: $('bxPayer'), bxAnnual: $('bxAnnual'),
+    bxCountdown: $('bxCountdown'), bxNextAt: $('bxNextAt'), bxQty: $('bxQty'),
+    bxGapLast: $('bxGapLast'), bxGapLastSub: $('bxGapLastSub'), bxGapMark: $('bxGapMark'), bxGapMarkSub: $('bxGapMarkSub'),
+    bxGap: $('bxGap'), bxGapSub: $('bxGapSub'),
+    oilMeta: $('oilMeta'), oilGapLast: $('oilGapLast'), oilGapLastSub: $('oilGapLastSub'), oilGapMark: $('oilGapMark'), oilGapMarkSub: $('oilGapMarkSub'),
+    oilGapRate: $('oilGapRate'), oilGapRateSub: $('oilGapRateSub'), oilQty: $('oilQty'), oilPosTable: $('oilPosTable'),
+    oilHistMeta: $('oilHistMeta'), oilRetry: $('oilRetry'), oilSumTable: $('oilSumTable'), oilDayTable: $('oilDayTable'),
+    oilDaysBtns: document.querySelectorAll('.seg [data-oildays]'),
     byFx: $('byFx'), byFxSub: $('byFxSub'), bnFx: $('bnFx'), bnFxSub: $('bnFxSub'),
     pgFx: $('pgFx'), pgFxSub: $('pgFxSub'), pgTk: $('pgTk'), pgTkSub: $('pgTkSub'),
-    histPanel: $('histPanel'), histWhich: $('histWhich'), histSrc: $('histSrc'), histSrcBtns: document.querySelectorAll('[data-hsrc]')
+    histPanel: $('histPanel'), histWhich: $('histWhich')
   };
   const POS_NOTE = 'Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.';
   // Hai ô Funding theo vị thế: XAUUSDT Bybit (id có tiền tố by) và PAXGUSDT Binance, dùng chung khối lượng
@@ -796,7 +932,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const id = (n) => $(pre ? pre + n[0].toUpperCase() + n.slice(1) : n);
     return { receiver: id('receiver'), perLabel: id('perLabel'), perDayCount: id('perDayCount'), perFunding: id('perFunding'), perDay: id('perDay'), perYear: id('perYear'), posNote: id('posNote') };
   };
-  const POS_BN = posBox(''), POS_BY = posBox('by');
+  const POS_BN = posBox(''), POS_BY = posBox('by'), POS_BX = posBox('bx');
 
   const fmt2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const signed = (v, d) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d);
@@ -817,7 +953,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let intervalH = 8, intervalKnown = false;
   let prevLast = null, frame = 0;
   let hist = null, histError = null, histLoading = false, histDueAt = 0, histDays = [], barsDirty = true;
-  let histSource = null, histXauSource = 'bybit:XAUUSDT', histSeq = 0;
+  let histSource = null, histSeq = 0;
   let view = 'day';
   // Giá khớp gần nhất của cả 2 mã, dùng cho chênh lệch giá và SJC (SJC luôn so với XAUUSDT)
   const lastBy = { XAUUSDT: null, PAXGUSDT: null };
@@ -826,10 +962,16 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let cmp = null, cmpError = null, cmpLoading = false, cmpDays = [], cmpDirty = true;
   let fxData = null, fxError = null;
   let s = fresh();
-  // XAUUSDT Binance (khung phụ): mark và funding từ luồng markPrice, giá khớp nằm trong lastBy
-  const bnX = { mark: null, rate: null, next: null };
-  // XAUUSDT Bybit (khung chính), nhận qua WebSocket của Bybit
+  // Hợp đồng Binance chỉ nhận khi đang xem: XAUUSDT (sub tab Binance), CLUSDT (tab Dầu WTI)
+  const bnX = fresh(), bnCL = fresh();
+  const bnSide = { XAUUSDT: bnX, CLUSDT: bnCL };
+  const bnExtra = new Set(); // luồng đang mở thêm ngoài luồng PAXGUSDT và giá khớp XAUUSDT
+  let bnReqId = 0;
+  // Bybit: XAUUSDT (khung chính) luôn nhận, CLUSDT chỉ khi mở tab Dầu WTI
   const by = { last: null, chgPct: null, mark: null, rate: null, next: null, intervalH: null, E: null };
+  const byCL = { last: null, chgPct: null, mark: null, rate: null, next: null, intervalH: null, E: null };
+  const bySide = { XAUUSDT: by, CLUSDT: byCL };
+  const byTopics = new Set(['XAUUSDT']);
   let byWs = null, byRetry = 0, byRetryAt = 0, byRetryTimer = null, byPing = null;
   let byOpenedAt = 0, byMsgAt = 0, byGot = false, byPrev = null;
 
@@ -865,8 +1007,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const streams = [k + '@markPrice@1s', k + '@aggTrade', k + '@ticker'];
     // Luôn nhận giá khớp của mã còn lại để tính XAU − PAXG, XAU − forex và SJC
     Object.keys(lastBy).forEach((other) => { if (other !== sym) streams.push(other.toLowerCase() + '@aggTrade'); });
-    // XAUUSDT Binance là khung phụ ở tab XAUUSDT: cần thêm mark và funding
-    if (sym !== 'XAUUSDT') streams.push('xauusdt@markPrice@1s');
+    // Luồng của phần đang xem (sub tab Binance, tab Dầu WTI); đổi trong lúc đang kết nối thì bù ở onopen
+    const inUrl = new Set(bnExtra);
+    inUrl.forEach((x) => streams.push(x));
     const sock = new WebSocket(WS_BASE + streams.join('/'));
     ws = sock;
     openedAt = 0;
@@ -876,28 +1019,42 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       retry = 0;
       openedAt = Date.now();
       if (!gotData) setStatus('waiting');
+      const add = Array.from(bnExtra).filter((x) => !inUrl.has(x)), drop = Array.from(inUrl).filter((x) => !bnExtra.has(x));
+      if (add.length) sock.send(JSON.stringify({ method: 'SUBSCRIBE', params: add, id: ++bnReqId }));
+      if (drop.length) sock.send(JSON.stringify({ method: 'UNSUBSCRIBE', params: drop, id: ++bnReqId }));
     };
     sock.onmessage = (ev) => {
       let msg;
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       const d = msg && msg.data;
       if (!d) return;
-      if (d.e === 'markPriceUpdate' && d.s === 'XAUUSDT' && sym !== 'XAUUSDT') {
-        bnX.mark = +d.p; bnX.rate = +d.r; bnX.next = +d.T;
-        schedule();
-        return;
+      const side = d.s !== sym ? bnSide[d.s] : null;
+      if (side) {
+        if (d.e === 'markPriceUpdate') { side.mark = +d.p; side.rate = +d.r; side.next = +d.T; }
+        else if (d.e === 'aggTrade') side.last = +d.p;
+        else if (d.e === '24hrTicker') { side.chgPct = +d.P; if (side.last == null) side.last = +d.c; }
+        side.E = d.E;
       }
       if (d.e === 'aggTrade' && d.s in lastBy) {
         lastBy[d.s] = +d.p;
         sjcDirty = true;
-        if (d.s !== sym) { schedule(); return; }
       }
-      if (d.s !== sym) return;
+      if (d.s !== sym) { schedule(); return; }
       lastMsgAt = Date.now();
       if (!gotData) { gotData = true; el.notice.hidden = true; }
       handle(d);
     };
     sock.onclose = () => { if (ws === sock) reconnectLater(); };
+  }
+
+  // Mở hoặc đóng thêm luồng trên kết nối Binance đang chạy; lần kết nối lại sẽ gồm sẵn các luồng này
+  function bnWant(list, on) {
+    const changed = list.filter((x) => bnExtra.has(x) !== on);
+    if (!changed.length) return;
+    changed.forEach((x) => { if (on) bnExtra.add(x); else bnExtra.delete(x); });
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({ method: on ? 'SUBSCRIBE' : 'UNSUBSCRIBE', params: changed, id: ++bnReqId })); } catch (e) { /* sắp kết nối lại */ }
+    }
   }
 
   function reconnectLater() {
@@ -932,7 +1089,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     sock.onopen = () => {
       byRetry = 0;
       byOpenedAt = byMsgAt = Date.now();
-      sock.send(JSON.stringify({ op: 'subscribe', args: ['tickers.XAUUSDT'] }));
+      sock.send(JSON.stringify({ op: 'subscribe', args: Array.from(byTopics, (x) => 'tickers.' + x) }));
       // Bybit khuyên ping 20 giây một lần để giữ kết nối
       byPing = setInterval(() => { try { sock.send('{"op":"ping"}'); } catch (e) { /* sắp đóng */ } }, 20000);
       if (!byGot) setByStatus('waiting');
@@ -941,20 +1098,29 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       let msg;
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       byMsgAt = Date.now();
-      const d = msg && msg.topic === 'tickers.XAUUSDT' ? msg.data : null;
+      const target = msg && typeof msg.topic === 'string' && msg.topic.startsWith('tickers.') ? bySide[msg.topic.slice(8)] : null;
+      const d = target ? msg.data : null;
       if (!d) return;
       const num = (k) => (d[k] != null && d[k] !== '' && Number.isFinite(+d[k]) ? +d[k] : null);
       [['last', 'lastPrice'], ['mark', 'markPrice'], ['rate', 'fundingRate'], ['next', 'nextFundingTime'], ['intervalH', 'fundingIntervalHour']].forEach(([key, field]) => {
         const v = num(field);
-        if (v != null && (key === 'rate' || v > 0)) by[key] = v;
+        if (v != null && (key === 'rate' || v > 0)) target[key] = v;
       });
       const pct = num('price24hPcnt');
-      if (pct != null) by.chgPct = pct * 100;
-      by.E = msg.ts || Date.now();
+      if (pct != null) target.chgPct = pct * 100;
+      target.E = msg.ts || Date.now();
       if (!byGot) { byGot = true; el.byNotice.hidden = true; setByStatus('live'); }
       schedule();
     };
     sock.onclose = () => { if (byWs === sock) byReconnectLater(); };
+  }
+
+  function byWant(symbol, on) {
+    if (byTopics.has(symbol) === on) return;
+    if (on) byTopics.add(symbol); else byTopics.delete(symbol);
+    if (byWs && byWs.readyState === WebSocket.OPEN) {
+      try { byWs.send(JSON.stringify({ op: on ? 'subscribe' : 'unsubscribe', args: ['tickers.' + symbol] })); } catch (e) { /* sắp kết nối lại */ }
+    }
   }
 
   function byReconnectLater() {
@@ -984,14 +1150,28 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }
 
   // Số liệu Bybit: ưu tiên WebSocket, chưa có thì dùng số host lấy mỗi phút (api/exchanges.php)
-  function byVal(key) {
-    if (by[key] != null) return by[key];
-    const L = exLive['bybit:XAUUSDT'];
+  function byValOf(symbol, key) {
+    const o = bySide[symbol];
+    if (o[key] != null) return o[key];
+    const L = exLive['bybit:' + symbol];
     const v = L ? (key === 'last' ? L.price : L[key]) : null;
     return v != null ? v : null;
   }
-  const byInterval = () => by.intervalH || (exLive['bybit:XAUUSDT'] && exLive['bybit:XAUUSDT'].intervalH) || 8;
-  const bnXVal = (key) => (bnX[key] != null ? bnX[key] : exLive['binance:XAUUSDT'] ? exLive['binance:XAUUSDT'][key] : null);
+  const byVal = (key) => byValOf('XAUUSDT', key);
+  const byIntervalOf = (symbol, dflt) => bySide[symbol].intervalH || (exLive['bybit:' + symbol] && exLive['bybit:' + symbol].intervalH) || dflt || 8;
+  const byInterval = () => byIntervalOf('XAUUSDT');
+
+  // Số liệu Binance của hợp đồng ở sub tab / tab khác; chưa có thì dùng giá khớp hoặc số REST (premiumIndex)
+  function bnSideVal(symbol, key) {
+    const o = bnSide[symbol];
+    if (o[key] != null) return o[key];
+    if (key === 'last' && lastBy[symbol] != null) return lastBy[symbol];
+    const L = exLive['binance:' + symbol];
+    const v = L ? L[key] : null;
+    return v != null ? v : null;
+  }
+  const bnXVal = (key) => bnSideVal('XAUUSDT', key);
+  const bnIv = (symbol, dflt) => (bnIntervals && bnIntervals[symbol]) || dflt || 8;
 
   async function loadFundingInterval(forSym) {
     intervalH = 8;
@@ -1066,7 +1246,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (cmpDirty) { cmpDirty = false; drawCompare(); }
     if (spDirty) { spDirty = false; SP_KEYS.forEach(drawSpreadChart); }
     if (drillDirty) { drillDirty = false; drawDrill(); }
-    if (exDirty) { exDirty = false; drawExChart('gold'); drawExChart('paxg'); }
+    if (tab === 'xau' && xauSub === 'binance') renderBinanceXau();
+    if (tab === 'dau') renderOil();
+    if (exDirty) { exDirty = false; drawExChart('gold'); drawExChart('paxg'); drawExChart('oil'); }
   }
 
   function renderBybit() {
@@ -1087,31 +1269,56 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const known = by.intervalH || (exLive['bybit:XAUUSDT'] && exLive['bybit:XAUUSDT'].intervalH);
       el.byAnnual.textContent = '≈ ' + signed(rate * (24 / iv) * 365 * 100, 2) + '%/năm · chu kỳ ' + iv + 'h' + (known ? '' : ' (mặc định)');
     }
+  }
 
-    // Khung phụ XAUUSDT Binance; chênh lệch tính Bybit trừ Binance
-    const x = lastBy.XAUUSDT, bm = bnXVal('mark'), brate = bnXVal('rate'), bnext = bnXVal('next');
-    const biv = (bnIntervals && bnIntervals.XAUUSDT) || 8;
-    const vs = (a, b) => (a != null && b != null ? 'Bybit − Binance: ' + signed(a - b, 2) + ' USDT' : '—');
-    el.bxLast.textContent = x != null ? fmt2.format(x) : '—';
-    el.bxLastSub.textContent = vs(last, x);
-    el.bxMark.textContent = bm != null ? fmt2.format(bm) : '—';
-    el.bxMarkSub.textContent = vs(mark, bm);
-    if (brate != null) {
-      el.bxRate.textContent = signed(brate * 100, 4) + '%';
-      el.bxRateSub.textContent = '≈ ' + signed(brate * (24 / biv) * 365 * 100, 2) + '%/năm · chu kỳ ' + biv + 'h' + (bnext ? ' · kỳ tới ' + hhmm(bnext) : '');
+  // Chênh lệch a − b (Bybit trừ Binance); text(d) là dòng giải thích bên dưới
+  function setGap(valEl, subEl, a, b, dec, text) {
+    if (a == null || b == null) {
+      valEl.textContent = '—';
+      delete valEl.dataset.dir;
+      subEl.textContent = '—';
+      return;
     }
-    if (rate != null && brate != null) {
-      const gap = (rate * (24 / iv) - brate * (24 / biv)) * 365 * 100;
-      el.bxGap.textContent = signed(gap, 2);
-      el.bxGap.dataset.dir = dir(gap);
-      el.bxGapSub.textContent = gap > 0 ? 'Về funding, Short trên Bybit lợi hơn' : gap < 0 ? 'Về funding, Short trên Binance lợi hơn' : 'Hai sàn bằng nhau';
+    const d = a - b;
+    valEl.textContent = signed(d, dec);
+    valEl.dataset.dir = dir(d);
+    subEl.textContent = text(d);
+  }
+  const shortBetter = (d) => (d > 0 ? 'Về funding, Short trên Bybit lợi hơn' : d < 0 ? 'Về funding, Short trên Binance lợi hơn' : 'Hai sàn bằng nhau');
+
+  // Sub tab Binance của tab XAUUSDT
+  let bxPrev = null;
+  function renderBinanceXau() {
+    const last = bnXVal('last'), mark = bnXVal('mark'), rate = bnXVal('rate'), iv = bnIv('XAUUSDT');
+    if (last != null) {
+      el.bxLast.textContent = fmt2.format(last);
+      if (bxPrev != null && last !== bxPrev) flash(el.bxLast, last > bxPrev ? 'up' : 'down');
+      bxPrev = last;
     }
+    if (bnX.chgPct != null) {
+      el.bxChg.textContent = signed(bnX.chgPct, 2) + '% trong 24h';
+      el.bxChg.dataset.dir = dir(bnX.chgPct);
+    }
+    if (mark != null) el.bxMark.textContent = fmt2.format(mark);
+    if (rate != null) {
+      el.bxRate.textContent = signed(rate * 100, 4) + '%';
+      el.bxPayer.textContent = rate > 0 ? 'Long trả Short' : rate < 0 ? 'Short trả Long' : '';
+      el.bxAnnual.textContent = '≈ ' + signed(rate * (24 / iv) * 365 * 100, 2) + '%/năm · chu kỳ ' + iv + 'h' + (bnIntervals && bnIntervals.XAUUSDT ? '' : ' (mặc định)');
+    }
+    const bl = byVal('last'), bm = byVal('mark'), br = byVal('rate'), biv = byInterval();
+    setGap(el.bxGapLast, el.bxGapLastSub, bl, last, 2, () => 'Bybit ' + fmt2.format(bl) + ' · Binance ' + fmt2.format(last));
+    setGap(el.bxGapMark, el.bxGapMarkSub, bm, mark, 2, () => 'Bybit ' + fmt2.format(bm) + ' · Binance ' + fmt2.format(mark));
+    setGap(el.bxGap, el.bxGapSub, br != null ? br * (24 / biv) * 365 * 100 : null, rate != null ? rate * (24 / iv) * 365 * 100 : null, 2, shortBetter);
   }
 
   // Tiêu đề tab trình duyệt theo giá của phần đang xem
   function renderTitle() {
-    const v = tab === 'paxg' ? s.last : byVal('last');
-    document.title = v != null ? fmt2.format(v) + ' · ' + (tab === 'paxg' ? 'PAXGUSDT Binance' : 'XAUUSDT Bybit') + ' | Gold Perp Live' : 'Gold Perp Live';
+    let v, name;
+    if (tab === 'paxg') { v = s.last; name = 'PAXGUSDT Binance'; }
+    else if (tab === 'dau') { v = byValOf('CLUSDT', 'last'); name = 'CLUSDT Bybit'; }
+    else if (tab === 'xau' && xauSub === 'binance') { v = bnXVal('last'); name = 'XAUUSDT Binance'; }
+    else { v = byVal('last'); name = 'XAUUSDT Bybit'; }
+    document.title = v != null ? (tab === 'dau' ? fmtOil.format(v) : fmt2.format(v)) + ' · ' + name + ' | Gold Perp Live' : 'Gold Perp Live';
   }
 
   // Số USDT một bên nhận (bên kia trả) cho vị thế đang nhập, theo funding rate hiện tại
@@ -1140,6 +1347,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   function renderPosition() {
     renderPositionBox(POS_BY, byVal('mark'), byVal('rate'), byInterval());
     renderPositionBox(POS_BN, s.mark, s.rate, intervalH);
+    renderPositionBox(POS_BX, bnXVal('mark'), bnXVal('rate'), bnIv('XAUUSDT'));
   }
 
   function flash(node, d) {
@@ -1160,6 +1368,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   function renderCountdown(now) {
     countdownTo(byVal('next'), now, el.byCountdown, el.byNextAt);
     countdownTo(s.next, now, el.countdown, el.nextAt);
+    if (xauSub === 'binance') countdownTo(bnXVal('next'), now, el.bxCountdown, el.bxNextAt);
+    if (tab === 'dau') {
+      countdownTo(byValOf(OIL, 'next'), now, $('oilCd_by'), $('oilAt_by'));
+      countdownTo(bnSideVal(OIL, 'next'), now, $('oilCd_bn'), $('oilAt_bn'));
+    }
   }
 
   function tick() {
@@ -1184,6 +1397,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const nx = histSource ? histLive('next') : null;
     if (!histDueAt && nx > now) histDueAt = nx + (histSource.startsWith('bybit') ? 60000 : 30000);
     if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(); loadCompare(); }
+    // Tab dầu: tải lại lịch sử funding 1 phút sau mỗi kỳ chốt
+    if (tab === 'dau' && oilLoaded) {
+      const on = byValOf(OIL, 'next') || bnSideVal(OIL, 'next');
+      if (!oilDueAt && on > now) oilDueAt = on + 60000;
+      if (oilDueAt && now >= oilDueAt) { oilDueAt = 0; loadOilHist(); }
+    }
     if (tab === 'so-sanh') renderExchanges();
   }
 
@@ -1258,16 +1477,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     histSource = src;
     hist = null; histError = null; histDueAt = 0;
     el.histWhich.textContent = HIST_NAME[src];
-    el.histSrcBtns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.hsrc === src)));
     loadHistory();
   }
 
-  // Chuyển khung lịch sử sang tab đang xem (tab So sánh không có khung này)
+  // Chuyển khung lịch sử sang tab đang xem: tab XAUUSDT theo sub tab Bybit / Binance, tab PAXGUSDT là PAXGUSDT
   function placeHistory() {
-    if (tab === 'so-sanh') return;
+    if (tab !== 'xau' && tab !== 'paxg') return;
     TABS[tab].appendChild(el.histPanel);
-    el.histSrc.hidden = tab !== 'xau';
-    setHistSource(tab === 'xau' ? histXauSource : 'binance:PAXGUSDT');
+    setHistSource(tab === 'paxg' ? 'binance:PAXGUSDT' : xauSub === 'binance' ? 'binance:XAUUSDT' : 'bybit:XAUUSDT');
   }
 
   function renderHistory() {
@@ -2593,7 +2810,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const EX_COLORS = { Binance: '--gold', Bybit: '--blue', Hyperliquid: '--violet' };
   let exDays = 7, exLive = {}, exHist = {}, exErrors = [], exLoading = false, exFetchedAt = null, exDirty = true;
   let bnIntervals = null;
-  const exDaily = { gold: [], paxg: [] }, exGeom = {};
+  const exDaily = { gold: [], paxg: [], oil: [] }, exGeom = {};
+  let exHostErrors = [];
 
   async function loadBnIntervals() {
     if (bnIntervals) return;
@@ -2639,7 +2857,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const data = res[2].value || {};
       Object.assign(live, data.live || {});
       if (withHistory && data.history) Object.keys(data.history).forEach((k) => { exHist[k] = data.history[k]; });
-      (data.errors || []).forEach((m) => errors.push(m));
+      exHostErrors = data.errors || [];
+      exHostErrors.filter((m) => !m.includes(OIL)).forEach((m) => errors.push(m));
       exFetchedAt = data.fetchedAt || Date.now();
     } else {
       errors.push(res[2].reason.message + '.');
@@ -2664,7 +2883,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const first = new Date();
     first.setHours(0, 0, 0, 0);
     first.setDate(first.getDate() - exDays);
-    for (const group of Object.keys(exDaily)) {
+    for (const group of ['gold', 'paxg']) {
       const byDay = new Map();
       for (let k = 0; k < exDays; k++) {
         const d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + k);
@@ -2819,23 +3038,223 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   function bindExTip(group) {
     bindChartTip($('exChart_' + group), $('exTip_' + group), $('exGuide_' + group),
       () => exDaily[group].filter((d) => Object.keys(d.v).length), () => exGeom[group],
-      (d) => dm(d.t) + ' · ' + Object.keys(EX_COLORS).map((v) => v + ' ' + (d.v[v] != null ? signed(d.v[v], 4) + '%' : '—')).join(' · '),
+      (d) => dm(d.t) + ' · ' + Object.keys(EX_COLORS).filter((v) => d.v[v] != null).map((v) => v + ' ' + signed(d.v[v], 4) + '%').join(' · '),
       null);
   }
 
-  // ---------- Ba tab: XAUUSDT (Bybit chính, Binance phụ), PAXGUSDT Binance, So sánh ----------
-  const TABS = { xau: $('tab-xau'), paxg: $('tab-paxg'), 'so-sanh': $('tab-so-sanh') };
-  let tab = 'xau';
-  const tabFromHash = () => (location.hash === '#so-sanh' ? 'so-sanh' : location.hash === '#paxg' ? 'paxg' : null);
+  // ---------- Dầu WTI: CLUSDT trên Bybit và Binance ----------
+  // Chỉ nhận dữ liệu khi đang mở tab này. Hai sàn chốt funding mỗi 4 giờ.
+  const OIL = 'CLUSDT';
+  const OIL_VENUES = [['by', 'Bybit'], ['bn', 'Binance']];
+  const fmtOil = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+  let oilLoaded = false, oilDays = 7, oilDueAt = 0, oilSeq = 0, oilLoading = false, oilErrors = [];
+  let oilHist = { Bybit: null, Binance: null };
+  const oilPrev = {};
+
+  function oilVenue(k) {
+    const get = k === 'by' ? (key) => byValOf(OIL, key) : (key) => bnSideVal(OIL, key);
+    return {
+      last: get('last'), mark: get('mark'), rate: get('rate'), next: get('next'),
+      chgPct: (k === 'by' ? byCL : bnCL).chgPct,
+      iv: k === 'by' ? byIntervalOf(OIL, 4) : bnIv(OIL, 4)
+    };
+  }
+
+  function renderOil() {
+    const V = { by: oilVenue('by'), bn: oilVenue('bn') };
+    for (const [k] of OIL_VENUES) {
+      const x = V[k], q = (id) => $(id + '_' + k);
+      if (x.last != null) {
+        q('oilLast').textContent = fmtOil.format(x.last);
+        if (oilPrev[k] != null && x.last !== oilPrev[k]) flash(q('oilLast'), x.last > oilPrev[k] ? 'up' : 'down');
+        oilPrev[k] = x.last;
+      }
+      if (x.chgPct != null) {
+        q('oilChg').textContent = signed(x.chgPct, 2) + '% trong 24h';
+        q('oilChg').dataset.dir = dir(x.chgPct);
+      }
+      if (x.mark != null) q('oilMark').textContent = fmtOil.format(x.mark);
+      if (x.rate != null) {
+        q('oilRate').textContent = signed(x.rate * 100, 4) + '% / ' + x.iv + 'h';
+        q('oilPayer').textContent = x.rate > 0 ? 'Long trả Short' : x.rate < 0 ? 'Short trả Long' : '';
+        const annual = x.rate * (24 / x.iv) * 365 * 100;
+        q('oilAnnual').textContent = signed(annual, 2) + '%';
+        q('oilAnnual').dataset.dir = dir(annual);
+      }
+    }
+    const annual = (x) => (x.rate != null ? x.rate * (24 / x.iv) * 365 * 100 : null);
+    setGap(el.oilGapLast, el.oilGapLastSub, V.by.last, V.bn.last, 3, (d) => signed((d / V.bn.last) * 100, 3) + '% so với Binance');
+    setGap(el.oilGapMark, el.oilGapMarkSub, V.by.mark, V.bn.mark, 3, (d) => signed((d / V.bn.mark) * 100, 3) + '% so với Binance');
+    setGap(el.oilGapRate, el.oilGapRateSub, annual(V.by), annual(V.bn), 2, shortBetter);
+    const errs = exHostErrors.filter((m) => m.includes(OIL));
+    el.oilMeta.textContent = 'Hợp đồng vĩnh cửu theo giá hợp đồng tương lai dầu thô WTI (CL), giá USDT cho 1 thùng. Cả hai sàn chốt funding mỗi 4 giờ và giao dịch 24/7.'
+      + (errs.length && byCL.last == null ? ' ' + errs.join(' ') : '');
+    renderOilPos(V);
+  }
+
+  // USDT bên Short nhận (dương) hoặc trả (âm) cho số thùng đang nhập, theo funding hiện tại
+  function renderOilPos(V) {
+    const q = parseFloat(el.oilQty.value);
+    const qOk = Number.isFinite(q) && q >= 0;
+    let html = '<thead><tr><th>Sàn</th><th>Giá trị vị thế</th><th>Mỗi kỳ</th><th>Mỗi ngày</th><th>Mỗi năm</th></tr></thead><tbody>';
+    const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    for (const [k, name] of OIL_VENUES) {
+      const x = V[k];
+      const ok = qOk && x.mark != null && x.rate != null;
+      const notional = ok ? x.mark * q : null;
+      const per = ok ? notional * x.rate : null;
+      const day = ok ? per * (24 / x.iv) : null;
+      html += '<tr><td>' + name + ' · ' + x.iv + 'h</td>'
+        + '<td>' + (ok ? fmt2.format(notional) : '—') + '</td>'
+        + '<td' + tone(per) + '>' + (ok ? signedMoney(per) : '—') + '</td>'
+        + '<td' + tone(day) + '>' + (ok ? signedMoney(day) : '—') + '</td>'
+        + '<td' + tone(day) + '>' + (ok ? signedMoney(day * 365) : '—') + '</td></tr>';
+    }
+    el.oilPosTable.innerHTML = html + '</tbody>';
+  }
+
+  // Lịch sử funding: Binance lấy trực tiếp, Bybit qua host (kèm mark lúc chốt từng kỳ)
+  async function loadOilHist() {
+    const days = oilDays, seq = ++oilSeq;
+    oilLoading = true;
+    renderOilHist();
+    const since = Date.now() - days * 864e5;
+    const host = location.protocol === 'file:'
+      ? Promise.reject(new Error('Lịch sử Bybit cần mở trang từ host có thư mục api/'))
+      : fetch(EX_API + '?days=' + days, { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/exchanges.php trả HTTP ' + r.status))));
+    const [bn, hy] = await Promise.allSettled([fetchFundingSince(OIL, since), host]);
+    if (seq !== oilSeq) return;
+    const errors = [];
+    oilHist = { Bybit: null, Binance: null };
+    if (bn.status === 'fulfilled') oilHist.Binance = bn.value;
+    else errors.push('Binance: không lấy được lịch sử funding (' + bn.reason.message + ').');
+    if (hy.status === 'fulfilled') {
+      const data = hy.value || {};
+      const list = data.history ? data.history['bybit:' + OIL] : null;
+      if (Array.isArray(list)) oilHist.Bybit = list.map((x) => ({ t: +x[0], rate: +x[1], mark: x[2] != null ? +x[2] : NaN }));
+      else errors.push(((data.errors || []).filter((m) => m.includes(OIL)).join(' ') || 'Bybit: host chưa có lịch sử funding CLUSDT.'));
+    } else {
+      errors.push(hy.reason.message + '.');
+    }
+    oilErrors = errors;
+    oilLoading = false;
+    buildOilDaily();
+    renderOilHist();
+  }
+
+  // Tổng funding rate mỗi ngày (theo giờ máy) của 2 sàn, chỉ các ngày đủ
+  function buildOilDaily() {
+    const todayKey = dayKey(Date.now());
+    const first = new Date();
+    first.setHours(0, 0, 0, 0);
+    first.setDate(first.getDate() - oilDays);
+    const byDay = new Map();
+    for (let k = 0; k < oilDays; k++) {
+      const d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + k);
+      byDay.set(dayKey(d.getTime()), { t: d.getTime(), v: {} });
+    }
+    for (const venue of ['Bybit', 'Binance']) {
+      for (const r of oilHist[venue] || []) {
+        const key = dayKey(r.t);
+        if (key === todayKey || !byDay.has(key)) continue;
+        const day = byDay.get(key);
+        day.v[venue] = (day.v[venue] || 0) + r.rate * 100;
+      }
+    }
+    exDaily.oil = Array.from(byDay.values());
+    exDirty = true;
+    schedule();
+  }
+
+  function renderOilHist() {
+    el.oilRetry.hidden = oilLoading || !oilErrors.length;
+    const q = parseFloat(el.oilQty.value);
+    const qOk = Number.isFinite(q) && q >= 0;
+    if (oilLoading && !oilHist.Bybit && !oilHist.Binance) {
+      el.oilHistMeta.textContent = 'Đang tải lịch sử funding ' + oilDays + ' ngày…';
+      return;
+    }
+    let approx = false;
+    el.oilHistMeta.textContent = 'Funding thực tế ' + oilDays + ' ngày qua. USDT tính cho ' + (qOk ? q : '—') + ' thùng theo mark lúc chốt từng kỳ, số của bên Short: dương là nhận, âm là trả. Tự tải lại sau mỗi kỳ funding.'
+      + (oilErrors.length ? ' ' + oilErrors.join(' ') : '');
+    const since = Date.now() - oilDays * 864e5;
+    const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    let html = '<thead><tr><th>Sàn</th><th>TB quy năm</th><th>Tổng rate</th><th>USDT' + (qOk ? ' (' + q + ' thùng)' : '') + '</th><th>Số kỳ</th><th>Kỳ dương</th></tr></thead><tbody>';
+    for (const [k, name] of OIL_VENUES) {
+      const rows = (oilHist[name] || []).filter((r) => r.t >= since);
+      if (!rows.length) {
+        html += '<tr><td>' + name + '</td><td colspan="5">' + (oilHist[name] ? 'Chưa có kỳ funding nào' : '—') + '</td></tr>';
+        continue;
+      }
+      const markNow = oilVenue(k).mark;
+      let sum = 0, usdt = 0, pos = 0;
+      for (const r of rows) {
+        sum += r.rate;
+        if (r.rate > 0) pos++;
+        const m = Number.isFinite(r.mark) && r.mark > 0 ? r.mark : markNow;
+        if (!(Number.isFinite(r.mark) && r.mark > 0)) approx = true;
+        if (m != null && qOk) usdt += r.rate * m * q;
+      }
+      const annual = (sum / oilDays) * 365 * 100;
+      html += '<tr><td>' + name + '</td>'
+        + '<td' + tone(annual) + '>' + signed(annual, 2) + '%</td>'
+        + '<td>' + signed(sum * 100, 4) + '%</td>'
+        + '<td' + tone(usdt) + '>' + (qOk ? signedMoney(usdt) : '—') + '</td>'
+        + '<td>' + rows.length + '</td>'
+        + '<td>' + Math.round((pos / rows.length) * 100) + '%</td></tr>';
+    }
+    el.oilSumTable.innerHTML = html + '</tbody>';
+    if (approx) el.oilHistMeta.textContent += ' Kỳ thiếu mark lúc chốt thì dùng mark hiện tại.';
+
+    const days = exDaily.oil.filter((d) => Object.keys(d.v).length).slice().reverse();
+    let dt = '<thead><tr><th>Ngày</th><th>Bybit</th><th>Binance</th><th>Bybit − Binance</th></tr></thead><tbody>';
+    for (const d of days) {
+      const a = d.v.Bybit, b = d.v.Binance;
+      const diff = a != null && b != null ? a - b : null;
+      dt += '<tr><td>' + new Date(d.t).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }) + '</td>'
+        + '<td>' + (a != null ? signed(a, 4) + '%' : '—') + '</td>'
+        + '<td>' + (b != null ? signed(b, 4) + '%' : '—') + '</td>'
+        + '<td' + tone(diff) + '>' + (diff != null ? signed(diff, 4) : '—') + '</td></tr>';
+    }
+    el.oilDayTable.innerHTML = days.length ? dt + '</tbody>' : '';
+  }
+
+  // ---------- Tab: XAUUSDT (sub tab Bybit / Binance), PAXGUSDT Binance, Dầu WTI, So sánh ----------
+  const TABS = { xau: $('tab-xau'), paxg: $('tab-paxg'), dau: $('tab-dau'), 'so-sanh': $('tab-so-sanh') };
+  let tab = 'xau', xauSub = 'bybit';
+  const tabFromHash = () => { const h = location.hash.slice(1); return TABS[h] && h !== 'xau' ? h : null; };
   function setTab(name, updateHash) {
     tab = TABS[name] ? name : 'xau';
     Object.keys(TABS).forEach((k) => { TABS[k].hidden = k !== tab; });
     el.tabBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
     if (updateHash) history.replaceState(null, '', tab === 'xau' ? location.pathname + location.search : '#' + tab);
     try { localStorage.setItem('gold-perp-live.tab', tab); } catch (e) { /* bỏ qua */ }
+    syncLazy();
     placeHistory();
     if (tab === 'so-sanh') renderExchanges();
     redraw();
+  }
+
+  function setXauSub(name, fromClick) {
+    xauSub = name === 'binance' ? 'binance' : 'bybit';
+    el.subBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.sub === xauSub)));
+    el.subBybit.hidden = xauSub !== 'bybit';
+    el.subBinance.hidden = xauSub !== 'binance';
+    if (!fromClick) return;
+    try { localStorage.setItem('gold-perp-live.xauSub', xauSub); } catch (e) { /* bỏ qua */ }
+    syncLazy();
+    placeHistory();
+    redraw();
+  }
+
+  // Chỉ nhận dữ liệu của phần đang xem: rời sub tab Binance hoặc tab Dầu WTI thì đóng luồng đó
+  function syncLazy() {
+    bnWant(['xauusdt@markPrice@1s', 'xauusdt@ticker'], tab === 'xau' && xauSub === 'binance');
+    const oil = tab === 'dau';
+    bnWant(['clusdt@aggTrade', 'clusdt@markPrice@1s', 'clusdt@ticker'], oil);
+    byWant(OIL, oil);
+    if (oil && !oilLoaded) { oilLoaded = true; loadOilHist(); }
   }
 
   // ---------- Chọn hợp đồng ----------
@@ -2869,7 +3288,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   el.seg.forEach((b) => b.addEventListener('click', () => setSymbol(b.dataset.sym)));
 
   // Hai ô khối lượng (tab XAUUSDT và tab PAXGUSDT) là một: sửa ô nào thì ô kia theo
-  const qtyInputs = [el.byQty, el.qty];
+  const qtyInputs = [el.byQty, el.bxQty, el.qty];
   try {
     const savedQty = localStorage.getItem('gold-perp-live.qty');
     if (savedQty !== null) qtyInputs.forEach((inp) => { inp.value = savedQty; });
@@ -2926,14 +3345,30 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderHistory();
   }));
   el.histRetry.addEventListener('click', () => loadHistory());
+  let savedSub = null;
+  try { savedSub = localStorage.getItem('gold-perp-live.xauSub'); } catch (e) { /* bỏ qua */ }
+  setXauSub(savedSub, false);
+  el.subBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.sub !== xauSub) setXauSub(b.dataset.sub, true); }));
+
+  // Tab dầu: khối lượng theo thùng (nhớ lại), khoảng lịch sử 7 / 30 ngày
   try {
-    const hs = localStorage.getItem('gold-perp-live.histSource');
-    if (HIST_NAME[hs] && hs.endsWith(':XAUUSDT')) histXauSource = hs;
+    const oq = localStorage.getItem('gold-perp-live.oilQty');
+    if (oq !== null) el.oilQty.value = oq;
   } catch (e) { /* bỏ qua */ }
-  el.histSrcBtns.forEach((b) => b.addEventListener('click', () => {
-    histXauSource = b.dataset.hsrc;
-    try { localStorage.setItem('gold-perp-live.histSource', histXauSource); } catch (e) { /* bỏ qua */ }
-    setHistSource(histXauSource);
+  el.oilQty.addEventListener('input', () => {
+    try { localStorage.setItem('gold-perp-live.oilQty', el.oilQty.value); } catch (e) { /* bỏ qua */ }
+    schedule();
+    renderOilHist();
+  });
+  el.oilRetry.addEventListener('click', () => loadOilHist());
+  el.oilDaysBtns.forEach((b) => b.addEventListener('click', () => {
+    const days = Number(b.dataset.oildays);
+    if (days === oilDays) return;
+    oilDays = days;
+    el.oilDaysBtns.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+    oilHist = { Bybit: null, Binance: null };
+    exDaily.oil = [];
+    loadOilHist();
   }));
 
   const redraw = () => { barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; drillDirty = true; exDirty = true; schedule(); };
@@ -2944,7 +3379,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ro.observe(el.cmpChart);
     SP_KEYS.forEach((key) => ro.observe($('spChart_' + key)));
     ro.observe(el.drillChart);
-    ['gold', 'paxg'].forEach((g) => ro.observe($('exChart_' + g)));
+    ['gold', 'paxg', 'oil'].forEach((g) => ro.observe($('exChart_' + g)));
   } else {
     window.addEventListener('resize', redraw);
   }
@@ -2958,7 +3393,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   setSymbol('PAXGUSDT');
   byConnect();
 
-  ['gold', 'paxg'].forEach(bindExTip);
+  ['gold', 'paxg', 'oil'].forEach(bindExTip);
   el.exRetry.addEventListener('click', () => loadExchanges(true));
   el.exDaysBtns.forEach((b) => b.addEventListener('click', () => {
     const days = Number(b.dataset.exdays);
