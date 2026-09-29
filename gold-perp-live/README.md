@@ -18,7 +18,7 @@ gold-perp-live/
     └── alert-config.example.php   cấu hình mẫu cho cảnh báo
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json` và `alert.lock` trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `alert_state.json`, `alert.lock` và `site.json` (link trang, dùng cho thông báo) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance vẫn chạy, riêng khung SJC báo cần mở từ host.
 
@@ -74,8 +74,9 @@ So theo **giá khớp** gần nhất trên Binance và giá XAU/USD trên sàn f
 `api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT (Binance) và giá forex (Swissquote), tính XAU − forex rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Không lấy được giá 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại.
 
 1. **Cài app ntfy** trên điện thoại (Google Play hoặc App Store). Bấm **+**, nhập một tên kênh dài và khó đoán (ví dụ `gold-7f3k9q2x`), giữ server mặc định `ntfy.sh`. Ai biết tên kênh cũng đọc được thông báo.
-2. **Tạo file cấu hình** trên host: chép `api/alert-config.example.php` thành `api/alert-config.php`, sửa `ntfy_topic` trùng tên kênh ở bước 1, chỉnh ngưỡng `high` / `low` nếu muốn, điền `page_url` là link trang để bấm vào thông báo là mở trang. Khi cập nhật tool, **đừng ghi đè** `alert-config.php`.
-3. **Gửi thử**: chạy `php /đường-dẫn/gold-perp-live/api/alert-check.php test` (qua SSH hoặc một cron chạy một lần). Hoặc đặt `cron_key` trong cấu hình rồi mở `https://<tên-miền>/gold-perp-live/api/alert-check.php?key=<cron_key>&test=1`. Điện thoại nhận tin "Thử cảnh báo Gold Perp Live" là xong.
+2. **Tạo file cấu hình** trên host: chép `api/alert-config.example.php` thành `api/alert-config.php`, sửa `ntfy_topic` trùng tên kênh ở bước 1, chỉnh ngưỡng `high` / `low` nếu muốn. Khi cập nhật tool, **đừng ghi đè** `alert-config.php`.
+   - `page_url` để trống thì tự dùng link trang dashboard: lần đầu trang được mở trên host, `fx-price.php` ghi link vào `api/site.json`. Chỉ ghi lần đầu để request giả tên miền không đổi được link; muốn đổi thì xoá `site.json` hoặc điền `page_url`.
+3. **Gửi thử**: mở trang trên host, bấm **Gửi thử lên điện thoại** trong khung cảnh báo (gọi `api/alert-check.php?test=1`, tối đa 1 lần mỗi phút, phản hồi không lộ tên kênh). Kết quả cho biết đã gửi chưa, cron chạy lần cuối lúc nào và bấm vào thông báo sẽ mở link nào. Cũng có thể chạy `php /đường-dẫn/gold-perp-live/api/alert-check.php test`. Điện thoại nhận tin "Thử cảnh báo Gold Perp Live" là xong.
 4. **Cài cron** (cPanel → Cron Jobs), chạy mỗi phút hoặc mỗi 2–5 phút tuỳ host cho phép:
 
    ```

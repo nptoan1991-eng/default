@@ -9,7 +9,8 @@
  *   Không báo khi forex đang nghỉ. Không lấy được giá 3 lần liền thì báo lỗi một lần.
  *
  * Cấu hình: alert-config.php (chép từ alert-config.example.php).
- * Gửi thử: php alert-check.php test   hoặc   alert-check.php?key=...&test=1
+ * Gửi thử: php alert-check.php test, hoặc nút "Gửi thử lên điện thoại" trên trang
+ * (gọi alert-check.php?test=1, trả JSON, tối đa 1 lần mỗi phút, không cần key).
  */
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
@@ -19,41 +20,57 @@ define('XAU_URL', 'https://fapi.binance.com/fapi/v1/ticker/price?symbol=XAUUSDT'
 define('ALERT_STATE_FILE', __DIR__ . '/alert_state.json');
 define('ALERT_LOCK_FILE', __DIR__ . '/alert.lock');
 define('FAILS_BEFORE_NOTICE', 3);
+define('TEST_COOLDOWN_MS', 60 * 1000);
 
 $cli = PHP_SAPI === 'cli';
+$test = $cli ? in_array('test', array_slice($argv, 1), true) : isset($_GET['test']);
+$asJson = !$cli && $test; // nút gửi thử trên trang nhận JSON
 if (!$cli) {
-    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Type: ' . ($asJson ? 'application/json' : 'text/plain') . '; charset=utf-8');
     header('Cache-Control: no-store');
 }
 
-function finish($text, $code = 0) {
-    echo $text . "\n";
-    exit($code);
+function finish($text, $ok = true, $http = 200) {
+    global $cli, $asJson;
+    if (!$cli && $http !== 200) http_response_code($http);
+    echo $asJson ? json_encode(['ok' => $ok, 'text' => $text], JSON_UNESCAPED_UNICODE) : $text . "\n";
+    exit($ok ? 0 : 1);
 }
 
 $cfgFile = __DIR__ . '/alert-config.php';
 if (!is_readable($cfgFile)) {
-    finish('Chưa có alert-config.php. Chép alert-config.example.php thành alert-config.php rồi điền tên kênh ntfy.', 1);
+    finish('Chưa có api/alert-config.php trên host. Chép alert-config.example.php thành alert-config.php rồi điền tên kênh ntfy.', false, 500);
 }
 $cfg = require $cfgFile;
 $cfg = array_merge(['ntfy_server' => 'https://ntfy.sh', 'ntfy_token' => '', 'gap' => 0.5, 'cron_key' => '', 'page_url' => ''], (array) $cfg);
 if (empty($cfg['ntfy_topic']) || $cfg['ntfy_topic'] === 'DOI-TEN-KENH-NAY') {
-    finish('Hãy đổi ntfy_topic trong alert-config.php thành tên kênh bạn đã đăng ký trong app ntfy.', 1);
+    finish('Hãy đổi ntfy_topic trong alert-config.php thành tên kênh bạn đã đăng ký trong app ntfy.', false, 500);
 }
 if (!is_numeric($cfg['high']) || !is_numeric($cfg['low']) || $cfg['low'] >= $cfg['high']) {
-    finish('Ngưỡng trong alert-config.php không hợp lệ: low phải nhỏ hơn high.', 1);
+    finish('Ngưỡng trong alert-config.php không hợp lệ: low phải nhỏ hơn high.', false, 500);
 }
 
-// Gọi qua web thì phải có đúng cron_key, để người lạ không chạy được file này
-if (!$cli && ($cfg['cron_key'] === '' || !isset($_GET['key']) || !hash_equals((string) $cfg['cron_key'], (string) $_GET['key']))) {
-    http_response_code(403);
-    finish('Không có quyền. Chạy bằng lệnh php, hoặc đặt cron_key trong alert-config.php và thêm ?key=... vào link.', 1);
+// Kiểm tra thật qua web phải có đúng cron_key; gửi thử thì không cần nhưng bị giới hạn tần suất
+if (!$cli && !$test && ($cfg['cron_key'] === '' || !isset($_GET['key']) || !hash_equals((string) $cfg['cron_key'], (string) $_GET['key']))) {
+    finish('Không có quyền. Chạy bằng lệnh php, hoặc đặt cron_key trong alert-config.php và thêm ?key=... vào link.', false, 403);
 }
-$test = $cli ? in_array('test', array_slice($argv, 1), true) : isset($_GET['test']);
+
+// Link trang để bấm vào thông báo: lấy từ cấu hình, nếu trống thì dùng link trang đã ghi lại
+if ($cfg['page_url'] === '') $cfg['page_url'] = (string) ($cli ? stored_page_url() : remember_page_url());
 
 // Một lần chạy tại một thời điểm, tránh cron chạy chồng khi mạng chậm
 $lock = @fopen(ALERT_LOCK_FILE, 'c');
-if ($lock && !flock($lock, LOCK_EX | LOCK_NB)) finish('Lần chạy trước chưa xong, bỏ qua.');
+if ($lock && !flock($lock, LOCK_EX | LOCK_NB)) finish('Lần chạy trước chưa xong, bỏ qua.', false, 409);
+
+$state = is_readable(ALERT_STATE_FILE) ? json_decode((string) @file_get_contents(ALERT_STATE_FILE), true) : null;
+$state = array_merge(['zone' => null, 'fails' => 0, 'failNotified' => false], is_array($state) ? $state : []);
+function save_state($state) {
+    @file_put_contents(ALERT_STATE_FILE, json_encode($state), LOCK_EX);
+}
+
+if ($test && !$cli && isset($state['lastTest']) && fx_now_ms() - $state['lastTest'] < TEST_COOLDOWN_MS) {
+    finish('Vừa gửi thử lúc ' . date('H:i:s', (int) ($state['lastTest'] / 1000)) . ', chờ 1 phút rồi thử lại.', false, 429);
+}
 
 function ntfy_send($cfg, $title, $message, $priority, $tags) {
     $payload = ['topic' => $cfg['ntfy_topic'], 'title' => $title, 'message' => $message, 'priority' => $priority, 'tags' => $tags];
@@ -97,9 +114,6 @@ function fmt_signed($v) {
     return ($v >= 0 ? '+' : '−') . number_format(abs($v), 2);
 }
 
-$state = is_readable(ALERT_STATE_FILE) ? json_decode((string) @file_get_contents(ALERT_STATE_FILE), true) : null;
-$state = array_merge(['zone' => null, 'fails' => 0, 'failNotified' => false], is_array($state) ? $state : []);
-
 // Lấy giá
 $error = null;
 $xau = fetch_xau($error);
@@ -116,8 +130,17 @@ if ($test) {
     $msg = $xau !== null && $mid !== null
         ? 'XAUUSDT ' . number_format($xau, 2) . ', forex ' . number_format($mid, 2) . ', chênh ' . fmt_signed($xau - $mid) . ' USDT.'
         : 'Chưa lấy được giá: ' . $error . '.';
+    $state['lastTest'] = fx_now_ms();
+    save_state($state);
     $ok = ntfy_send($cfg, 'Thử cảnh báo Gold Perp Live', $msg . ' Ngưỡng: ≥ ' . $cfg['high'] . ' hoặc < ' . $cfg['low'] . ' USDT.', 3, ['white_check_mark']);
-    finish(($ok ? 'Đã gửi thông báo thử tới kênh ' : 'Gửi thông báo thử thất bại, kiểm tra ntfy_server và ntfy_topic: ') . $cfg['ntfy_topic'] . '. ' . $msg, $ok ? 0 : 1);
+    $parts = [$ok ? 'Đã gửi thông báo thử, kiểm tra app ntfy trên điện thoại.' : 'Gửi thông báo thử thất bại, kiểm tra ntfy_server và ntfy_topic trong alert-config.php.'];
+    if ($cli) $parts[] = 'Kênh: ' . $cfg['ntfy_topic'] . '.'; // không lộ tên kênh ra trang web
+    $parts[] = $msg;
+    $parts[] = isset($state['lastRun'])
+        ? 'Cron kiểm tra tự động lần cuối lúc ' . date('H:i d/m', (int) ($state['lastRun'] / 1000)) . '.'
+        : 'Chưa thấy cron chạy lần nào, hãy cài cron theo README.';
+    $parts[] = $cfg['page_url'] !== '' ? 'Bấm vào thông báo sẽ mở ' . $cfg['page_url'] : 'Chưa biết link trang nên bấm vào thông báo sẽ không mở trang.';
+    finish(implode(' ', $parts), $ok, $ok ? 200 : 502);
 }
 
 $lines = [];
@@ -169,7 +192,7 @@ if ($error) {
 }
 
 $state['lastRun'] = fx_now_ms();
-@file_put_contents(ALERT_STATE_FILE, json_encode($state), LOCK_EX);
+save_state($state);
 if ($lock) {
     flock($lock, LOCK_UN);
     fclose($lock);

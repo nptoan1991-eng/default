@@ -14,6 +14,7 @@ header('Cache-Control: no-store');
 header('Access-Control-Allow-Origin: *');
 
 $state = fx_get($DEBUG, $debug);
+remember_page_url(); // để cảnh báo qua cron biết link trang khi bấm vào thông báo
 
 $q = isset($state['quote']) ? $state['quote'] : null;
 $out = [

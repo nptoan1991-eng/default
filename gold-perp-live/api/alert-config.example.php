@@ -19,6 +19,7 @@ return [
     // rồi thêm ?key=chuỗi-đó vào link. Để trống thì chỉ chạy được bằng lệnh php.
     'cron_key' => '',
 
-    // Link trang dashboard; bấm vào thông báo sẽ mở trang. Để trống nếu không cần.
+    // Link mở ra khi bấm vào thông báo. Để trống thì tự dùng link trang dashboard,
+    // ghi lại từ lần đầu trang được mở trên host (lưu trong api/site.json).
     'page_url' => '',
 ];

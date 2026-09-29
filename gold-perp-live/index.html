@@ -202,6 +202,8 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .alert-box { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); display: grid; gap: 8px; }
 .alert-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .alert-box .note { margin: 0; }
+.alert-phone { padding-top: 10px; border-top: 1px solid var(--line); }
+.linkbtn:disabled { opacity: 0.6; cursor: progress; }
 .alert-log { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font: 12.5px var(--mono); color: var(--ink); }
 .alert-log time { color: var(--muted); margin-right: 8px; }
 .chip.hot { border-color: var(--warn); color: var(--warn); }
@@ -354,6 +356,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
       <p class="note" id="alertNote"></p>
       <ul class="alert-log" id="alertLog" hidden></ul>
+      <div class="alert-head alert-phone">
+        <div class="label">Điện thoại (ntfy)</div>
+        <button type="button" class="linkbtn" id="alertTest">Gửi thử lên điện thoại</button>
+      </div>
+      <p class="note" id="alertTestResult">Chạy trên host bằng cron nên vẫn báo khi đã tắt trang. Ngưỡng đặt trong api/alert-config.php, riêng với ngưỡng ở trên.</p>
     </div>
 
     <div class="bs-block">
@@ -532,7 +539,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     fxState: $('fxState'), fxMid: $('fxMid'), fxMidSub: $('fxMidSub'), spMeta: $('spMeta'),
     spXP: $('spXP'), spXPSub: $('spXPSub'), spXF: $('spXF'), spXFSub: $('spXFSub'), spX: $('spX'), spP: $('spP'),
     alertHi: $('alertHi'), alertLo: $('alertLo'), alertToggle: $('alertToggle'), alertZone: $('alertZone'),
-    alertNote: $('alertNote'), alertLog: $('alertLog'), alertBar: $('alertBar'), alertText: $('alertText'), alertClose: $('alertClose'),
+    alertNote: $('alertNote'), alertLog: $('alertLog'), alertTest: $('alertTest'), alertTestResult: $('alertTestResult'), alertBar: $('alertBar'), alertText: $('alertText'), alertClose: $('alertClose'),
     ranges: document.querySelectorAll('.seg [data-range]'), spHistMeta: $('spHistMeta'), spRetry: $('spRetry'),
     spPos: $('spPos'), spPosSub: $('spPosSub'), spAvg: $('spAvg'), spAvgSub: $('spAvgSub'),
     spMax: $('spMax'), spMaxSub: $('spMaxSub'), spMin: $('spMin'), spMinSub: $('spMinSub'), spBand: $('spBand'),
@@ -1636,7 +1643,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const sound = audioCtx && audioCtx.state === 'running' ? 'Âm thanh: bật.' : 'Âm thanh: bấm vào trang một lần để bật.';
       parts = ['Đang bật.', perm, sound];
     }
-    parts.push('Báo một lần khi XAU − forex vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở; muốn nhận cả khi tắt trang thì cài cảnh báo qua ntfy trên host (xem README).');
+    parts.push('Báo một lần khi XAU − forex vừa vào vùng, phải ra khỏi vùng ' + ALERT_GAP + ' USDT mới báo lại. Không báo khi forex đang nghỉ. Chỉ chạy khi trang đang mở; muốn nhận cả khi tắt trang thì dùng cảnh báo qua điện thoại (ntfy) bên dưới.');
     el.alertNote.textContent = parts.join(' ');
   }
 
@@ -1653,6 +1660,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     if (!on) el.alertBar.hidden = true;
     renderAlertNote();
+  }
+
+  // Nút gửi thử: gọi alert-check.php trên host, giống chạy lệnh "php alert-check.php test"
+  async function sendTestAlert() {
+    if (location.protocol === 'file:') {
+      el.alertTestResult.textContent = 'Cần mở trang từ host có thư mục api/ đi kèm.';
+      return;
+    }
+    el.alertTest.disabled = true;
+    el.alertTestResult.textContent = 'Đang gửi…';
+    try {
+      const r = await fetch('api/alert-check.php?test=1', { method: 'POST', cache: 'no-store' });
+      const data = await r.json().catch(() => null);
+      el.alertTestResult.textContent = data && data.text ? data.text : 'Host trả lỗi HTTP ' + r.status + ' khi gọi api/alert-check.php.';
+    } catch (e) {
+      el.alertTestResult.textContent = 'Không gọi được api/alert-check.php (' + (e.message || e) + ').';
+    }
+    el.alertTest.disabled = false;
   }
 
   // ---------- XAU − PAXG theo giờ ----------
@@ -1920,6 +1945,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }));
   el.alertToggle.addEventListener('click', () => setAlertOn(!alertOn, true));
   el.alertClose.addEventListener('click', () => { el.alertBar.hidden = true; });
+  el.alertTest.addEventListener('click', sendTestAlert);
   document.addEventListener('pointerdown', () => { if (alertOn) unlockAudio(); });
   let savedAlert = null;
   try { savedAlert = localStorage.getItem('gold-perp-live.alertOn'); } catch (e) { /* bỏ qua */ }

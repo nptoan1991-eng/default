@@ -13,6 +13,7 @@ define('FX_TTL_MS', 5000);
 define('FX_TIMEOUT', 5);
 define('FX_VERIFY_SSL', true); // đổi thành false nếu debug báo lỗi curl 60 (host thiếu chứng chỉ CA)
 define('FX_STALE_MS', 3 * 60 * 1000); // giá forex cũ hơn 3 phút coi như thị trường đang nghỉ
+define('SITE_FILE', __DIR__ . '/site.json');
 
 
 function fx_now_ms() {
@@ -137,4 +138,33 @@ function fx_get($force, &$debug) {
         }
     }
     return $state;
+}
+
+// Link trang dashboard (thư mục cha của api/) suy ra từ request web hiện tại.
+// Chạy bằng lệnh php (cron) thì không có tên miền nên trả null.
+function detect_page_url() {
+    if (PHP_SAPI === 'cli' || empty($_SERVER['HTTP_HOST']) || empty($_SERVER['SCRIPT_NAME'])) return null;
+    $host = $_SERVER['HTTP_HOST'];
+    if (!preg_match('/^[A-Za-z0-9.\-]+(:\d+)?$/', $host)) return null;
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+        || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+    $dir = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME']))), '/');
+    return ($https ? 'https' : 'http') . '://' . $host . $dir . '/';
+}
+
+function stored_page_url() {
+    if (!is_readable(SITE_FILE)) return null;
+    $data = json_decode((string) @file_get_contents(SITE_FILE), true);
+    return isset($data['pageUrl']) ? $data['pageUrl'] : null;
+}
+
+// Chỉ ghi lần đầu, để request giả tên miền sau này không đổi được link trong thông báo.
+// Muốn đổi thì xoá site.json hoặc điền page_url trong alert-config.php.
+function remember_page_url() {
+    $stored = stored_page_url();
+    if ($stored) return $stored;
+    $url = detect_page_url();
+    if ($url) @file_put_contents(SITE_FILE, json_encode(['pageUrl' => $url, 'savedAt' => fx_now_ms()]), LOCK_EX);
+    return $url;
 }
