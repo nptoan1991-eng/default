@@ -176,7 +176,25 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 /* Chart */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 12px; }
 .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
-.panel-head h2 { margin: 0; font: 600 15px/1.3 var(--sans); }
+.panel-head h2 { margin: 0; font: 600 15px/1.3 var(--sans); flex: 1 1 auto; }
+/* Thu gọn / mở khung: bấm tiêu đề; khung thu gọn chỉ còn dòng tiêu đề */
+.fold-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.fold-icon {
+  flex: none; width: 7px; height: 7px; margin: 0 2px 3px 1px;
+  border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted);
+  transform: rotate(45deg); transition: transform 0.15s;
+}
+.fold-btn:hover .fold-icon { border-color: var(--ink); }
+.collapsed .fold-icon { transform: rotate(-45deg); margin-bottom: 0; }
+.collapsed > :not(.panel-head), .collapsed > .panel-head > :not(h2) { display: none !important; }
+.panel.collapsed { padding-bottom: 16px; }
+.price-panel { display: grid; gap: 14px; }
+.price-panel > * { min-width: 0; }
+.tab-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.tab-bar .fold-all { margin-left: auto; }
 .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend span::before { content: ""; width: 16px; height: 0; border-top: 2px solid var(--gold); }
@@ -357,91 +375,104 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </nav>
 
   <div class="tab-page" id="tab-xau" role="tabpanel" aria-labelledby="tab-btn-xau">
-    <div class="seg sub-tabs" role="tablist" aria-label="Sàn giao dịch">
-      <button type="button" id="sub-btn-bybit" role="tab" data-sub="bybit" aria-controls="sub-bybit" aria-selected="true">Bybit</button>
-      <button type="button" id="sub-btn-binance" role="tab" data-sub="binance" aria-controls="sub-binance" aria-selected="false">Binance</button>
+    <div class="tab-bar">
+      <div class="seg sub-tabs" role="tablist" aria-label="Sàn giao dịch">
+        <button type="button" id="sub-btn-bybit" role="tab" data-sub="bybit" aria-controls="sub-bybit" aria-selected="true">Bybit</button>
+        <button type="button" id="sub-btn-binance" role="tab" data-sub="binance" aria-controls="sub-binance" aria-selected="false">Binance</button>
+      </div>
+      <button type="button" class="linkbtn fold-all">Mở hết</button>
     </div>
 
     <div class="sub-page" id="sub-bybit" role="tabpanel" aria-labelledby="sub-btn-bybit">
-      <section class="hero" aria-label="Giá khớp XAUUSDT trên Bybit">
-        <div>
-          <div class="label">XAUUSDT · Bybit · USDT / troy oz</div>
-          <div class="price" id="byLast">—</div>
-          <div class="hero-meta">
-            <span class="chg" id="byChg">—</span>
-            <span>Giá USDT cho 1 troy ounce vàng</span>
-          </div>
+      <section class="panel price-panel" data-panel="xau-by-price" aria-label="Giá và funding · XAUUSDT Bybit">
+        <div class="panel-head">
+          <h2>Giá và funding · XAUUSDT Bybit</h2>
         </div>
-      </section>
+        <section class="hero" aria-label="Giá khớp XAUUSDT trên Bybit">
+          <div>
+            <div class="label">XAUUSDT · Bybit · USDT / troy oz</div>
+            <div class="price" id="byLast">—</div>
+            <div class="hero-meta">
+              <span class="chg" id="byChg">—</span>
+              <span>Giá USDT cho 1 troy ounce vàng</span>
+            </div>
+          </div>
+        </section>
 
-      <section class="stats" aria-label="Mark price và funding XAUUSDT Bybit">
-        <article class="stat">
-          <div class="label">Mark price</div>
-          <div class="v" id="byMark">—</div>
-          <div class="s">Giá dùng tính PnL và thanh lý</div>
-        </article>
-        <article class="stat">
-          <div class="label">Funding rate</div>
-          <div class="row"><span class="v" id="byRate">—</span><span class="chip" id="byPayer"></span></div>
-          <div class="s" id="byAnnual">—</div>
-          <div class="s">Funding tiếp theo sau <span class="count" id="byCountdown">--:--:--</span> <span id="byNextAt"></span></div>
-        </article>
-        <article class="stat wide">
-          <div class="pos-head">
-            <div class="label">Funding theo vị thế</div>
-            <label class="qty" for="byQty">Khối lượng <input id="byQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-            <span class="chip" id="byReceiver"></span>
-          </div>
-          <div class="pos-grid">
-            <div><div class="s">Mỗi lần funding (<span id="byPerLabel">8h</span>)</div><div class="v"><span id="byPerFunding">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi ngày (<span id="byPerDayCount">3</span> lần)</div><div class="v"><span id="byPerDay">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="byPerYear">—</span><small>USDT</small></div></div>
-          </div>
-          <div class="s" id="byPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-        </article>
+        <section class="stats" aria-label="Mark price và funding XAUUSDT Bybit">
+          <article class="stat">
+            <div class="label">Mark price</div>
+            <div class="v" id="byMark">—</div>
+            <div class="s">Giá dùng tính PnL và thanh lý</div>
+          </article>
+          <article class="stat">
+            <div class="label">Funding rate</div>
+            <div class="row"><span class="v" id="byRate">—</span><span class="chip" id="byPayer"></span></div>
+            <div class="s" id="byAnnual">—</div>
+            <div class="s">Funding tiếp theo sau <span class="count" id="byCountdown">--:--:--</span> <span id="byNextAt"></span></div>
+          </article>
+          <article class="stat wide">
+            <div class="pos-head">
+              <div class="label">Funding theo vị thế</div>
+              <label class="qty" for="byQty">Khối lượng <input id="byQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+              <span class="chip" id="byReceiver"></span>
+            </div>
+            <div class="pos-grid">
+              <div><div class="s">Mỗi lần funding (<span id="byPerLabel">8h</span>)</div><div class="v"><span id="byPerFunding">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi ngày (<span id="byPerDayCount">3</span> lần)</div><div class="v"><span id="byPerDay">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="byPerYear">—</span><small>USDT</small></div></div>
+            </div>
+            <div class="s" id="byPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+          </article>
+        </section>
       </section>
     </div>
 
     <div class="sub-page" id="sub-binance" role="tabpanel" aria-labelledby="sub-btn-binance" hidden>
-      <section class="hero" aria-label="Giá khớp XAUUSDT trên Binance">
-        <div>
-          <div class="label">XAUUSDT · Binance · USDT / troy oz</div>
-          <div class="price" id="bxLast">—</div>
-          <div class="hero-meta">
-            <span class="chg" id="bxChg">—</span>
-            <span>Giá USDT cho 1 troy ounce vàng</span>
-          </div>
+      <section class="panel price-panel" data-panel="xau-bn-price" aria-label="Giá và funding · XAUUSDT Binance">
+        <div class="panel-head">
+          <h2>Giá và funding · XAUUSDT Binance</h2>
         </div>
+        <section class="hero" aria-label="Giá khớp XAUUSDT trên Binance">
+          <div>
+            <div class="label">XAUUSDT · Binance · USDT / troy oz</div>
+            <div class="price" id="bxLast">—</div>
+            <div class="hero-meta">
+              <span class="chg" id="bxChg">—</span>
+              <span>Giá USDT cho 1 troy ounce vàng</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats" aria-label="Mark price và funding XAUUSDT Binance">
+          <article class="stat">
+            <div class="label">Mark price</div>
+            <div class="v" id="bxMark">—</div>
+            <div class="s">Giá dùng tính PnL và thanh lý</div>
+          </article>
+          <article class="stat">
+            <div class="label">Funding rate</div>
+            <div class="row"><span class="v" id="bxRate">—</span><span class="chip" id="bxPayer"></span></div>
+            <div class="s" id="bxAnnual">—</div>
+            <div class="s">Funding tiếp theo sau <span class="count" id="bxCountdown">--:--:--</span> <span id="bxNextAt"></span></div>
+          </article>
+          <article class="stat wide">
+            <div class="pos-head">
+              <div class="label">Funding theo vị thế</div>
+              <label class="qty" for="bxQty">Khối lượng <input id="bxQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+              <span class="chip" id="bxReceiver"></span>
+            </div>
+            <div class="pos-grid">
+              <div><div class="s">Mỗi lần funding (<span id="bxPerLabel">8h</span>)</div><div class="v"><span id="bxPerFunding">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi ngày (<span id="bxPerDayCount">3</span> lần)</div><div class="v"><span id="bxPerDay">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="bxPerYear">—</span><small>USDT</small></div></div>
+            </div>
+            <div class="s" id="bxPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+          </article>
+        </section>
       </section>
 
-      <section class="stats" aria-label="Mark price và funding XAUUSDT Binance">
-        <article class="stat">
-          <div class="label">Mark price</div>
-          <div class="v" id="bxMark">—</div>
-          <div class="s">Giá dùng tính PnL và thanh lý</div>
-        </article>
-        <article class="stat">
-          <div class="label">Funding rate</div>
-          <div class="row"><span class="v" id="bxRate">—</span><span class="chip" id="bxPayer"></span></div>
-          <div class="s" id="bxAnnual">—</div>
-          <div class="s">Funding tiếp theo sau <span class="count" id="bxCountdown">--:--:--</span> <span id="bxNextAt"></span></div>
-        </article>
-        <article class="stat wide">
-          <div class="pos-head">
-            <div class="label">Funding theo vị thế</div>
-            <label class="qty" for="bxQty">Khối lượng <input id="bxQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-            <span class="chip" id="bxReceiver"></span>
-          </div>
-          <div class="pos-grid">
-            <div><div class="s">Mỗi lần funding (<span id="bxPerLabel">8h</span>)</div><div class="v"><span id="bxPerFunding">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi ngày (<span id="bxPerDayCount">3</span> lần)</div><div class="v"><span id="bxPerDay">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="bxPerYear">—</span><small>USDT</small></div></div>
-          </div>
-          <div class="s" id="bxPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-        </article>
-      </section>
-
-      <section class="panel" aria-label="XAUUSDT Bybit so với Binance">
+      <section class="panel" data-panel="xau-bn-gap" aria-label="XAUUSDT Bybit so với Binance">
         <div class="panel-head">
           <h2>So với Bybit</h2>
         </div>
@@ -454,7 +485,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </section>
     </div>
 
-    <section class="panel" aria-label="XAUUSDT Bybit so với forex">
+    <section class="panel" data-panel="xau-fx" aria-label="XAUUSDT Bybit so với forex">
       <div class="panel-head">
         <h2>XAUUSDT Bybit so với forex</h2>
         <span class="chip" data-fx="state"></span>
@@ -483,7 +514,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
     </section>
 
-    <section class="panel" aria-label="Chênh lệch giá vàng SJC so với thế giới">
+    <section class="panel" data-panel="xau-sjc" aria-label="Chênh lệch giá vàng SJC so với thế giới">
       <div class="panel-head">
         <h2>SJC so với thế giới</h2>
         <span class="chip" id="premLevel"></span>
@@ -520,7 +551,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <p class="note" id="premNote"></p>
     </section>
 
-    <section class="panel" id="histPanel" aria-label="Lịch sử funding">
+    <section class="panel" id="histPanel" data-panel="hist" aria-label="Lịch sử funding">
       <div class="panel-head">
         <h2>Lịch sử funding · <span id="histWhich">Bybit XAUUSDT</span></h2>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
@@ -551,91 +582,104 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </div>
 
   <div class="tab-page" id="tab-xag" role="tabpanel" aria-labelledby="tab-btn-xag" hidden>
-    <div class="seg sub-tabs" role="tablist" aria-label="Sàn giao dịch bạc">
-      <button type="button" id="agsub-btn-bybit" role="tab" data-agsub="bybit" aria-controls="agsub-bybit" aria-selected="true">Bybit</button>
-      <button type="button" id="agsub-btn-binance" role="tab" data-agsub="binance" aria-controls="agsub-binance" aria-selected="false">Binance</button>
+    <div class="tab-bar">
+      <div class="seg sub-tabs" role="tablist" aria-label="Sàn giao dịch bạc">
+        <button type="button" id="agsub-btn-bybit" role="tab" data-agsub="bybit" aria-controls="agsub-bybit" aria-selected="true">Bybit</button>
+        <button type="button" id="agsub-btn-binance" role="tab" data-agsub="binance" aria-controls="agsub-binance" aria-selected="false">Binance</button>
+      </div>
+      <button type="button" class="linkbtn fold-all">Mở hết</button>
     </div>
 
     <div class="sub-page" id="agsub-bybit" role="tabpanel" aria-labelledby="agsub-btn-bybit">
-      <section class="hero" aria-label="Giá khớp XAGUSDT trên Bybit">
-        <div>
-          <div class="label">XAGUSDT · Bybit · USDT / troy oz</div>
-          <div class="price" id="agyLast">—</div>
-          <div class="hero-meta">
-            <span class="chg" id="agyChg">—</span>
-            <span>Giá USDT cho 1 troy ounce bạc</span>
-          </div>
+      <section class="panel price-panel" data-panel="xag-by-price" aria-label="Giá và funding · XAGUSDT Bybit">
+        <div class="panel-head">
+          <h2>Giá và funding · XAGUSDT Bybit</h2>
         </div>
-      </section>
+        <section class="hero" aria-label="Giá khớp XAGUSDT trên Bybit">
+          <div>
+            <div class="label">XAGUSDT · Bybit · USDT / troy oz</div>
+            <div class="price" id="agyLast">—</div>
+            <div class="hero-meta">
+              <span class="chg" id="agyChg">—</span>
+              <span>Giá USDT cho 1 troy ounce bạc</span>
+            </div>
+          </div>
+        </section>
 
-      <section class="stats" aria-label="Mark price và funding XAGUSDT Bybit">
-        <article class="stat">
-          <div class="label">Mark price</div>
-          <div class="v" id="agyMark">—</div>
-          <div class="s">Giá dùng tính PnL và thanh lý</div>
-        </article>
-        <article class="stat">
-          <div class="label">Funding rate</div>
-          <div class="row"><span class="v" id="agyRate">—</span><span class="chip" id="agyPayer"></span></div>
-          <div class="s" id="agyAnnual">—</div>
-          <div class="s">Funding tiếp theo sau <span class="count" id="agyCountdown">--:--:--</span> <span id="agyNextAt"></span></div>
-        </article>
-        <article class="stat wide">
-          <div class="pos-head">
-            <div class="label">Funding theo vị thế</div>
-            <label class="qty" for="agyQty">Khối lượng <input id="agyQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-            <span class="chip" id="agyReceiver"></span>
-          </div>
-          <div class="pos-grid">
-            <div><div class="s">Mỗi lần funding (<span id="agyPerLabel">8h</span>)</div><div class="v"><span id="agyPerFunding">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi ngày (<span id="agyPerDayCount">3</span> lần)</div><div class="v"><span id="agyPerDay">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="agyPerYear">—</span><small>USDT</small></div></div>
-          </div>
-          <div class="s" id="agyPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-        </article>
+        <section class="stats" aria-label="Mark price và funding XAGUSDT Bybit">
+          <article class="stat">
+            <div class="label">Mark price</div>
+            <div class="v" id="agyMark">—</div>
+            <div class="s">Giá dùng tính PnL và thanh lý</div>
+          </article>
+          <article class="stat">
+            <div class="label">Funding rate</div>
+            <div class="row"><span class="v" id="agyRate">—</span><span class="chip" id="agyPayer"></span></div>
+            <div class="s" id="agyAnnual">—</div>
+            <div class="s">Funding tiếp theo sau <span class="count" id="agyCountdown">--:--:--</span> <span id="agyNextAt"></span></div>
+          </article>
+          <article class="stat wide">
+            <div class="pos-head">
+              <div class="label">Funding theo vị thế</div>
+              <label class="qty" for="agyQty">Khối lượng <input id="agyQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+              <span class="chip" id="agyReceiver"></span>
+            </div>
+            <div class="pos-grid">
+              <div><div class="s">Mỗi lần funding (<span id="agyPerLabel">8h</span>)</div><div class="v"><span id="agyPerFunding">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi ngày (<span id="agyPerDayCount">3</span> lần)</div><div class="v"><span id="agyPerDay">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="agyPerYear">—</span><small>USDT</small></div></div>
+            </div>
+            <div class="s" id="agyPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+          </article>
+        </section>
       </section>
     </div>
 
     <div class="sub-page" id="agsub-binance" role="tabpanel" aria-labelledby="agsub-btn-binance" hidden>
-      <section class="hero" aria-label="Giá khớp XAGUSDT trên Binance">
-        <div>
-          <div class="label">XAGUSDT · Binance · USDT / troy oz</div>
-          <div class="price" id="agbLast">—</div>
-          <div class="hero-meta">
-            <span class="chg" id="agbChg">—</span>
-            <span>Giá USDT cho 1 troy ounce bạc</span>
-          </div>
+      <section class="panel price-panel" data-panel="xag-bn-price" aria-label="Giá và funding · XAGUSDT Binance">
+        <div class="panel-head">
+          <h2>Giá và funding · XAGUSDT Binance</h2>
         </div>
+        <section class="hero" aria-label="Giá khớp XAGUSDT trên Binance">
+          <div>
+            <div class="label">XAGUSDT · Binance · USDT / troy oz</div>
+            <div class="price" id="agbLast">—</div>
+            <div class="hero-meta">
+              <span class="chg" id="agbChg">—</span>
+              <span>Giá USDT cho 1 troy ounce bạc</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats" aria-label="Mark price và funding XAGUSDT Binance">
+          <article class="stat">
+            <div class="label">Mark price</div>
+            <div class="v" id="agbMark">—</div>
+            <div class="s">Giá dùng tính PnL và thanh lý</div>
+          </article>
+          <article class="stat">
+            <div class="label">Funding rate</div>
+            <div class="row"><span class="v" id="agbRate">—</span><span class="chip" id="agbPayer"></span></div>
+            <div class="s" id="agbAnnual">—</div>
+            <div class="s">Funding tiếp theo sau <span class="count" id="agbCountdown">--:--:--</span> <span id="agbNextAt"></span></div>
+          </article>
+          <article class="stat wide">
+            <div class="pos-head">
+              <div class="label">Funding theo vị thế</div>
+              <label class="qty" for="agbQty">Khối lượng <input id="agbQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+              <span class="chip" id="agbReceiver"></span>
+            </div>
+            <div class="pos-grid">
+              <div><div class="s">Mỗi lần funding (<span id="agbPerLabel">8h</span>)</div><div class="v"><span id="agbPerFunding">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi ngày (<span id="agbPerDayCount">3</span> lần)</div><div class="v"><span id="agbPerDay">—</span><small>USDT</small></div></div>
+              <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="agbPerYear">—</span><small>USDT</small></div></div>
+            </div>
+            <div class="s" id="agbPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+          </article>
+        </section>
       </section>
 
-      <section class="stats" aria-label="Mark price và funding XAGUSDT Binance">
-        <article class="stat">
-          <div class="label">Mark price</div>
-          <div class="v" id="agbMark">—</div>
-          <div class="s">Giá dùng tính PnL và thanh lý</div>
-        </article>
-        <article class="stat">
-          <div class="label">Funding rate</div>
-          <div class="row"><span class="v" id="agbRate">—</span><span class="chip" id="agbPayer"></span></div>
-          <div class="s" id="agbAnnual">—</div>
-          <div class="s">Funding tiếp theo sau <span class="count" id="agbCountdown">--:--:--</span> <span id="agbNextAt"></span></div>
-        </article>
-        <article class="stat wide">
-          <div class="pos-head">
-            <div class="label">Funding theo vị thế</div>
-            <label class="qty" for="agbQty">Khối lượng <input id="agbQty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-            <span class="chip" id="agbReceiver"></span>
-          </div>
-          <div class="pos-grid">
-            <div><div class="s">Mỗi lần funding (<span id="agbPerLabel">8h</span>)</div><div class="v"><span id="agbPerFunding">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi ngày (<span id="agbPerDayCount">3</span> lần)</div><div class="v"><span id="agbPerDay">—</span><small>USDT</small></div></div>
-            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="agbPerYear">—</span><small>USDT</small></div></div>
-          </div>
-          <div class="s" id="agbPosNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-        </article>
-      </section>
-
-      <section class="panel" aria-label="XAGUSDT Bybit so với Binance">
+      <section class="panel" data-panel="xag-bn-gap" aria-label="XAGUSDT Bybit so với Binance">
         <div class="panel-head">
           <h2>So với Bybit</h2>
         </div>
@@ -648,7 +692,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </section>
     </div>
 
-    <section class="panel" aria-label="XAGUSDT Bybit so với forex">
+    <section class="panel" data-panel="xag-fx" aria-label="XAGUSDT Bybit so với forex">
       <div class="panel-head">
         <h2>XAGUSDT Bybit so với forex</h2>
         <span class="chip" data-fxag="state"></span>
@@ -675,45 +719,51 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </div>
 
   <div class="tab-page" id="tab-paxg" role="tabpanel" aria-labelledby="tab-btn-paxg" hidden>
-    <section class="hero" aria-label="Giá khớp PAXGUSDT trên Binance">
-      <div>
-        <div class="label">PAXGUSDT · Binance · USDT / troy oz</div>
-        <div class="price" id="last">—</div>
-        <div class="hero-meta">
-          <span class="chg" id="chg">—</span>
-          <span id="symNote">Giá USDT cho 1 troy ounce vàng</span>
-        </div>
+    <div class="tab-bar"><button type="button" class="linkbtn fold-all">Mở hết</button></div>
+    <section class="panel price-panel" data-panel="paxg-price" aria-label="Giá và funding · PAXGUSDT Binance">
+      <div class="panel-head">
+        <h2>Giá và funding · PAXGUSDT Binance</h2>
       </div>
+      <section class="hero" aria-label="Giá khớp PAXGUSDT trên Binance">
+        <div>
+          <div class="label">PAXGUSDT · Binance · USDT / troy oz</div>
+          <div class="price" id="last">—</div>
+          <div class="hero-meta">
+            <span class="chg" id="chg">—</span>
+            <span id="symNote">Giá USDT cho 1 troy ounce vàng</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Mark price và funding PAXGUSDT Binance">
+        <article class="stat">
+          <div class="label">Mark price</div>
+          <div class="v" id="mark">—</div>
+          <div class="s">Giá dùng tính PnL và thanh lý</div>
+        </article>
+        <article class="stat">
+          <div class="label">Funding rate</div>
+          <div class="row"><span class="v" id="rate">—</span><span class="chip" id="payer"></span></div>
+          <div class="s" id="annual">—</div>
+          <div class="s">Funding tiếp theo sau <span class="count" id="countdown">--:--:--</span> <span id="nextAt"></span></div>
+        </article>
+        <article class="stat wide">
+          <div class="pos-head">
+            <div class="label">Funding theo vị thế</div>
+            <label class="qty" for="qty">Khối lượng <input id="qty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
+            <span class="chip" id="receiver"></span>
+          </div>
+          <div class="pos-grid">
+            <div><div class="s">Mỗi lần funding (<span id="perLabel">8h</span>)</div><div class="v"><span id="perFunding">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi ngày (<span id="perDayCount">3</span> lần)</div><div class="v"><span id="perDay">—</span><small>USDT</small></div></div>
+            <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="perYear">—</span><small>USDT</small></div></div>
+          </div>
+          <div class="s" id="posNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
+        </article>
+      </section>
     </section>
 
-    <section class="stats" aria-label="Mark price và funding PAXGUSDT Binance">
-      <article class="stat">
-        <div class="label">Mark price</div>
-        <div class="v" id="mark">—</div>
-        <div class="s">Giá dùng tính PnL và thanh lý</div>
-      </article>
-      <article class="stat">
-        <div class="label">Funding rate</div>
-        <div class="row"><span class="v" id="rate">—</span><span class="chip" id="payer"></span></div>
-        <div class="s" id="annual">—</div>
-        <div class="s">Funding tiếp theo sau <span class="count" id="countdown">--:--:--</span> <span id="nextAt"></span></div>
-      </article>
-      <article class="stat wide">
-        <div class="pos-head">
-          <div class="label">Funding theo vị thế</div>
-          <label class="qty" for="qty">Khối lượng <input id="qty" type="number" min="0" step="0.1" value="1" inputmode="decimal"> oz</label>
-          <span class="chip" id="receiver"></span>
-        </div>
-        <div class="pos-grid">
-          <div><div class="s">Mỗi lần funding (<span id="perLabel">8h</span>)</div><div class="v"><span id="perFunding">—</span><small>USDT</small></div></div>
-          <div><div class="s">Mỗi ngày (<span id="perDayCount">3</span> lần)</div><div class="v"><span id="perDay">—</span><small>USDT</small></div></div>
-          <div><div class="s">Mỗi năm (365 ngày)</div><div class="v"><span id="perYear">—</span><small>USDT</small></div></div>
-        </div>
-        <div class="s" id="posNote">Giá trị vị thế = mark price × khối lượng. Ước tính theo funding rate hiện tại.</div>
-      </article>
-    </section>
-
-    <section class="panel" aria-label="PAXGUSDT so với forex">
+    <section class="panel" data-panel="paxg-fx" aria-label="PAXGUSDT so với forex">
       <div class="panel-head">
         <h2>PAXGUSDT so với forex</h2>
         <span class="chip" data-fx="state"></span>
@@ -773,7 +823,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </div>
 
   <div class="tab-page" id="tab-dau" role="tabpanel" aria-labelledby="tab-btn-dau" hidden>
-    <section class="panel" aria-label="CLUSDT trên Bybit và Binance">
+    <div class="tab-bar"><button type="button" class="linkbtn fold-all">Mở hết</button></div>
+    <section class="panel" data-panel="oil-venues" aria-label="CLUSDT trên Bybit và Binance">
       <div class="panel-head">
         <h2>CLUSDT · Dầu thô WTI</h2>
       </div>
@@ -809,7 +860,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
     </section>
 
-    <section class="panel" aria-label="Funding CLUSDT theo vị thế">
+    <section class="panel" data-panel="oil-pos" aria-label="Funding CLUSDT theo vị thế">
       <div class="panel-head">
         <h2>Funding theo vị thế</h2>
         <label class="qty" for="oilQty">Khối lượng <input id="oilQty" type="number" min="0" step="1" value="1" inputmode="decimal"> thùng</label>
@@ -818,7 +869,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <p class="note">Giá trị vị thế = mark × số thùng. Số liệu của bên Short: dương là nhận, âm là trả, bên Long ngược dấu. Ước tính theo funding rate hiện tại, rate đổi theo từng kỳ nên số thực nhận sẽ khác.</p>
     </section>
 
-    <section class="panel" aria-label="Lịch sử funding CLUSDT">
+    <section class="panel" data-panel="oil-hist" aria-label="Lịch sử funding CLUSDT">
       <div class="panel-head">
         <h2>Lịch sử funding</h2>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding dầu">
@@ -844,7 +895,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   </div>
 
   <div class="tab-page" id="tab-so-sanh" role="tabpanel" aria-labelledby="tab-btn-so-sanh" hidden>
-    <section class="panel" aria-label="So sánh funding 3 sàn">
+    <div class="tab-bar"><button type="button" class="linkbtn fold-all">Mở hết</button></div>
+    <section class="panel" data-panel="ss-funding" aria-label="So sánh funding 3 sàn">
       <div class="panel-head">
         <h2>Funding 3 sàn</h2>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
@@ -875,7 +927,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <p class="note">Mỗi điểm là tổng funding rate trong một ngày theo giờ máy, không tính hôm nay vì chưa đủ kỳ. Rê chuột hoặc chạm để xem từng ngày.</p>
     </section>
 
-    <section class="panel" aria-label="Chênh lệch giá XAUUSDT với PAXGUSDT và forex">
+    <section class="panel" data-panel="ss-spread" aria-label="Chênh lệch giá XAUUSDT với PAXGUSDT và forex">
       <div class="panel-head">
         <h2>Chênh lệch giá</h2>
         <span class="chip" data-fx="state"></span>
@@ -954,7 +1006,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
     </section>
 
-    <section class="panel" aria-label="So sánh funding XAUUSDT và PAXGUSDT">
+    <section class="panel" data-panel="ss-cmp" aria-label="So sánh funding XAUUSDT và PAXGUSDT">
       <div class="panel-head">
         <h2>So sánh funding XAUUSDT và PAXGUSDT</h2>
         <div class="legend"><span class="lx">XAUUSDT cao hơn</span><span class="lp">PAXGUSDT cao hơn</span></div>
@@ -2960,6 +3012,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.drillTable.innerHTML = '';
     drill = null;
     drillDirty = true;
+    openPanelOf(el.drill); // khung Chênh lệch giá đang thu gọn thì mở ra
     schedule();
     el.drill.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
     try {
@@ -3564,6 +3617,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     syncLazy();
     placeHistory();
     if (tab === 'so-sanh') renderExchanges();
+    updateFoldBars();
     redraw();
   }
 
@@ -3572,6 +3626,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.subBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.sub === xauSub)));
     el.subBybit.hidden = xauSub !== 'bybit';
     el.subBinance.hidden = xauSub !== 'binance';
+    updateFoldBars();
     if (!fromClick) return;
     try { localStorage.setItem('gold-perp-live.xauSub', xauSub); } catch (e) { /* bỏ qua */ }
     syncLazy();
@@ -3584,6 +3639,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.agSubBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.agsub === agSub)));
     el.agSubBybit.hidden = agSub !== 'bybit';
     el.agSubBinance.hidden = agSub !== 'binance';
+    updateFoldBars();
     if (!fromClick) return;
     try { localStorage.setItem('gold-perp-live.agSub', agSub); } catch (e) { /* bỏ qua */ }
     syncLazy();
@@ -3694,6 +3750,70 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let savedAlert = null;
   try { savedAlert = localStorage.getItem('gold-perp-live.alertOn'); } catch (e) { /* bỏ qua */ }
   setAlertOn(savedAlert === '1', false);
+
+  // ---------- Thu gọn / mở khung ----------
+  // Bấm tiêu đề để mở hoặc thu gọn. Trình duyệt nhớ các khung đang mở; lần đầu thu gọn hết.
+  const OPEN_KEY = 'gold-perp-live.open';
+  let openPanels = new Set();
+  try { openPanels = new Set(JSON.parse(localStorage.getItem(OPEN_KEY)) || []); } catch (e) { /* bỏ qua */ }
+  const saveOpen = () => { try { localStorage.setItem(OPEN_KEY, JSON.stringify([...openPanels])); } catch (e) { /* bỏ qua */ } };
+
+  function setPanelOpen(p, open) {
+    p.classList.toggle('collapsed', !open);
+    p.querySelector('.fold-btn').setAttribute('aria-expanded', String(open));
+    if (open) openPanels.add(p.dataset.panel);
+    else openPanels.delete(p.dataset.panel);
+  }
+
+  // Các khung đang thấy trong một tab (bỏ qua sub tab đang ẩn)
+  function shownPanels(page) {
+    return Array.from(page.querySelectorAll('[data-panel]')).filter((p) => !p.closest('.sub-page[hidden]'));
+  }
+
+  // Mở khung chứa một phần tử (khi trang tự chuyển tới phần đó)
+  function openPanelOf(node) {
+    const p = node.closest('[data-panel]');
+    if (!p || !p.classList.contains('collapsed')) return;
+    setPanelOpen(p, true);
+    saveOpen();
+    updateFoldBars();
+    redraw();
+  }
+
+  function updateFoldBars() {
+    document.querySelectorAll('.fold-all').forEach((b) => {
+      const anyClosed = shownPanels(b.closest('.tab-page')).some((p) => p.classList.contains('collapsed'));
+      b.textContent = anyClosed ? 'Mở hết' : 'Thu gọn hết';
+    });
+  }
+
+  document.querySelectorAll('[data-panel]').forEach((p) => {
+    // Chuyển nội dung tiêu đề vào một nút, thêm mũi tên phía trước
+    const h = p.querySelector(':scope > .panel-head > h2');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'fold-btn';
+    btn.innerHTML = '<span class="fold-icon" aria-hidden="true"></span><span></span>';
+    while (h.firstChild) btn.lastChild.appendChild(h.firstChild);
+    h.appendChild(btn);
+    btn.addEventListener('click', () => {
+      const open = p.classList.contains('collapsed');
+      setPanelOpen(p, open);
+      saveOpen();
+      updateFoldBars();
+      if (open) redraw();
+    });
+    setPanelOpen(p, openPanels.has(p.dataset.panel));
+  });
+  document.querySelectorAll('.fold-all').forEach((b) => b.addEventListener('click', () => {
+    const list = shownPanels(b.closest('.tab-page'));
+    const open = list.some((p) => p.classList.contains('collapsed'));
+    list.forEach((p) => setPanelOpen(p, open));
+    saveOpen();
+    updateFoldBars();
+    if (open) redraw();
+  }));
+  updateFoldBars();
 
   el.views.forEach((b) => b.addEventListener('click', () => {
     view = b.dataset.view;
