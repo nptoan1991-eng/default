@@ -2,9 +2,9 @@
 
 Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu, gồm 5 tab:
 
-- **XAUUSDT**: hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới và lịch sử funding 14 ngày của sàn đang chọn.
-- **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang, lịch sử funding 14 ngày của sàn đang chọn. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
-- **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding 14 ngày.
+- **XAUUSDT**: hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới và lịch sử funding của sàn đang chọn (14 / 30 / 90 ngày hoặc từ đầu năm).
+- **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang, lịch sử funding của sàn đang chọn. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
+- **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 ngày. Chỉ tải dữ liệu khi mở tab này.
 - **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
@@ -26,10 +26,10 @@ gold-perp-live/
     ├── alert-config.example.php   cấu hình mẫu cho cảnh báo
     ├── spread-lib.php  ghi nhật ký XAU/PAXG − giá Swissquote theo giờ
     ├── spread-history.php   đọc nhật ký đó cho trang
-    └── exchanges.php   giá, funding và lịch sử funding hợp đồng vàng trên Bybit và Hyperliquid
+    └── exchanges.php   giá, funding và lịch sử funding các hợp đồng trên Bybit và Hyperliquid
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
@@ -63,17 +63,18 @@ Chung cho cả hai sàn:
 - **Sub tab Binance**: giá khớp, mark, funding, funding theo vị thế của XAUUSDT Binance, kèm chênh lệch Bybit − Binance về giá, mark và funding quy năm (dương là bên Short trên Bybit có lợi hơn về funding).
 
 
-## Lịch sử funding 14 ngày
+## Lịch sử funding (14 / 30 / 90 ngày, từ đầu năm)
 
-Một khung dùng chung: ở tab XAUUSDT theo sub tab đang chọn (**Bybit** hoặc **Binance**), ở tab PAXGUSDT là PAXGUSDT Binance. Tự tải lại sau mỗi lần chốt funding.
+Một khung dùng chung: ở tab XAUUSDT và XAGUSDT theo sub tab đang chọn (**Bybit** hoặc **Binance**), ở tab PAXGUSDT là PAXGUSDT Binance. Nút ở góc khung chọn khoảng **14 ngày**, **30 ngày**, **90 ngày** hoặc **Từ đầu năm** (từ 0h ngày 1/1 theo giờ máy); trang nhớ lựa chọn. Đổi sang khoảng ngắn hơn khoảng đã tải thì không phải tải lại. Tự tải lại sau mỗi lần chốt funding.
 
-- Binance: REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate, mark price lúc chốt).
-- Bybit: qua `api/exchanges.php?days=14`. Host lấy `/v5/market/funding/history` và mark price theo giờ `/v5/market/mark-price-kline` để có mark lúc chốt từng kỳ. Kỳ nào thiếu mark thì dùng mark hiện tại và đánh dấu ≈.
+- Binance: REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate, mark price lúc chốt), mỗi lần tối đa 1000 kỳ nên khoảng dài gọi nhiều lần liên tiếp.
+- Bybit: qua `api/exchanges.php?symbol=<MÃ>&start=<mốc>`. Host lấy `/v5/market/funding/history` và mark price `/v5/market/mark-price-kline` (nến 4 giờ khi mọi kỳ rơi đúng mốc 4 giờ, không thì nến 1 giờ) để có mark lúc chốt từng kỳ, rồi lưu vào `api/bybit_hist_<MÃ>.json`. Lần đầu xem một mã từ đầu năm host mất vài giây để lấy hết; các lần sau chỉ lấy thêm kỳ mới (sau 30 phút hoặc ngay sau kỳ chốt), khoảng sớm hơn thì lấy lùi phần còn thiếu. Kho giữ tối đa 400 ngày. Bybit lỗi thì vẫn hiện dữ liệu đã lưu kèm thông báo, và host chờ 1 phút mới gọi lại. Kỳ nào thiếu mark thì dùng mark hiện tại và đánh dấu ≈.
+- Mã niêm yết sau đầu khoảng thì bảng và biểu đồ bắt đầu từ ngày có kỳ funding đầu tiên, dòng ghi chú ghi rõ ngày đó.
 
-- USDT mỗi kỳ = `funding rate × mark lúc chốt × khối lượng`. Khối lượng dùng chung ô ở mục Funding theo vị thế (mặc định 1 oz).
+- USDT mỗi kỳ = `funding rate × mark lúc chốt × khối lượng`. Khối lượng dùng ô ở mục Funding theo vị thế (mặc định 1 oz): vàng và PAXG dùng chung một ô, bạc dùng ô riêng của tab XAGUSDT.
 - Số liệu tính cho bên Short: dương là nhận, âm là trả. Bên Long luôn ngược dấu vì funding chỉ chuyển giữa hai bên. Tổng mỗi ngày là số ròng.
-- Ngày chia theo giờ máy, 14 ngày gồm hôm nay. Cột của hôm nay vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
-- Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT) hoặc theo từng kỳ (rate, mark lúc chốt, USDT).
+- Ngày chia theo giờ máy, khoảng N ngày gồm hôm nay. Khoảng 14 và 30 ngày vẽ một cột mỗi ngày; 90 ngày và từ đầu năm gộp cột theo tuần (thứ Hai đến Chủ nhật). Cột của hôm nay (tuần này) vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
+- Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT), theo tháng (thêm trung bình mỗi ngày đủ của tháng) hoặc theo từng kỳ (rate, mark lúc chốt, USDT). Bảng cuộn trong khung.
 
 ## Funding 3 sàn
 
@@ -97,7 +98,7 @@ Tab `#xag`, giống tab XAUUSDT nhưng cho hợp đồng bạc XAGUSDT (giá USD
 - **Sub tab Binance**: cùng các mục đó cho XAGUSDT Binance (`xagusdt@markPrice@1s`, `xagusdt@ticker`, chỉ mở khi bấm), kèm chênh lệch Bybit − Binance về giá, mark và funding quy năm.
 - **XAGUSDT Bybit so với forex**: Bybit XAG − forex và Binance XAG − forex, giá bạc XAG/USD của Swissquote qua `api/fx-price.php?inst=XAG` (cache 5 giây, trang lấy lại mỗi 10 giây).
 - **Cảnh báo Bybit XAG − forex** trên trang: mặc định **≥ 0.3** hoặc **< −0.3** USDT, ra khỏi vùng 0.05 USDT mới báo lại, dùng chung nút bật/tắt với các cảnh báo khác. Khi đang bật cảnh báo, trang nhận giá bạc cả khi xem tab khác. Chưa có cảnh báo bạc qua điện thoại.
-- **Lịch sử funding 14 ngày** theo sub tab đang chọn (Bybit qua `api/exchanges.php`, có XAGUSDT trong danh sách mã Bybit).
+- **Lịch sử funding** theo sub tab đang chọn, tính theo ô khối lượng bạc (Bybit qua `api/exchanges.php`, có XAGUSDT trong danh sách mã Bybit).
 
 ## Dầu WTI
 

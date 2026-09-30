@@ -225,7 +225,7 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 }
 
 /* Lịch sử funding */
-.panel-head .seg button { font-size: 12.5px; padding: 5px 11px; }
+.panel-head .seg button { font-size: 12.5px; padding: 5px 11px; white-space: nowrap; }
 .seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
 .hist-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .linkbtn {
@@ -306,6 +306,7 @@ th {
 td { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 td:first-child { font-family: var(--sans); }
 td.today::after { content: " · hôm nay"; color: var(--muted); font-size: 12px; }
+td.cur::after { content: " · tháng này"; color: var(--muted); font-size: 12px; }
 
 footer { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 16px; }
 footer code { font-family: var(--mono); font-size: 11.5px; }
@@ -315,6 +316,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 }
 @media (max-width: 460px) {
   .main-tabs button { padding: 10px 8px; font-size: 14px; }
+  .panel-head .seg button { padding: 5px 7px; }
   .duo { grid-template-columns: minmax(0, 1fr); }
   .stats { grid-template-columns: minmax(0, 1fr); }
   .pos-grid { grid-template-columns: minmax(0, 1fr); }
@@ -518,16 +520,22 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <p class="note" id="premNote"></p>
     </section>
 
-    <section class="panel" id="histPanel" aria-label="Lịch sử funding 14 ngày">
+    <section class="panel" id="histPanel" aria-label="Lịch sử funding">
       <div class="panel-head">
-        <h2>Lịch sử funding 14 ngày · <span id="histWhich">Bybit XAUUSDT</span></h2>
+        <h2>Lịch sử funding · <span id="histWhich">Bybit XAUUSDT</span></h2>
+        <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
+          <button type="button" role="radio" data-histrange="14" aria-checked="true">14 ngày</button>
+          <button type="button" role="radio" data-histrange="30" aria-checked="false">30 ngày</button>
+          <button type="button" role="radio" data-histrange="90" aria-checked="false">90 ngày</button>
+          <button type="button" role="radio" data-histrange="ytd" aria-checked="false">Từ đầu năm</button>
+        </div>
       </div>
       <div class="hist-meta">
         <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
         <button type="button" class="linkbtn" id="histRetry" hidden>Tải lại</button>
       </div>
       <div class="hsum">
-        <div><div class="label">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
+        <div><div class="label" id="hTotalLabel">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
         <div><div class="label">Trung bình mỗi ngày</div><div class="v"><span id="hAvgDay">—</span><small>USDT</small></div><div class="s" id="hAvgDaySub">—</div></div>
         <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
         <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
@@ -535,6 +543,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
       <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
         <button type="button" id="view-day" role="tab" data-view="day" aria-selected="true">Theo ngày</button>
+        <button type="button" id="view-month" role="tab" data-view="month" aria-selected="false">Theo tháng</button>
         <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
       </div>
       <div class="table-wrap"><table id="histTable"></table></div>
@@ -1012,6 +1021,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     perFunding: $('perFunding'), perDay: $('perDay'), perYear: $('perYear'), posNote: $('posNote'),
     seg: document.querySelectorAll('.seg [data-sym]'),
     views: document.querySelectorAll('.seg [data-view]'),
+    histRangeBtns: document.querySelectorAll('[data-histrange]'), hTotalLabel: $('hTotalLabel'),
     histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'), bars: $('bars'),
     hTotal: $('hTotal'), hTotalSub: $('hTotalSub'), hAvgDay: $('hAvgDay'), hAvgDaySub: $('hAvgDaySub'),
     hAvgRate: $('hAvgRate'), hAvgRateSub: $('hAvgRateSub'), hCount: $('hCount'), hCountSub: $('hCountSub'),
@@ -1081,8 +1091,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let openedAt = 0, lastMsgAt = 0, gotData = false;
   let intervalH = 8, intervalKnown = false;
   let prevLast = null, frame = 0;
-  let hist = null, histError = null, histLoading = false, histDueAt = 0, histDays = [], barsDirty = true;
-  let histSource = null, histSeq = 0;
+  let hist = null, histError = null, histLoading = false, histDueAt = 0, histBars = [], barsDirty = true;
+  let histSource = null, histSeq = 0, histRange = '14', histNeedMark = false;
   let view = 'day';
   // Giá khớp gần nhất của cả 2 mã, dùng cho chênh lệch giá và SJC (SJC luôn so với XAUUSDT)
   const lastBy = { XAUUSDT: null, PAXGUSDT: null };
@@ -1571,6 +1581,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const nx = histSource ? histLive('next') : null;
     if (!histDueAt && nx > now) histDueAt = nx + (histSource.startsWith('bybit') ? 60000 : 30000);
     if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(); loadCompare(); }
+    else if (histNeedMark && histLive('mark') != null) renderHistory();
     // Tab dầu: tải lại lịch sử funding 1 phút sau mỗi kỳ chốt
     if (tab === 'dau' && oilLoaded) {
       const on = byValOf(OIL, 'next') || bnSideVal(OIL, 'next');
@@ -1587,12 +1598,28 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
   }
 
-  // ---------- Lịch sử funding 14 ngày ----------
+  // ---------- Lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm) ----------
   // Một khung dùng chung: tab XAUUSDT xem Bybit (mặc định) hoặc Binance, tab PAXGUSDT xem PAXGUSDT Binance
   const HIST_NAME = {
     'bybit:XAUUSDT': 'Bybit XAUUSDT', 'binance:XAUUSDT': 'Binance XAUUSDT', 'binance:PAXGUSDT': 'Binance PAXGUSDT',
     'bybit:XAGUSDT': 'Bybit XAGUSDT', 'binance:XAGUSDT': 'Binance XAGUSDT'
   };
+  const HIST_RANGES = { '14': '14 ngày', '30': '30 ngày', '90': '90 ngày', ytd: 'từ đầu năm' };
+  const dayFmt = new Intl.DateTimeFormat('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const periodFmt = new Intl.DateTimeFormat('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+  const dmy = (t) => { const d = new Date(t); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); };
+
+  // Mốc đầu khoảng lịch sử theo giờ máy: N ngày gần nhất tính cả hôm nay, hoặc 0h ngày 1/1 năm nay
+  function histRangeStart() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    if (histRange === 'ytd') d.setMonth(0, 1);
+    else d.setDate(d.getDate() - (Number(histRange) - 1));
+    return d.getTime();
+  }
+
+  // Lịch sử bạc tính theo ô khối lượng bạc, còn lại theo ô khối lượng vàng
+  const histQtyInput = () => (histSource && histSource.endsWith(':' + AG) ? el.agyQty : el.qty);
 
   // Mark hoặc thời điểm funding kế tiếp của hợp đồng đang xem lịch sử
   function histLive(key) {
@@ -1613,32 +1640,44 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     histLoading = true;
     histError = null;
     renderHistory();
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - 13); // 13 ngày trước + hôm nay = 14 ngày theo giờ máy
+    const start = histRangeStart();
     try {
       const [ex, symbol] = source.split(':');
-      let rows;
+      let rows, warn = '';
       if (ex === 'bybit') {
-        // Bybit qua host: api/exchanges.php trả từng kỳ dạng [thời điểm, rate, mark lúc chốt]
+        // Bybit qua host: api/exchanges.php lưu sẵn lịch sử từng mã, trả từng kỳ dạng [thời điểm, rate, mark lúc chốt]
         if (location.protocol === 'file:') throw new Error('cần mở trang từ host có thư mục api/');
-        const r = await fetch(EX_API + '?days=14', { cache: 'no-store' });
+        const r = await fetch(EX_API + '?symbol=' + symbol + '&start=' + start, { cache: 'no-store' });
         if (!r.ok) throw new Error('api/exchanges.php trả HTTP ' + r.status);
         const data = await r.json();
         const list = data && data.history ? data.history[source] : null;
-        if (!Array.isArray(list)) throw new Error((data && data.errors && data.errors.length && data.errors.join(' ')) || 'host chưa có dữ liệu');
+        const errs = (data && data.histErrors) || [];
+        if (!Array.isArray(list)) throw new Error(errs.join(' ') || 'host chưa có dữ liệu, hãy upload lại cả thư mục api/');
         rows = list.map((x) => ({ t: +x[0], rate: +x[1], mark: x[2] != null ? +x[2] : NaN }));
+        warn = errs.join(' ');
+        if (data.from > start + 864e5) warn += (warn ? ' ' : '') + 'Host mới có dữ liệu từ ' + dmy(data.from) + '.';
       } else {
-        const url = REST_BASE + '/fapi/v1/fundingRate?symbol=' + symbol + '&startTime=' + start.getTime() + '&limit=1000';
-        const r = await fetch(url, { cache: 'no-store' });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        rows = (await r.json()).map((x) => ({ t: +x.fundingTime, rate: +x.fundingRate, mark: parseFloat(x.markPrice) }));
+        // Binance trả tối đa 1000 kỳ mỗi lần, cũ nhất trước: gọi tiếp từ sau kỳ cuối cho tới hết
+        rows = [];
+        let from = start;
+        for (let page = 0; page < 15; page++) {
+          const r = await fetch(REST_BASE + '/fapi/v1/fundingRate?symbol=' + symbol + '&startTime=' + from + '&limit=1000', { cache: 'no-store' });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const list = await r.json();
+          if (seq !== histSeq) return;
+          if (!Array.isArray(list)) throw new Error('Binance trả dữ liệu lạ');
+          for (const x of list) rows.push({ t: +x.fundingTime, rate: +x.fundingRate, mark: parseFloat(x.markPrice) });
+          const last = list.length ? +list[list.length - 1].fundingTime : NaN;
+          if (list.length < 1000 || !(last >= from)) break;
+          from = last + 1;
+        }
       }
       if (seq !== histSeq) return;
       hist = {
-        start: start.getTime(),
+        start,
+        warn,
         rows: rows
-          .filter((x) => Number.isFinite(x.t) && Number.isFinite(x.rate) && x.t >= start.getTime())
+          .filter((x) => Number.isFinite(x.t) && Number.isFinite(x.rate) && x.t >= start)
           .sort((a, b) => a.t - b.t)
       };
     } catch (e) {
@@ -1657,6 +1696,18 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     loadHistory();
   }
 
+  function setHistRange(r, fromClick) {
+    if (!HIST_RANGES[r]) r = '14';
+    histRange = r;
+    el.histRangeBtns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.histrange === r)));
+    el.hTotalLabel.textContent = 'Tổng ' + HIST_RANGES[r];
+    if (fromClick) try { localStorage.setItem('gold-perp-live.histRange', r); } catch (e) { /* bỏ qua */ }
+    if (!histSource) return;
+    // Dữ liệu đang có đã phủ khoảng mới thì chỉ lọc lại, không cần tải
+    if (hist && hist.start <= histRangeStart()) renderHistory();
+    else { hist = null; histError = null; loadHistory(); }
+  }
+
   // Chuyển khung lịch sử sang tab đang xem: tab XAUUSDT / XAGUSDT theo sub tab Bybit / Binance, tab PAXGUSDT là PAXGUSDT
   function placeHistory() {
     if (tab !== 'xau' && tab !== 'paxg' && tab !== 'xag') return;
@@ -1668,21 +1719,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   function renderHistory() {
     el.histRetry.hidden = !histError;
-    const q = parseFloat(el.qty.value);
+    const q = parseFloat(histQtyInput().value);
     const qOk = Number.isFinite(q) && q >= 0;
-    const rows = hist ? hist.rows : [];
+    const start = histRangeStart();
+    const rows = hist ? hist.rows.filter((r) => r.t >= start) : [];
 
     if (!rows.length || !qOk) {
-      histDays = [];
+      histBars = [];
+      histNeedMark = false;
       [el.hTotal, el.hAvgDay, el.hAvgRate, el.hCount].forEach((n) => { n.textContent = '—'; delete n.dataset.dir; });
       [el.hTotalSub, el.hAvgDaySub, el.hAvgRateSub, el.hCountSub].forEach((n) => { n.textContent = '—'; });
       el.histTable.innerHTML = '';
       el.histMeta.textContent = histError
         ? 'Không tải được lịch sử funding ' + HIST_NAME[histSource] + ' (' + histError + ').'
           + (histSource.startsWith('binance') ? ' Trình duyệt có thể đang chặn gọi API khi mở file trực tiếp, hoặc mạng đang chặn Binance.' : '')
-        : histLoading || !hist ? 'Đang tải lịch sử funding…'
+        : histLoading || !hist ? 'Đang tải lịch sử funding ' + HIST_RANGES[histRange] + '…'
         : !qOk ? 'Nhập khối lượng là số không âm ở mục Funding theo vị thế.'
-        : HIST_NAME[histSource] + ' chưa có kỳ funding nào trong 14 ngày qua.';
+        : HIST_NAME[histSource] + ' chưa có kỳ funding nào ' + (histRange === 'ytd' ? 'từ đầu năm' : 'trong ' + HIST_RANGES[histRange] + ' qua') + '.'
+          + (hist.warn ? ' ' + hist.warn : '');
       barsDirty = true;
       schedule();
       return;
@@ -1697,15 +1751,20 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       if (!hasMark) approx = true;
       return { t: r.t, rate: r.rate, mark, approx: !hasMark, usdt: mark != null ? r.rate * mark * q : NaN };
     });
+    histNeedMark = approx && markNow == null; // vẽ lại khi có mark hiện tại cho các kỳ thiếu mark
 
+    // Từng ngày theo giờ máy, từ ngày đầu khoảng (hoặc ngày có kỳ funding đầu tiên, nếu mã niêm yết sau đó) tới hôm nay
+    const todayKey = dayKey(Date.now());
     const days = [];
     const byKey = new Map();
-    const d0 = new Date(hist.start);
-    for (let k = 0; k < 14; k++) {
+    const d0 = new Date(Math.max(start, rows[0].t));
+    d0.setHours(0, 0, 0, 0);
+    for (let k = 0; k < 400; k++) {
       const date = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + k);
       const day = { key: dayKey(date.getTime()), date, n: 0, rate: 0, usdt: 0 };
       days.push(day);
       byKey.set(day.key, day);
+      if (day.key === todayKey) break;
     }
     for (const p of periods) {
       const day = byKey.get(dayKey(p.t));
@@ -1714,9 +1773,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       day.rate += p.rate;
       if (Number.isFinite(p.usdt)) day.usdt += p.usdt;
     }
-    histDays = days;
 
-    const todayKey = dayKey(Date.now());
+    // Từng tháng; trung bình mỗi ngày chỉ tính các ngày đủ (có dữ liệu, không phải hôm nay)
+    const months = [];
+    for (const d of days) {
+      const key = d.key.slice(0, 7);
+      let m = months[months.length - 1];
+      if (!m || m.key !== key) months.push(m = { key, date: d.date, n: 0, rate: 0, usdt: 0, full: 0, fullUsdt: 0 });
+      m.n += d.n;
+      m.rate += d.rate;
+      m.usdt += d.usdt;
+      if (d.n && d.key !== todayKey) { m.full++; m.fullUsdt += d.usdt; }
+    }
+
+    // Biểu đồ: khoảng dài hơn một tháng thì gộp cột theo tuần cho dễ nhìn
+    const weekly = days.length > 31;
+    histBars = weekly ? groupWeeks(days, todayKey) : days.map((d) => ({ date: d.date, n: d.n, usdt: d.usdt, cur: d.key === todayKey }));
+    el.bars.setAttribute('aria-label', 'Biểu đồ cột tổng funding mỗi ' + (weekly ? 'tuần' : 'ngày'));
+
     const total = days.reduce((a, d) => a + d.usdt, 0);
     const full = days.filter((d) => d.key !== todayKey && d.n > 0);
     const avgDay = full.length ? full.reduce((a, d) => a + d.usdt, 0) / full.length : total;
@@ -1737,26 +1811,41 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
     const off = -new Date().getTimezoneOffset() / 60;
     el.histMeta.textContent = (histError ? 'Lần tải lại gần nhất bị lỗi (' + histError + '), đang hiện dữ liệu trước đó. ' : '')
-      + 'Tính cho ' + q + ' oz theo mark price lúc chốt từng kỳ. Số liệu của bên Short: dương là nhận, âm là trả, bên Long ngược dấu. '
-      + 'Ngày theo giờ máy (UTC' + (off >= 0 ? '+' : '−') + Math.abs(off) + '), cột mờ là hôm nay chưa đủ kỳ.'
+      + (hist.warn ? hist.warn + ' ' : '')
+      + 'Từ ' + dmy(start) + ', tính cho ' + q + ' oz theo mark price lúc chốt từng kỳ. Số liệu của bên Short: dương là nhận, âm là trả, bên Long ngược dấu. '
+      + 'Ngày theo giờ máy (UTC' + (off >= 0 ? '+' : '−') + Math.abs(off) + '), '
+      + (weekly ? 'biểu đồ gộp theo tuần từ thứ Hai, cột mờ là tuần này chưa hết.' : 'cột mờ là hôm nay chưa đủ kỳ.')
+      + (rows[0].t - start > 2 * 864e5 ? ' Kỳ funding đầu tiên có dữ liệu: ' + dmy(rows[0].t) + '.' : '')
       + (approx ? ' Kỳ có dấu ≈ thiếu mark lúc chốt nên dùng mark hiện tại.' : '');
 
     const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    const usdtHead = '<th>USDT (' + q + ' oz)</th>';
     let html;
     if (view === 'day') {
-      html = '<thead><tr><th>Ngày</th><th>Số kỳ</th><th>Tổng rate</th><th>USDT (' + q + ' oz)</th></tr></thead><tbody>';
-      for (const d of days.slice().reverse()) {
-        const label = d.date.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
-        html += '<tr><td' + (d.key === todayKey ? ' class="today"' : '') + '>' + label + '</td>'
+      html = '<thead><tr><th>Ngày</th><th>Số kỳ</th><th>Tổng rate</th>' + usdtHead + '</tr></thead><tbody>';
+      for (let k = days.length - 1; k >= 0; k--) {
+        const d = days[k];
+        html += '<tr><td' + (d.key === todayKey ? ' class="today"' : '') + '>' + dayFmt.format(d.date) + '</td>'
           + '<td>' + d.n + '</td>'
           + '<td>' + (d.n ? signed(d.rate * 100, 4) + '%' : '—') + '</td>'
           + '<td' + tone(d.usdt) + '>' + (d.n ? signedMoney(d.usdt) : '—') + '</td></tr>';
       }
+    } else if (view === 'month') {
+      html = '<thead><tr><th>Tháng</th><th>Số kỳ</th><th>Tổng rate</th>' + usdtHead + '<th>TB mỗi ngày</th></tr></thead><tbody>';
+      for (let k = months.length - 1; k >= 0; k--) {
+        const m = months[k];
+        const perDay = m.full ? m.fullUsdt / m.full : m.usdt;
+        html += '<tr><td' + (k === months.length - 1 ? ' class="cur"' : '') + '>Tháng ' + (m.date.getMonth() + 1) + '/' + m.date.getFullYear() + '</td>'
+          + '<td>' + m.n + '</td>'
+          + '<td>' + (m.n ? signed(m.rate * 100, 4) + '%' : '—') + '</td>'
+          + '<td' + tone(m.usdt) + '>' + (m.n ? signedMoney(m.usdt) : '—') + '</td>'
+          + '<td' + tone(perDay) + '>' + (m.n ? signedMoney(perDay) : '—') + '</td></tr>';
+      }
     } else {
-      html = '<thead><tr><th>Thời điểm chốt</th><th>Rate</th><th>Mark lúc chốt</th><th>USDT (' + q + ' oz)</th></tr></thead><tbody>';
-      for (const p of periods.slice().reverse()) {
-        const when = new Date(p.t).toLocaleString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
-        html += '<tr><td>' + when + '</td>'
+      html = '<thead><tr><th>Thời điểm chốt</th><th>Rate</th><th>Mark lúc chốt</th>' + usdtHead + '</tr></thead><tbody>';
+      for (let k = periods.length - 1; k >= 0; k--) {
+        const p = periods[k];
+        html += '<tr><td>' + periodFmt.format(new Date(p.t)) + '</td>'
           + '<td>' + signed(p.rate * 100, 4) + '%</td>'
           + '<td>' + (p.mark != null ? (p.approx ? '≈ ' : '') + fmt2.format(p.mark) : '—') + '</td>'
           + '<td' + tone(p.usdt) + '>' + (Number.isFinite(p.usdt) ? signedMoney(p.usdt) : '—') + '</td></tr>';
@@ -1765,6 +1854,21 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.histTable.innerHTML = html + '</tbody>';
     barsDirty = true;
     schedule();
+  }
+
+  // Gộp các ngày thành tuần (thứ Hai đến Chủ nhật); nhãn cột là ngày đầu tiên của tuần nằm trong khoảng
+  function groupWeeks(days, todayKey) {
+    const out = [];
+    for (const d of days) {
+      const mon = new Date(d.date.getFullYear(), d.date.getMonth(), d.date.getDate() - ((d.date.getDay() + 6) % 7));
+      const key = dayKey(mon.getTime());
+      let w = out[out.length - 1];
+      if (!w || w.key !== key) out.push(w = { key, date: d.date, n: 0, usdt: 0, cur: false });
+      w.n += d.n;
+      w.usdt += d.usdt;
+      if (d.key === todayKey) w.cur = true;
+    }
+    return out;
   }
 
   function drawBars() {
@@ -1779,8 +1883,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const days = histDays;
-    if (!days.length) return;
+    const bars = histBars;
+    if (!bars.length) return;
 
     const cs = getComputedStyle(document.documentElement);
     const tok = (n) => cs.getPropertyValue(n).trim();
@@ -1788,7 +1892,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const pw = w - L - R, ph = h - T - B;
 
     let lo = 0, hi = 0;
-    for (const d of days) { lo = Math.min(lo, d.usdt); hi = Math.max(hi, d.usdt); }
+    for (const d of bars) { lo = Math.min(lo, d.usdt); hi = Math.max(hi, d.usdt); }
     if (hi === lo) hi = lo + 1;
     const step = niceStep((hi - lo) / 4);
     lo = Math.floor(lo / step) * step;
@@ -1811,24 +1915,23 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       ctx.fillText((Math.abs(v) < step / 1e6 ? 0 : v).toFixed(dec), L + pw + 8, y);
     }
 
-    // Cột mỗi ngày, hôm nay vẽ mờ vì chưa đủ kỳ
-    const todayKey = dayKey(Date.now());
-    const slot = pw / days.length;
-    const bw = Math.max(4, Math.min(34, slot * 0.62));
-    const every = slot < 40 ? 2 : 1;
+    // Cột mỗi ngày (hoặc mỗi tuần), hôm nay / tuần này vẽ mờ vì chưa đủ kỳ
+    const slot = pw / bars.length;
+    const bw = Math.max(3, Math.min(34, slot * 0.62));
+    const every = Math.max(1, Math.ceil(40 / slot)); // nhãn ngày cách nhau ít nhất 40px
     const y0 = Y(0);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    days.forEach((d, k) => {
+    bars.forEach((d, k) => {
       const x = L + slot * k + (slot - bw) / 2;
       if (d.n) {
         const yv = Y(d.usdt);
-        ctx.globalAlpha = d.key === todayKey ? 0.45 : 1;
+        ctx.globalAlpha = d.cur ? 0.45 : 1;
         ctx.fillStyle = tok(d.usdt >= 0 ? '--up' : '--down');
         ctx.fillRect(x, Math.min(yv, y0), bw, Math.max(1, Math.abs(yv - y0)));
         ctx.globalAlpha = 1;
       }
-      if ((days.length - 1 - k) % every === 0) {
+      if ((bars.length - 1 - k) % every === 0) {
         ctx.fillStyle = tok('--muted');
         ctx.fillText(pad(d.date.getDate()) + '/' + pad(d.date.getMonth() + 1), x + bw / 2, h - 6);
       }
@@ -3598,6 +3701,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderHistory();
   }));
   el.histRetry.addEventListener('click', () => loadHistory());
+  // Khoảng lịch sử funding (nhớ lựa chọn); đặt trước sub tab để lần tải đầu đúng khoảng
+  let savedRange = null;
+  try { savedRange = localStorage.getItem('gold-perp-live.histRange'); } catch (e) { /* bỏ qua */ }
+  setHistRange(savedRange, false);
+  el.histRangeBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.histrange !== histRange) setHistRange(b.dataset.histrange, true); }));
   let savedSub = null;
   try { savedSub = localStorage.getItem('gold-perp-live.xauSub'); } catch (e) { /* bỏ qua */ }
   setXauSub(savedSub, false);
@@ -3615,6 +3723,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     agQtyInputs.forEach((other) => { if (other !== inp) other.value = inp.value; });
     try { localStorage.setItem('gold-perp-live.agQty', inp.value); } catch (e) { /* bỏ qua */ }
     schedule();
+    if (histQtyInput() === el.agyQty) renderHistory();
   }));
   el.subBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.sub !== xauSub) setXauSub(b.dataset.sub, true); }));
 
