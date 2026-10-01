@@ -10,7 +10,8 @@
  *   Không báo khi forex đang nghỉ. Nguồn giá nào lỗi 3 lần liền thì báo lỗi một lần.
  *
  * Mỗi lần chạy khi forex đang giao dịch cũng ghi XAU − forex và PAXG − forex theo giờ
- * (spread-lib.php, giá Binance, kèm giá Bybit) để trang vẽ lịch sử.
+ * (spread-lib.php, giá Binance, kèm giá Bybit) để trang vẽ lịch sử. Mỗi 6 giờ lưu thêm open interest
+ * và tỷ lệ Long/Short các mã (ex-lib.php) cho phần xuất dữ liệu.
  *
  * Cấu hình: alert-config.php (chép từ alert-config.example.php).
  * Gửi thử: php alert-check.php test, hoặc nút "Gửi thử lên điện thoại" trên trang
@@ -18,8 +19,9 @@
  */
 
 date_default_timezone_set('Asia/Ho_Chi_Minh');
-require __DIR__ . '/fx-lib.php';
+require_once __DIR__ . '/fx-lib.php';
 require __DIR__ . '/spread-lib.php';
+require __DIR__ . '/ex-lib.php'; // lưu dần open interest
 
 define('PRICE_URL', 'https://fapi.binance.com/fapi/v1/ticker/price?symbol=');
 define('BYBIT_PRICE_URL', 'https://api.bybit.com/v5/market/tickers?category=linear&symbol=');
@@ -249,6 +251,14 @@ if (!$fxError) {
             $lines[] = 'Vùng: ' . ($zone === 'high' ? '≥ ' . $hi : ($zone === 'low' ? '< ' . $lo : 'trong khoảng ' . $lo . ' đến ' . $hi)) . '.';
         }
     }
+}
+
+// Mỗi 6 giờ lưu thêm open interest và tỷ lệ Long/Short (Binance chỉ giữ 30 ngày) để sau này phân tích được dài hơn
+if (empty($state['oiAt']) || fx_now_ms() - $state['oiAt'] > OI_COLLECT_MS) {
+    $oiErrors = [];
+    $n = oi_collect_all($oiErrors);
+    $state['oiAt'] = fx_now_ms();
+    $lines[] = 'Đã cập nhật open interest ' . $n . ' mã.' . ($oiErrors ? ' ' . implode(' ', $oiErrors) : '');
 }
 
 $state['lastRun'] = fx_now_ms();

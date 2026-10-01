@@ -261,6 +261,9 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .px-legend { margin-top: 8px; flex-wrap: wrap; gap: 4px 16px; }
 .px-legend .pi::before { border-top-color: var(--idx); }
 .bs-tip.multi { white-space: pre; line-height: 1.45; }
+.export-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.export-bar .label { margin-right: 4px; }
+.export-bar .linkbtn:disabled { opacity: 0.5; cursor: progress; }
 #cmpChart { height: 180px; margin-top: 16px; }
 .bs-block { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .bs-block .sub-h { margin: 0; font: 600 13.5px var(--mono); letter-spacing: 0.02em; }
@@ -594,6 +597,15 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
       </div>
       <div class="table-wrap"><table id="histTable"></table></div>
+      <div class="export-bar">
+        <span class="label">Xuất dữ liệu</span>
+        <button type="button" class="linkbtn" data-export="json">JSON (gửi phân tích)</button>
+        <button type="button" class="linkbtn" data-export="ky">CSV theo kỳ</button>
+        <button type="button" class="linkbtn" data-export="gio">CSV theo giờ</button>
+        <button type="button" class="linkbtn" data-export="ngay">CSV theo ngày</button>
+        <button type="button" class="linkbtn" data-export="oi">CSV open interest</button>
+      </div>
+      <p class="note" id="exportNote">Xuất theo sàn, mã và khoảng đang chọn. File JSON gồm funding từng kỳ, giá theo giờ, tổng hợp theo ngày, open interest và tỷ lệ Long/Short (nến 4 giờ).</p>
     </section>
   </div>
 
@@ -1092,6 +1104,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     histRangeBtns: document.querySelectorAll('[data-histrange]'), hTotalLabel: $('hTotalLabel'),
     barsTitle: $('barsTitle'), gapTitle: $('gapTitle'), gapBars: $('gapBars'), pxTitle: $('pxTitle'), pxMeta: $('pxMeta'),
     pxChart: $('pxChart'), pxGuide: $('pxGuide'), pxTip: $('pxTip'),
+    exportBtns: document.querySelectorAll('[data-export]'), exportNote: $('exportNote'),
     histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'), bars: $('bars'),
     hTotal: $('hTotal'), hTotalSub: $('hTotalSub'), hAvgDay: $('hAvgDay'), hAvgDaySub: $('hAvgDaySub'),
     hAvgRate: $('hAvgRate'), hAvgRateSub: $('hAvgRateSub'), hCount: $('hCount'), hCountSub: $('hCountSub'),
@@ -1820,32 +1833,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       : xauSub === 'binance' ? 'binance:XAUUSDT' : 'bybit:XAUUSDT');
   }
 
-  function renderHistory() {
-    el.histRetry.hidden = !histError;
-    const q = parseFloat(histQtyInput().value);
-    const qOk = Number.isFinite(q) && q >= 0;
+  // Số liệu của khung lịch sử theo khoảng đang chọn, dùng chung cho bảng, biểu đồ và xuất dữ liệu.
+  // q là khối lượng (oz); trả null khi chưa có kỳ funding nào trong khoảng.
+  function histModel(q) {
     const start = histRangeStart();
     const rows = hist ? hist.rows.filter((r) => r.t >= start) : [];
-
-    if (!rows.length || !qOk) {
-      histBars = [];
-      histNeedMark = false;
-      histPxPts = [];
-      el.pxMeta.textContent = histLoading || !hist ? 'Đang tải giá theo giờ…' : '';
-      [el.hTotal, el.hAvgDay, el.hAvgRate, el.hCount].forEach((n) => { n.textContent = '—'; delete n.dataset.dir; });
-      [el.hTotalSub, el.hAvgDaySub, el.hAvgRateSub, el.hCountSub].forEach((n) => { n.textContent = '—'; });
-      el.histTable.innerHTML = '';
-      el.histMeta.textContent = histError
-        ? 'Không tải được lịch sử funding ' + HIST_NAME[histSource] + ' (' + histError + ').'
-          + (histSource.startsWith('binance') ? ' Trình duyệt có thể đang chặn gọi API khi mở file trực tiếp, hoặc mạng đang chặn Binance.' : '')
-        : histLoading || !hist ? 'Đang tải lịch sử funding ' + HIST_RANGES[histRange] + '…'
-        : !qOk ? 'Nhập khối lượng là số không âm ở mục Funding theo vị thế.'
-        : HIST_NAME[histSource] + ' chưa có kỳ funding nào ' + (histRange === 'ytd' ? 'từ đầu năm' : 'trong ' + HIST_RANGES[histRange] + ' qua') + '.'
-          + (hist.warn ? ' ' + hist.warn : '');
-      barsDirty = true;
-      schedule();
-      return;
-    }
+    if (!rows.length) return null;
 
     // USDT bên Short nhận mỗi kỳ = rate × mark lúc chốt × khối lượng (bên Long luôn ngược dấu)
     let approx = false;
@@ -1854,9 +1847,22 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const hasMark = Number.isFinite(r.mark) && r.mark > 0;
       const mark = hasMark ? r.mark : markNow;
       if (!hasMark) approx = true;
-      return { t: r.t, rate: r.rate, mark, approx: !hasMark, usdt: mark != null ? r.rate * mark * q : NaN };
+      return { t: r.t, rate: r.rate, mark, approx: !hasMark, usdt: mark != null ? r.rate * mark * q : NaN, prem: NaN };
     });
-    histNeedMark = approx && markNow == null; // vẽ lại khi có mark hiện tại cho các kỳ thiếu mark
+    // Perp − index trung bình các nến giờ trong kỳ, tính tới lúc chốt. Độ dài kỳ lấy theo khoảng cách tới kỳ trước
+    // (sàn có thể đổi chu kỳ funding giữa chừng), kỳ đầu tiên thì theo chu kỳ hiện tại
+    const byHour = new Map(hist.px.map((x) => [x.t, x]));
+    periods.forEach((p, k) => {
+      const h1 = Math.floor(p.t / 36e5) * 36e5;
+      const gapH = k ? Math.round((p.t - periods[k - 1].t) / 36e5) : iv;
+      const hours = gapH >= 1 && gapH <= 24 ? gapH : iv;
+      let sum = 0, cnt = 0;
+      for (let h = h1 - hours * 36e5; h < h1; h += 36e5) {
+        const x = byHour.get(h);
+        if (x && x.i > 0) { sum += ((x.p - x.i) / x.i) * 100; cnt++; }
+      }
+      if (cnt) p.prem = sum / cnt;
+    });
 
     // Từng ngày theo giờ máy, từ ngày đầu khoảng (hoặc ngày có kỳ funding đầu tiên, nếu mã niêm yết sau đó) tới hôm nay
     const todayKey = dayKey(Date.now());
@@ -1909,6 +1915,39 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       }
     }
 
+
+    return { start, q, periods, approx, markNow, iv, todayKey, days, months };
+  }
+
+  function renderHistory() {
+    el.histRetry.hidden = !histError;
+    const q = parseFloat(histQtyInput().value);
+    const qOk = Number.isFinite(q) && q >= 0;
+    const M = qOk ? histModel(q) : null;
+
+    if (!M) {
+      histBars = [];
+      histNeedMark = false;
+      histPxPts = [];
+      el.pxMeta.textContent = histLoading || !hist ? 'Đang tải giá theo giờ…' : '';
+      [el.hTotal, el.hAvgDay, el.hAvgRate, el.hCount].forEach((n) => { n.textContent = '—'; delete n.dataset.dir; });
+      [el.hTotalSub, el.hAvgDaySub, el.hAvgRateSub, el.hCountSub].forEach((n) => { n.textContent = '—'; });
+      el.histTable.innerHTML = '';
+      el.histMeta.textContent = histError
+        ? 'Không tải được lịch sử funding ' + HIST_NAME[histSource] + ' (' + histError + ').'
+          + (histSource.startsWith('binance') ? ' Trình duyệt có thể đang chặn gọi API khi mở file trực tiếp, hoặc mạng đang chặn Binance.' : '')
+        : histLoading || !hist ? 'Đang tải lịch sử funding ' + HIST_RANGES[histRange] + '…'
+        : !qOk ? 'Nhập khối lượng là số không âm ở mục Funding theo vị thế.'
+        : HIST_NAME[histSource] + ' chưa có kỳ funding nào ' + (histRange === 'ytd' ? 'từ đầu năm' : 'trong ' + HIST_RANGES[histRange] + ' qua') + '.'
+          + (hist.warn ? ' ' + hist.warn : '');
+      barsDirty = true;
+      schedule();
+      return;
+    }
+
+    const { start, periods, approx, markNow, iv, todayKey, days, months } = M;
+    histNeedMark = approx && markNow == null; // vẽ lại khi có mark hiện tại cho các kỳ thiếu mark
+
     // Biểu đồ: khoảng dài hơn một tháng thì gộp cột theo tuần cho dễ nhìn
     const weekly = days.length > 31;
     histBars = weekly ? groupWeeks(days, todayKey) : days.map((d) => ({ date: d.date, n: d.n, usdt: d.usdt, premSum: d.premSum, premN: d.premN, cur: d.key === todayKey }));
@@ -1943,7 +1982,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       + 'Từ ' + dmy(start) + ', tính cho ' + q + ' oz theo mark price lúc chốt từng kỳ. Số liệu của bên Short: dương là nhận, âm là trả, bên Long ngược dấu. '
       + 'Ngày theo giờ máy (UTC' + (off >= 0 ? '+' : '−') + Math.abs(off) + '), '
       + (weekly ? 'biểu đồ gộp theo tuần từ thứ Hai, cột mờ là tuần này chưa hết.' : 'cột mờ là hôm nay chưa đủ kỳ.')
-      + (rows[0].t - start > 2 * 864e5 ? ' Kỳ funding đầu tiên có dữ liệu: ' + dmy(rows[0].t) + '.' : '')
+      + (periods[0].t - start > 2 * 864e5 ? ' Kỳ funding đầu tiên có dữ liệu: ' + dmy(periods[0].t) + '.' : '')
       + (approx ? ' Kỳ có dấu ≈ thiếu mark lúc chốt nên dùng mark hiện tại.' : '');
 
     const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
@@ -1980,17 +2019,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       }
     } else {
       html = '<thead><tr><th>Thời điểm chốt</th><th>Rate</th><th>Mark lúc chốt</th>' + usdtHead + '<th>Perp − index</th></tr></thead><tbody>';
-      const byHour = new Map(hist.px.map((x) => [x.t, x]));
       for (let k = periods.length - 1; k >= 0; k--) {
-        const p = periods[k];
-        // Trung bình các nến giờ trong kỳ, tính tới lúc chốt
-        const h1 = Math.floor(p.t / 36e5) * 36e5;
-        let sum = 0, cnt = 0;
-        for (let h = h1 - iv * 36e5; h < h1; h += 36e5) {
-          const x = byHour.get(h);
-          if (x && x.i > 0) { sum += ((x.p - x.i) / x.i) * 100; cnt++; }
-        }
-        const prem = cnt ? sum / cnt : NaN;
+        const p = periods[k], prem = p.prem;
         html += '<tr><td>' + periodFmt.format(new Date(p.t)) + '</td>'
           + '<td>' + signed(p.rate * 100, 4) + '%</td>'
           + '<td>' + (p.mark != null ? (p.approx ? '≈ ' : '') + fmt2.format(p.mark) : '—') + '</td>'
@@ -2212,6 +2242,114 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.fillText(dm(t0 + span / 2), L + pw / 2, h - 6);
     ctx.textAlign = 'right';
     ctx.fillText(dm(t1 - 1), L + pw, h - 6);
+  }
+
+  // ---------- Xuất dữ liệu lịch sử ----------
+  // Theo sàn, mã và khoảng đang chọn. JSON gồm mọi bảng (để gửi phân tích), CSV từng bảng để mở bằng Excel.
+  const isoMin = (t) => new Date(t).toISOString().slice(0, 16) + 'Z';
+  const num = (v, d) => (Number.isFinite(v) ? +v.toFixed(d) : null);
+  const RANGE_TAG = { '14': '14d', '30': '30d', '90': '90d', ytd: 'ytd' };
+
+  // Open interest và tỷ lệ tài khoản Long theo nến 4 giờ, qua host (host lưu dần vì Binance chỉ giữ 30 ngày)
+  async function loadOi(start) {
+    if (location.protocol === 'file:') throw new Error('cần mở trang từ host có thư mục api/');
+    const [ex, symbol] = histSource.split(':');
+    const r = await fetch(EX_API + '?oi=1&ex=' + ex + '&symbol=' + symbol + '&start=' + start, { cache: 'no-store' });
+    if (!r.ok) throw new Error('api/exchanges.php trả HTTP ' + r.status);
+    const data = await r.json();
+    const errs = data.histErrors || [];
+    if (!Array.isArray(data.oi)) throw new Error(errs.join(' ') || 'host chưa có dữ liệu, hãy upload lại cả thư mục api/');
+    return { rows: data.oi.filter((x) => x[0] >= start), warn: errs.join(' ') };
+  }
+
+  // Các bảng xuất ra: { columns, rows }
+  function exportTables(M, oi) {
+    const tables = {
+      funding: {
+        columns: ['time_utc', 'rate', 'mark', 'usdt_short', 'mark_is_current', 'premium_pct_period'],
+        rows: M.periods.map((p) => [isoMin(p.t), num(p.rate, 8), num(p.mark, 4), num(p.usdt, 6), p.approx ? 1 : 0, num(p.prem, 5)])
+      },
+      hourly: {
+        columns: ['hour_open_utc', 'perp_close', 'index_close', 'premium_pct'],
+        rows: hist.px.filter((x) => x.t >= M.start).map((x) => [isoMin(x.t), num(x.p, 4), num(x.i, 4), num(((x.p - x.i) / x.i) * 100, 5)])
+      },
+      daily: {
+        columns: ['date_local', 'periods', 'rate_sum', 'usdt_short', 'perp_close', 'index_close', 'premium_avg_pct', 'hours_with_price'],
+        rows: M.days.map((d) => [d.key, d.n, num(d.rate, 8), num(d.usdt, 6), num(d.close, 4), num(d.idx, 4), num(d.premN ? d.premSum / d.premN : NaN, 5), d.premN])
+      }
+    };
+    if (oi) tables.openInterest = { columns: ['time_utc', 'open_interest', 'long_account_ratio'], rows: oi.rows.map((x) => [isoMin(x[0]), x[1], x[2]]) };
+    return tables;
+  }
+
+  const csvCell = (v) => (v == null ? '' : /[",\r\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v));
+  const toCsv = (t) => '﻿' + [t.columns].concat(t.rows).map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+
+  function saveFile(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function exportData(kind) {
+    const q = parseFloat(histQtyInput().value);
+    const M = histLoading ? null : histModel(Number.isFinite(q) && q >= 0 ? q : 1);
+    if (!M) { el.exportNote.textContent = 'Chưa có dữ liệu để xuất, chờ tải xong lịch sử funding.'; return; }
+    const source = histSource;
+    const [ex, symbol] = source.split(':');
+    const base = 'gold-perp-live_' + ex + '-' + symbol + '_' + RANGE_TAG[histRange] + '_' + dayKey(Date.now());
+    const warnings = [hist.warn, hist.pxWarn].filter(Boolean);
+    let oi = null;
+    if (kind === 'json' || kind === 'oi') {
+      el.exportBtns.forEach((b) => { b.disabled = true; });
+      el.exportNote.textContent = 'Đang lấy open interest…';
+      try {
+        oi = await loadOi(M.start);
+        if (oi.warn) warnings.push(oi.warn);
+      } catch (e) {
+        warnings.push('Không lấy được open interest (' + (e.message || e) + ').');
+      }
+      el.exportBtns.forEach((b) => { b.disabled = false; });
+      if (source !== histSource) { el.exportNote.textContent = 'Đã đổi mã trong lúc tải, hãy bấm xuất lại.'; return; }
+    }
+    const tables = exportTables(M, oi);
+    let name, count;
+    if (kind === 'json') {
+      const off = -new Date().getTimezoneOffset() / 60;
+      const doc = {
+        app: 'Gold Perp Live',
+        exportedAt: new Date().toISOString(),
+        source: { key: source, exchange: ex === 'bybit' ? 'Bybit' : 'Binance', symbol, fundingIntervalHoursNow: M.iv },
+        range: { label: HIST_RANGES[histRange], startUtc: isoMin(M.start), endUtc: isoMin(Date.now()) },
+        timezone: { name: Intl.DateTimeFormat().resolvedOptions().timeZone || '', utcOffsetHours: off },
+        qty: M.q,
+        notes: [
+          'funding: từng kỳ chốt. rate là funding rate (0.0001 = 0.01%), dương thì Long trả Short. mark là mark price lúc chốt (mark_is_current = 1 là thiếu mark, dùng mark hiện tại). usdt_short = rate × mark × qty, số bên Short nhận.',
+          'funding.premium_pct_period: trung bình (perp − index) / index × 100 của các nến 1 giờ trong kỳ trước lúc chốt.',
+          'hourly: nến 1 giờ đã đóng, giá khớp (perp_close) và index (giá tham chiếu sàn dùng tính funding) lúc đóng nến, premium_pct = (perp − index) / index × 100.',
+          'daily: theo ngày giờ máy (timezone), rate_sum là tổng rate các kỳ trong ngày, premium_avg_pct là trung bình các giờ có giá. Ngày cuối là hôm nay, chưa đủ.',
+          'openInterest: nến 4 giờ, open_interest là số lượng theo đơn vị hợp đồng (oz), long_account_ratio là tỷ lệ tài khoản đang Long (0..1). Binance chỉ giữ 30 ngày gần nhất, phần cũ hơn là host lưu dần.'
+        ],
+        warnings,
+        tables
+      };
+      name = base + '.json';
+      saveFile(name, JSON.stringify(doc), 'application/json');
+      count = tables.funding.rows.length + ' kỳ, ' + tables.hourly.rows.length + ' giờ, ' + tables.daily.rows.length + ' ngày, '
+        + (tables.openInterest ? tables.openInterest.rows.length : 0) + ' dòng open interest';
+    } else {
+      const t = kind === 'ky' ? tables.funding : kind === 'gio' ? tables.hourly : kind === 'ngay' ? tables.daily : tables.openInterest;
+      if (!t) { el.exportNote.textContent = warnings.join(' ') || 'Không có dữ liệu open interest.'; return; }
+      name = base + '_' + (kind === 'ky' ? 'ky' : kind === 'gio' ? 'gio' : kind === 'ngay' ? 'ngay' : 'oi') + '.csv';
+      saveFile(name, toCsv(t), 'text/csv;charset=utf-8');
+      count = t.rows.length + ' dòng';
+    }
+    el.exportNote.textContent = 'Đã xuất ' + name + ' (' + count + ').' + (warnings.length ? ' Lưu ý: ' + warnings.join(' ') : '');
   }
 
   // ---------- SJC so với thế giới ----------
@@ -4045,6 +4183,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderHistory();
   }));
   el.histRetry.addEventListener('click', () => loadHistory());
+  el.exportBtns.forEach((b) => b.addEventListener('click', () => exportData(b.dataset.export)));
   bindChartTip(el.pxChart, el.pxTip, el.pxGuide, () => histPxPts, () => pxGeom, (p) => {
     const pct = ((p.p - p.i) / p.i) * 100;
     return (p.day ? dm(p.t - 1) : stamp(p.t)) + (Number.isFinite(pct) ? ' · perp − index ' + signed(pct, 3) + '%' : '')

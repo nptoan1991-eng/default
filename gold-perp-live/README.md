@@ -28,10 +28,11 @@ gold-perp-live/
     ├── alert-config.example.php   cấu hình mẫu cho cảnh báo
     ├── spread-lib.php  ghi nhật ký XAU/PAXG − giá Swissquote theo giờ
     ├── spread-history.php   đọc nhật ký đó cho trang
-    └── exchanges.php   giá, funding và lịch sử funding các hợp đồng trên Bybit và Hyperliquid
+    ├── exchanges.php   giá, funding, lịch sử funding, giá theo giờ và open interest cho trang (Bybit, Hyperliquid, Binance)
+    └── ex-lib.php      các hàm gọi sàn và kho lịch sử dùng chung cho exchanges.php và alert-check.php
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, open interest) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
@@ -88,6 +89,20 @@ Cùng khung lịch sử funding, theo khoảng đang chọn, để xem funding c
 - **Giá perp so với index**: hai đường giá (từng giờ với khoảng 14 và 30 ngày, giá đóng cửa mỗi ngày với 90 ngày và từ đầu năm). Rê chuột hoặc chạm để xem giá và mức chênh từng thời điểm.
 - Dòng ghi chú có chênh lệch trung bình cả khoảng và hệ số tương quan giữa chênh lệch với tổng funding rate từng ngày đủ (gần 1 là funding đi cùng chênh lệch).
 - Sàn tính funding theo giá đặt mua/bán có độ sâu (impact price) chứ không theo giá khớp, nên chênh lệch ở đây chỉ gần đúng.
+
+### Xuất dữ liệu
+
+Cuối khung Lịch sử funding có các nút xuất, theo sàn, mã và khoảng đang chọn:
+
+- **JSON (gửi phân tích)**: một file gồm mọi bảng bên dưới, kèm thông tin sàn, mã, khoảng thời gian, múi giờ, khối lượng, ghi chú ý nghĩa từng cột và các cảnh báo khi tải. Dùng để gửi cho Claude phân tích xu hướng funding.
+- **CSV theo kỳ** (`time_utc, rate, mark, usdt_short, mark_is_current, premium_pct_period`): từng kỳ chốt; `premium_pct_period` là perp − index trung bình các giờ trong kỳ (độ dài kỳ theo khoảng cách tới kỳ trước).
+- **CSV theo giờ** (`hour_open_utc, perp_close, index_close, premium_pct`): nến 1 giờ đã đóng.
+- **CSV theo ngày** (`date_local, periods, rate_sum, usdt_short, perp_close, index_close, premium_avg_pct, hours_with_price`): theo ngày giờ máy, dòng cuối là hôm nay chưa đủ.
+- **CSV open interest** (`time_utc, open_interest, long_account_ratio`): nến 4 giờ, số vị thế đang mở (đơn vị hợp đồng, ví dụ oz) và tỷ lệ tài khoản đang Long (0..1).
+
+Thời gian trong file là UTC (dạng `2026-09-30T08:00Z`), riêng cột ngày là theo giờ máy. CSV dùng dấu phẩy ngăn cột và dấu chấm thập phân, có BOM UTF-8. Excel cài kiểu số Việt Nam (dấu phẩy thập phân) có thể đọc sai số; khi đó mở bằng Google Sheets hoặc Excel → Data → From Text/CSV và chọn dấu chấm thập phân.
+
+**Open interest và tỷ lệ Long/Short** lấy qua host: Binance `/futures/data/openInterestHist`, `/futures/data/globalLongShortAccountRatio`; Bybit `/v5/market/open-interest`, `/v5/market/account-ratio` (`api/exchanges.php?oi=1&ex=<binance|bybit>&symbol=<MÃ>&start=<mốc>`). Binance chỉ giữ 30 ngày gần nhất, nên host lưu dần vào `api/oi_<sàn>_<MÃ>.json` (giữ tối đa 400 ngày): mỗi lần xuất, và cron `alert-check.php` mỗi 6 giờ cập nhật cho XAUUSDT, XAGUSDT, PAXGUSDT Binance và XAUUSDT, XAGUSDT Bybit. Cần cron đang chạy thì lịch sử Binance mới dài dần ra.
 
 ## Funding 3 sàn
 
@@ -168,7 +183,7 @@ Hai cảnh báo, mỗi cái có ngưỡng, vùng và nhật ký riêng; nút b�
 
 ### Cảnh báo 24/7 qua ntfy
 
-`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT trên Bybit, PAXGUSDT trên Binance và giá forex (Swissquote), tính **Bybit XAU − forex** (ngưỡng `high` / `low`) và **PAXG − forex** (ngưỡng `paxg_high` / `paxg_low`) rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: mỗi cảnh báo báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Nguồn giá nào (Bybit, Binance, Swissquote) lỗi 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại. Mỗi lần chạy khi forex mở còn ghi chênh lệch theo giờ (giá Binance, kèm giá Bybit) vào `spread_history.json`.
+`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT trên Bybit, PAXGUSDT trên Binance và giá forex (Swissquote), tính **Bybit XAU − forex** (ngưỡng `high` / `low`) và **PAXG − forex** (ngưỡng `paxg_high` / `paxg_low`) rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: mỗi cảnh báo báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Nguồn giá nào (Bybit, Binance, Swissquote) lỗi 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại. Mỗi lần chạy khi forex mở còn ghi chênh lệch theo giờ (giá Binance, kèm giá Bybit) vào `spread_history.json`, và mỗi 6 giờ lưu thêm open interest, tỷ lệ Long/Short các mã (xem Xuất dữ liệu).
 
 1. **Cài app ntfy** trên điện thoại (Google Play hoặc App Store). Bấm **+**, nhập một tên kênh dài và khó đoán (ví dụ `gold-7f3k9q2x`), giữ server mặc định `ntfy.sh`. Ai biết tên kênh cũng đọc được thông báo.
 2. **Tạo file cấu hình** trên host: chép `api/alert-config.example.php` thành `api/alert-config.php`, sửa `ntfy_topic` trùng tên kênh ở bước 1, chỉnh ngưỡng `high` / `low` (Bybit XAU) và `paxg_high` / `paxg_low` (PAXG) nếu muốn. File cấu hình cũ chưa có `paxg_high` / `paxg_low` thì dùng mặc định 20 / −20. Khi cập nhật tool, **đừng ghi đè** `alert-config.php`.
