@@ -31,7 +31,7 @@ gold-perp-live/
     └── exchanges.php   giá, funding và lịch sử funding các hợp đồng trên Bybit và Hyperliquid
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
@@ -70,13 +70,24 @@ Chung cho cả hai sàn:
 Một khung dùng chung: ở tab XAUUSDT và XAGUSDT theo sub tab đang chọn (**Bybit** hoặc **Binance**), ở tab PAXGUSDT là PAXGUSDT Binance. Nút ở góc khung chọn khoảng **14 ngày**, **30 ngày**, **90 ngày** hoặc **Từ đầu năm** (từ 0h ngày 1/1 theo giờ máy); trang nhớ lựa chọn. Đổi sang khoảng ngắn hơn khoảng đã tải thì không phải tải lại. Tự tải lại sau mỗi lần chốt funding.
 
 - Binance: REST `GET /fapi/v1/fundingRate` (thời điểm chốt, funding rate, mark price lúc chốt), mỗi lần tối đa 1000 kỳ nên khoảng dài gọi nhiều lần liên tiếp.
-- Bybit: qua `api/exchanges.php?symbol=<MÃ>&start=<mốc>`. Host lấy `/v5/market/funding/history` và mark price `/v5/market/mark-price-kline` (nến 4 giờ khi mọi kỳ rơi đúng mốc 4 giờ, không thì nến 1 giờ) để có mark lúc chốt từng kỳ, rồi lưu vào `api/bybit_hist_<MÃ>.json`. Lần đầu xem một mã từ đầu năm host mất vài giây để lấy hết; các lần sau chỉ lấy thêm kỳ mới (sau 30 phút hoặc ngay sau kỳ chốt), khoảng sớm hơn thì lấy lùi phần còn thiếu. Kho giữ tối đa 400 ngày. Bybit lỗi thì vẫn hiện dữ liệu đã lưu kèm thông báo, và host chờ 1 phút mới gọi lại. Kỳ nào thiếu mark thì dùng mark hiện tại và đánh dấu ≈.
+- Bybit: qua `api/exchanges.php?symbol=<MÃ>&start=<mốc>` (thêm `&px=1` để kèm giá theo giờ, xem mục dưới). Host lấy `/v5/market/funding/history` và mark price `/v5/market/mark-price-kline` (nến 4 giờ khi mọi kỳ rơi đúng mốc 4 giờ, không thì nến 1 giờ) để có mark lúc chốt từng kỳ, rồi lưu vào `api/bybit_hist_<MÃ>.json`. Lần đầu xem một mã từ đầu năm host mất vài giây để lấy hết; các lần sau chỉ lấy thêm kỳ mới (sau 30 phút hoặc ngay sau kỳ chốt), khoảng sớm hơn thì lấy lùi phần còn thiếu. Kho giữ tối đa 400 ngày. Bybit lỗi thì vẫn hiện dữ liệu đã lưu kèm thông báo, và host chờ 1 phút mới gọi lại. Kỳ nào thiếu mark thì dùng mark hiện tại và đánh dấu ≈.
 - Mã niêm yết sau đầu khoảng thì bảng và biểu đồ bắt đầu từ ngày có kỳ funding đầu tiên, dòng ghi chú ghi rõ ngày đó.
 
 - USDT mỗi kỳ = `funding rate × mark lúc chốt × khối lượng`. Khối lượng dùng ô ở mục Funding theo vị thế (mặc định 1 oz): vàng và PAXG dùng chung một ô, bạc dùng ô riêng của tab XAGUSDT.
 - Số liệu tính cho bên Short: dương là nhận, âm là trả. Bên Long luôn ngược dấu vì funding chỉ chuyển giữa hai bên. Tổng mỗi ngày là số ròng.
 - Ngày chia theo giờ máy, khoảng N ngày gồm hôm nay. Khoảng 14 và 30 ngày vẽ một cột mỗi ngày; 90 ngày và từ đầu năm gộp cột theo tuần (thứ Hai đến Chủ nhật). Cột của hôm nay (tuần này) vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
-- Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT), theo tháng (thêm trung bình mỗi ngày đủ của tháng) hoặc theo từng kỳ (rate, mark lúc chốt, USDT). Bảng cuộn trong khung.
+- Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT, index cuối ngày, perp − index trung bình), theo tháng (thêm trung bình mỗi ngày đủ của tháng, % index thay đổi trong tháng so với cuối tháng trước, perp − index trung bình) hoặc theo từng kỳ (rate, mark lúc chốt, USDT, perp − index trung bình các giờ trong kỳ trước lúc chốt). Tháng chưa có ngày đủ thì cột trung bình mỗi ngày để trống. Bảng cuộn trong khung.
+
+### Giá perp so với index
+
+Cùng khung lịch sử funding, theo khoảng đang chọn, để xem funding có đi cùng chênh lệch giá không:
+
+- **Index** là giá tham chiếu sàn dùng tính funding: với XAUUSDT, XAGUSDT là giá vàng, bạc giao ngay sàn tổng hợp từ nhiều nguồn; với PAXGUSDT là giá token PAXG.
+- Dữ liệu là nến 1 giờ đã đóng: giá khớp của perp và index. Binance trang tự lấy (`/fapi/v1/klines`, `/fapi/v1/indexPriceKlines`, mỗi lần tối đa 1500 nến). Bybit qua `api/exchanges.php?symbol=<MÃ>&start=<mốc>&px=1` (`/v5/market/kline`, `/v5/market/index-price-kline`), host lưu dần vào `api/bybit_px_<MÃ>.json` giống kho funding. Không lấy được giá thì phần funding vẫn hiện bình thường, chỉ thiếu phần so giá kèm thông báo.
+- **Perp − index mỗi ngày / tuần (%)**: trung bình chênh lệch `(giá perp − index) / index` các giờ trong ngày (tuần), vẽ ngay dưới biểu đồ funding với cùng trục thời gian. Perp cao hơn index thì funding thường cao hơn mức mặc định, thấp hơn thì funding giảm hoặc âm.
+- **Giá perp so với index**: hai đường giá (từng giờ với khoảng 14 và 30 ngày, giá đóng cửa mỗi ngày với 90 ngày và từ đầu năm). Rê chuột hoặc chạm để xem giá và mức chênh từng thời điểm.
+- Dòng ghi chú có chênh lệch trung bình cả khoảng và hệ số tương quan giữa chênh lệch với tổng funding rate từng ngày đủ (gần 1 là funding đi cùng chênh lệch).
+- Sàn tính funding theo giá đặt mua/bán có độ sâu (impact price) chứ không theo giá khớp, nên chênh lệch ở đây chỉ gần đúng.
 
 ## Funding 3 sàn
 

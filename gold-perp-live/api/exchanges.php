@@ -11,7 +11,8 @@
  *
  * ?days=N lấy thêm lịch sử funding N ngày của mọi mã (tối đa 60).
  * ?symbol=XAUUSDT&start=<mili giây> lấy lịch sử funding Bybit của một mã từ mốc start (tối đa 400 ngày),
- * lưu dần trong bybit_hist_<MÃ>.json: lần đầu lấy hết, sau đó chỉ lấy thêm các kỳ mới.
+ * lưu dần trong bybit_hist_<MÃ>.json: lần đầu lấy hết, sau đó chỉ lấy thêm các kỳ mới. Thêm &px=1 để có cả
+ * giá khớp và index theo giờ (lưu trong bybit_px_<MÃ>.json), dùng so giá perp với giá vàng.
  * ?debug=1 xem dữ liệu thô từng lần gọi.
  * Kết quả được cache: giá/funding hiện tại 30 giây, lịch sử 30 phút (hoặc tới kỳ chốt kế tiếp).
  */
@@ -116,27 +117,42 @@ function hl_live($coin, $dex, $ctxs) {
     return null;
 }
 
-// Mark price Bybit (nến $minutes phút, tối đa 1000 nến mỗi lần, mới nhất trước):
-// thời điểm mở nến => giá mở nến, tức mark lúc chốt funding đúng thời điểm đó
-function bybit_marks($symbol, $start, $end, $minutes, &$log) {
+// Nến Bybit ($path: /v5/market/kline giá khớp, mark-price-kline, index-price-kline), nến $minutes phút,
+// tối đa 1000 nến mỗi lần, mới nhất trước. Trả ['vals' => [thời điểm mở nến => cột $col], 'from' => mốc đã lấy đủ tới];
+// cột 1 là giá mở, cột 4 là giá đóng. Lỗi ngay lần gọi đầu thì trả null.
+function bybit_kline($path, $symbol, $start, $end, $minutes, $col, &$log) {
     $out = [];
+    $from = null;
     $pages = min(30, (int) ceil(($end - $start) / ($minutes * 60000 * 1000)) + 1);
     for ($page = 0; $page < $pages; $page++) {
-        $raw = fx_fetch(EX_BYBIT . '/v5/market/mark-price-kline?category=linear&symbol=' . $symbol . '&interval=' . $minutes . '&start=' . $start . '&end=' . $end . '&limit=1000', $log);
+        $raw = fx_fetch(EX_BYBIT . $path . '?category=linear&symbol=' . $symbol . '&interval=' . $minutes . '&start=' . $start . '&end=' . $end . '&limit=1000', $log);
         $json = $raw !== false ? json_decode($raw, true) : null;
-        $list = isset($json['result']['list']) && is_array($json['result']['list']) ? $json['result']['list'] : [];
-        if (!$list) break;
+        if (!isset($json['result']['list']) || !is_array($json['result']['list'])) {
+            if (!$page) return null;
+            break;
+        }
+        $list = $json['result']['list'];
         $oldest = PHP_INT_MAX;
         foreach ($list as $r) {
-            if (!isset($r[0], $r[1]) || !is_numeric($r[1])) continue;
+            if (!isset($r[0], $r[$col]) || !is_numeric($r[$col])) continue;
             $t = (int) $r[0];
-            $out[$t] = (float) $r[1];
+            $out[$t] = (float) $r[$col];
             $oldest = min($oldest, $t);
         }
-        if (count($list) < 1000 || $oldest <= $start) break;
+        if (count($list) < 1000 || $oldest <= $start) {
+            $from = $start;
+            break;
+        }
         $end = $oldest - 1;
     }
-    return $out;
+    if ($from === null) $from = $out ? min(array_keys($out)) : $end + 1;
+    return ['vals' => $out, 'from' => $from];
+}
+
+// Mark price Bybit: thời điểm mở nến => giá mở nến, tức mark lúc chốt funding đúng thời điểm đó
+function bybit_marks($symbol, $start, $end, $minutes, &$log) {
+    $k = bybit_kline('/v5/market/mark-price-kline', $symbol, $start, $end, $minutes, 1, $log);
+    return $k ? $k['vals'] : [];
 }
 
 // Funding rate Bybit trong [start, end]: tối đa 200 dòng mỗi lần, mới nhất trước, lùi dần endTime.
@@ -200,17 +216,17 @@ function bybit_hist($symbol, $start, &$debug) {
     return bybit_attach_marks($symbol, $f['rates'], $debug[$m]);
 }
 
-// Kho lịch sử funding Bybit của một mã (bybit_hist_<MÃ>.json). Lần đầu lấy từ $start tới hiện tại,
-// sau đó chỉ lấy thêm các kỳ mới khi kho đã cũ, và lấy lùi thêm khi trang xin mốc sớm hơn mốc đã có.
-// $due là kỳ chốt kế tiếp của mã (để có ngay kỳ vừa chốt). Trả ['rows' => các kỳ từ $start, 'from' => mốc kho có đủ].
-function bybit_store($symbol, $start, $due, $force, &$debug, &$errors) {
-    $file = __DIR__ . '/bybit_hist_' . $symbol . '.json';
+// Kho dữ liệu theo thời gian của một mã, lưu trong $file. Lần đầu lấy từ $start tới hiện tại, sau đó chỉ lấy
+// thêm phần mới khi kho đã cũ (30 phút, hoặc vừa qua kỳ chốt đã hẹn $due), và lấy lùi thêm khi trang xin mốc sớm
+// hơn mốc đã có. $fetch($a, $b) trả ['rows' => [[thời điểm, ...], ...], 'from' => mốc đã lấy đủ tới] hoặc null khi lỗi;
+// $since($map, $now, $from) cho mốc bắt đầu lấy phần mới. Trả ['rows' => các dòng từ $start, 'from' => mốc kho có đủ].
+function ex_store($file, $start, $due, $force, $fetch, $since, $what, &$errors) {
     $now = fx_now_ms();
     $st = ex_read($file);
     $map = [];
     if (isset($st['rows']) && is_array($st['rows'])) {
         foreach ($st['rows'] as $r) {
-            if (is_array($r) && isset($r[0], $r[1])) $map[(int) $r[0]] = [(int) $r[0], (float) $r[1], isset($r[2]) ? (float) $r[2] : null];
+            if (is_array($r) && isset($r[0], $r[1])) $map[(int) $r[0]] = $r;
         }
     }
     $from = isset($st['from']) ? (int) $st['from'] : null;
@@ -219,40 +235,29 @@ function bybit_store($symbol, $start, $due, $force, &$debug, &$errors) {
     // Vừa gọi lỗi trong 1 phút qua thì chưa gọi lại, để host bị Bybit chặn không gọi mãi mỗi lần mở trang
     $failed = !$force && $now - $failAt < 60000;
     $changed = false;
-    $k = ex_log($debug, 'bybit_store_' . $symbol);
 
     if (!$failed && ($from === null || $start < $from)) {
         // Lần đầu lấy hết tới hiện tại; kho đã có thì chỉ lấy lùi phần còn thiếu phía trước
         $first = $from === null;
-        $f = bybit_funding($symbol, $start, $first ? $now : $from - 1, $debug[$k]);
+        $f = $fetch($start, $first ? $now : $from - 1);
         if ($f === null) {
             $failed = true;
         } else {
-            foreach (bybit_attach_marks($symbol, $f['rates'], $debug[$k]) as $r) $map[$r[0]] = $r;
+            foreach ($f['rows'] as $r) $map[$r[0]] = $r;
             $from = $first ? $f['from'] : min($from, $f['from']);
             if ($first) $at = $now;
             $changed = true;
         }
     }
 
-    // Lấy thêm các kỳ mới sau 30 phút, hoặc ngay khi vừa qua kỳ chốt đã hẹn
     $stDue = isset($st['due']) ? (int) $st['due'] : 0;
     if ($from !== null && !$failed && ($force || $now - $at > EX_HIST_TTL_MS || ($stDue && $now >= $stDue + 30000))) {
         ksort($map);
-        end($map);
-        $since = $map ? key($map) + 1 : $from;
-        // Lấy lại cả các kỳ trong 3 ngày gần đây còn thiếu mark lúc chốt
-        foreach ($map as $t => $r) {
-            if ($r[2] === null && $t > $now - 3 * 86400000) {
-                $since = min($since, $t);
-                break;
-            }
-        }
-        $f = bybit_funding($symbol, $since, $now, $debug[$k]);
+        $f = $fetch($since($map, $now, $from), $now);
         if ($f === null) {
             $failed = true;
         } else {
-            foreach (bybit_attach_marks($symbol, $f['rates'], $debug[$k]) as $r) $map[$r[0]] = $r;
+            foreach ($f['rows'] as $r) $map[$r[0]] = $r;
             $at = $now;
             $changed = true;
         }
@@ -263,7 +268,7 @@ function bybit_store($symbol, $start, $due, $force, &$debug, &$errors) {
         $changed = true;
     }
     if ($changed) {
-        // Bỏ các kỳ quá cũ để file không lớn dần mãi
+        // Bỏ các dòng quá cũ để file không lớn dần mãi
         $cut = $now - EX_STORE_MAX_DAYS * 86400000;
         foreach ($map as $t => $r) {
             if ($t < $cut) unset($map[$t]);
@@ -273,13 +278,59 @@ function bybit_store($symbol, $start, $due, $force, &$debug, &$errors) {
         ex_write($file, ['from' => $from, 'at' => $at, 'due' => $due, 'failAt' => $failAt, 'rows' => array_values($map)]);
     }
 
-    if ($failed) $errors[] = 'Bybit: không lấy được lịch sử funding ' . $symbol . ($map ? ', đang dùng dữ liệu lấy lúc trước.' : '.');
+    if ($failed) $errors[] = $what . ($map ? ', đang dùng dữ liệu lấy lúc trước.' : '.');
     if ($from === null) return null;
     $rows = [];
     foreach ($map as $t => $r) {
         if ($t >= $start) $rows[] = $r;
     }
     return ['rows' => $rows, 'from' => $from];
+}
+
+// Mốc lấy phần mới: sau dòng cuối cùng trong kho
+function ex_after_last($map, $now, $from) {
+    end($map);
+    return $map ? key($map) + 1 : $from;
+}
+
+// Kho lịch sử funding Bybit của một mã (bybit_hist_<MÃ>.json), mỗi kỳ [thời điểm, rate, mark lúc chốt].
+// $due là kỳ chốt kế tiếp của mã (để có ngay kỳ vừa chốt).
+function bybit_store($symbol, $start, $due, $force, &$debug, &$errors) {
+    $k = ex_log($debug, 'bybit_store_' . $symbol);
+    $log = &$debug[$k];
+    $fetch = function ($a, $b) use ($symbol, &$log) {
+        $f = bybit_funding($symbol, $a, $b, $log);
+        return $f === null ? null : ['rows' => bybit_attach_marks($symbol, $f['rates'], $log), 'from' => $f['from']];
+    };
+    // Lấy lại cả các kỳ trong 3 ngày gần đây còn thiếu mark lúc chốt
+    $since = function ($map, $now, $from) {
+        $since = ex_after_last($map, $now, $from);
+        foreach ($map as $t => $r) {
+            if ($r[2] === null && $t > $now - 3 * 86400000) return min($since, $t);
+        }
+        return $since;
+    };
+    return ex_store(__DIR__ . '/bybit_hist_' . $symbol . '.json', $start, $due, $force, $fetch, $since,
+        'Bybit: không lấy được lịch sử funding ' . $symbol, $errors);
+}
+
+// Kho giá theo giờ của một mã Bybit (bybit_px_<MÃ>.json), mỗi giờ [giờ mở nến, giá khớp đóng nến, index đóng nến].
+// Chỉ lưu nến đã đóng.
+function bybit_px_store($symbol, $start, $due, $force, &$debug, &$errors) {
+    $k = ex_log($debug, 'bybit_px_' . $symbol);
+    $log = &$debug[$k];
+    $fetch = function ($a, $b) use ($symbol, &$log) {
+        $b = min($b, (int) (floor(fx_now_ms() / 3600000) * 3600000) - 1); // bỏ nến giờ hiện tại chưa đóng
+        if ($b < $a) return ['rows' => [], 'from' => $a];
+        $p = bybit_kline('/v5/market/kline', $symbol, $a, $b, 60, 4, $log);
+        $i = $p === null ? null : bybit_kline('/v5/market/index-price-kline', $symbol, $a, $b, 60, 4, $log);
+        if ($p === null || $i === null) return null;
+        $rows = [];
+        foreach ($p['vals'] as $t => $v) $rows[] = [$t, $v, isset($i['vals'][$t]) ? $i['vals'][$t] : null];
+        return ['rows' => $rows, 'from' => max($p['from'], $i['from'])];
+    };
+    return ex_store(__DIR__ . '/bybit_px_' . $symbol . '.json', $start, $due, $force, $fetch, 'ex_after_last',
+        'Bybit: không lấy được giá theo giờ ' . $symbol, $errors);
 }
 
 // Lịch sử funding Hyperliquid: mỗi giờ một dòng, tối đa 500 dòng mỗi lần
@@ -391,6 +442,14 @@ if ($symbol !== '') {
         'from' => $store ? $store['from'] : null,
         'errors' => $errors,
     ];
+    // ?px=1: thêm giá khớp và index theo giờ để trang so giá perp với giá vàng
+    if (isset($_GET['px'])) {
+        $pxErrors = [];
+        $px = bybit_px_store($symbol, $start, $next > $now ? $next : null, $DEBUG, $debug, $pxErrors);
+        $hist['prices'] = $px ? ['bybit:' . $symbol => $px['rows']] : [];
+        $hist['pxFrom'] = $px ? $px['from'] : null;
+        $hist['pxErrors'] = $pxErrors;
+    }
 } elseif ($days) {
     $cache = ex_read(EX_HIST_FILE);
     $key = (string) $days;
@@ -426,6 +485,11 @@ $out = [
 if ($symbol !== '') {
     $out['symbol'] = $symbol;
     $out['from'] = $hist['from']; // kho có đủ dữ liệu từ mốc này (mã niêm yết sau đó thì kỳ đầu tiên muộn hơn)
+    if (isset($hist['prices'])) {
+        $out['prices'] = $hist['prices']; // [giờ mở nến, giá khớp đóng nến, index đóng nến]
+        $out['pxFrom'] = $hist['pxFrom'];
+        $out['pxErrors'] = $hist['pxErrors'];
+    }
 }
 if ($DEBUG) $out['debug'] = $debug;
 
