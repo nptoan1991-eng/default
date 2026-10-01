@@ -901,8 +901,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <div class="panel-head">
         <h2>Lịch sử funding</h2>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding dầu">
-          <button type="button" id="oil-7" role="radio" data-oildays="7" aria-checked="true">7 ngày</button>
-          <button type="button" id="oil-30" role="radio" data-oildays="30" aria-checked="false">30 ngày</button>
+          <button type="button" role="radio" data-oilrange="7" aria-checked="true">7 ngày</button>
+          <button type="button" role="radio" data-oilrange="30" aria-checked="false">30 ngày</button>
+          <button type="button" role="radio" data-oilrange="90" aria-checked="false">90 ngày</button>
+          <button type="button" role="radio" data-oilrange="ytd" aria-checked="false">Từ đầu năm</button>
         </div>
       </div>
       <div class="hist-meta">
@@ -910,6 +912,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <button type="button" class="linkbtn" id="oilRetry" hidden>Tải lại</button>
       </div>
       <div class="table-wrap"><table id="oilSumTable"></table></div>
+      <h3 class="sub-h">Tổng funding mỗi tháng</h3>
+      <div class="table-wrap"><table id="oilMonthTable"></table></div>
       <h3 class="sub-h">Tổng funding mỗi ngày</h3>
       <div class="legend ex-legend"><span class="ey">Bybit</span><span class="eb">Binance</span></div>
       <div class="bs-wrap">
@@ -919,6 +923,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
       <p class="note">Mỗi điểm là tổng funding rate trong một ngày theo giờ máy, không tính hôm nay vì chưa đủ kỳ. Rê chuột hoặc chạm để xem từng ngày.</p>
       <div class="table-wrap"><table id="oilDayTable"></table></div>
+      <div class="export-bar">
+        <span class="label">Xuất dữ liệu</span>
+        <button type="button" class="linkbtn" data-oilexport="json">JSON (gửi phân tích)</button>
+        <button type="button" class="linkbtn" data-oilexport="ky">CSV theo kỳ</button>
+        <button type="button" class="linkbtn" data-oilexport="ngay">CSV theo ngày</button>
+      </div>
+      <p class="note" id="oilExportNote">Xuất cả hai sàn theo khoảng đang chọn: funding từng kỳ (rate, mark lúc chốt, USDT cho số thùng đang nhập) và tổng theo ngày.</p>
     </section>
   </div>
 
@@ -1139,7 +1150,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     oilMeta: $('oilMeta'), oilGapLast: $('oilGapLast'), oilGapLastSub: $('oilGapLastSub'), oilGapMark: $('oilGapMark'), oilGapMarkSub: $('oilGapMarkSub'),
     oilGapRate: $('oilGapRate'), oilGapRateSub: $('oilGapRateSub'), oilQty: $('oilQty'), oilPosTable: $('oilPosTable'),
     oilHistMeta: $('oilHistMeta'), oilRetry: $('oilRetry'), oilSumTable: $('oilSumTable'), oilDayTable: $('oilDayTable'),
-    oilDaysBtns: document.querySelectorAll('.seg [data-oildays]'),
+    oilRangeBtns: document.querySelectorAll('[data-oilrange]'), oilMonthTable: $('oilMonthTable'),
+    oilExportBtns: document.querySelectorAll('[data-oilexport]'), oilExportNote: $('oilExportNote'),
     byFx: $('byFx'), byFxSub: $('byFxSub'), bnFx: $('bnFx'), bnFxSub: $('bnFxSub'),
     pgFx: $('pgFx'), pgFxSub: $('pgFxSub'), pgTk: $('pgTk'), pgTkSub: $('pgTkSub'),
     histPanel: $('histPanel'), histWhich: $('histWhich'),
@@ -1670,6 +1682,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const on = byValOf(OIL, 'next') || bnSideVal(OIL, 'next');
       if (!oilDueAt && on > now) oilDueAt = on + 60000;
       if (oilDueAt && now >= oilDueAt) { oilDueAt = 0; loadOilHist(); }
+      else if (oilNeedMark.some((n) => oilVenue(n === 'Bybit' ? 'by' : 'bn').mark != null)) renderOilHist();
     }
     if (tab === 'so-sanh') renderExchanges();
   }
@@ -2248,7 +2261,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // Theo sàn, mã và khoảng đang chọn. JSON gồm mọi bảng (để gửi phân tích), CSV từng bảng để mở bằng Excel.
   const isoMin = (t) => new Date(t).toISOString().slice(0, 16) + 'Z';
   const num = (v, d) => (Number.isFinite(v) ? +v.toFixed(d) : null);
-  const RANGE_TAG = { '14': '14d', '30': '30d', '90': '90d', ytd: 'ytd' };
+  const RANGE_TAG = { '7': '7d', '14': '14d', '30': '30d', '90': '90d', ytd: 'ytd' };
 
   // Open interest và tỷ lệ tài khoản Long theo nến 4 giờ, qua host (host lưu dần vì Binance chỉ giữ 30 ngày)
   async function loadOi(start) {
@@ -3793,8 +3806,19 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const OIL = 'CLUSDT';
   const OIL_VENUES = [['by', 'Bybit'], ['bn', 'Binance']];
   const fmtOil = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-  let oilLoaded = false, oilDays = 7, oilDueAt = 0, oilSeq = 0, oilLoading = false, oilErrors = [];
-  let oilHist = { Bybit: null, Binance: null };
+  let oilLoaded = false, oilRange = '7', oilDueAt = 0, oilSeq = 0, oilLoading = false, oilErrors = [];
+  let oilHist = { start: Infinity, Bybit: null, Binance: null };
+  let oilNeedMark = []; // sàn có kỳ thiếu mark lúc chốt mà chưa có mark hiện tại: vẽ lại khi có
+  const OIL_RANGES = { '7': '7 ngày', '30': '30 ngày', '90': '90 ngày', ytd: 'từ đầu năm' };
+
+  // Mốc đầu khoảng theo giờ máy: N ngày đủ trước hôm nay (kèm hôm nay), hoặc 0h ngày 1/1 năm nay
+  function oilStart() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    if (oilRange === 'ytd') d.setMonth(0, 1);
+    else d.setDate(d.getDate() - Number(oilRange));
+    return d.getTime();
+  }
   const oilPrev = {};
 
   function oilVenue(k) {
@@ -3859,27 +3883,28 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.oilPosTable.innerHTML = html + '</tbody>';
   }
 
-  // Lịch sử funding: Binance lấy trực tiếp, Bybit qua host (kèm mark lúc chốt từng kỳ)
+  // Lịch sử funding: Binance lấy trực tiếp, Bybit qua kho lưu sẵn trên host (kèm mark lúc chốt từng kỳ)
   async function loadOilHist() {
-    const days = oilDays, seq = ++oilSeq;
+    const seq = ++oilSeq, start = oilStart();
     oilLoading = true;
     renderOilHist();
-    const since = Date.now() - days * 864e5;
     const host = location.protocol === 'file:'
       ? Promise.reject(new Error('Lịch sử Bybit cần mở trang từ host có thư mục api/'))
-      : fetch(EX_API + '?days=' + days, { cache: 'no-store' })
+      : fetch(EX_API + '?symbol=' + OIL + '&start=' + start, { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/exchanges.php trả HTTP ' + r.status))));
-    const [bn, hy] = await Promise.allSettled([fetchFundingSince(OIL, since), host]);
+    const [bn, hy] = await Promise.allSettled([fetchFundingSince(OIL, start), host]);
     if (seq !== oilSeq) return;
     const errors = [];
-    oilHist = { Bybit: null, Binance: null };
-    if (bn.status === 'fulfilled') oilHist.Binance = bn.value;
+    oilHist = { start, Bybit: null, Binance: null };
+    if (bn.status === 'fulfilled') oilHist.Binance = bn.value.filter((r) => r.t >= start);
     else errors.push('Binance: không lấy được lịch sử funding (' + bn.reason.message + ').');
     if (hy.status === 'fulfilled') {
       const data = hy.value || {};
       const list = data.history ? data.history['bybit:' + OIL] : null;
-      if (Array.isArray(list)) oilHist.Bybit = list.map((x) => ({ t: +x[0], rate: +x[1], mark: x[2] != null ? +x[2] : NaN }));
-      else errors.push(((data.errors || []).filter((m) => m.includes(OIL)).join(' ') || 'Bybit: host chưa có lịch sử funding CLUSDT.'));
+      const errs = data.histErrors || [];
+      if (Array.isArray(list)) oilHist.Bybit = list.map((x) => ({ t: +x[0], rate: +x[1], mark: x[2] != null ? +x[2] : NaN })).filter((r) => r.t >= start);
+      else errors.push(errs.join(' ') || 'Bybit: host chưa có lịch sử funding CLUSDT, hãy upload lại cả thư mục api/.');
+      if (Array.isArray(list) && errs.length) errors.push(errs.join(' '));
     } else {
       errors.push(hy.reason.message + '.');
     }
@@ -3889,26 +3914,60 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderOilHist();
   }
 
-  // Tổng funding rate mỗi ngày (theo giờ máy) của 2 sàn, chỉ các ngày đủ
-  function buildOilDaily() {
-    const todayKey = dayKey(Date.now());
-    const first = new Date();
-    first.setHours(0, 0, 0, 0);
-    first.setDate(first.getDate() - oilDays);
-    const byDay = new Map();
-    for (let k = 0; k < oilDays; k++) {
-      const d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + k);
-      byDay.set(dayKey(d.getTime()), { t: d.getTime(), v: {} });
+  function setOilRange(r, fromClick) {
+    if (!OIL_RANGES[r]) r = '7';
+    oilRange = r;
+    el.oilRangeBtns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.oilrange === r)));
+    if (fromClick) try { localStorage.setItem('gold-perp-live.oilRange', r); } catch (e) { /* bỏ qua */ }
+    if (!oilLoaded) return;
+    // Dữ liệu đang có đã phủ khoảng mới thì chỉ lọc lại, không cần tải
+    if (!oilLoading && oilHist.start <= oilStart()) { buildOilDaily(); renderOilHist(); }
+    else { oilHist = { start: Infinity, Bybit: null, Binance: null }; exDaily.oil = []; loadOilHist(); }
+  }
+
+  // Các kỳ của một sàn trong khoảng đang chọn, kèm mark dùng tính USDT (thiếu mark lúc chốt thì dùng mark hiện tại)
+  function oilPeriods(name, q) {
+    const start = oilStart();
+    const markNow = oilVenue(name === 'Bybit' ? 'by' : 'bn').mark;
+    return (oilHist[name] || []).filter((r) => r.t >= start).map((r) => {
+      const has = Number.isFinite(r.mark) && r.mark > 0;
+      const mark = has ? r.mark : markNow;
+      return { t: r.t, rate: r.rate, mark, approx: !has, usdt: mark != null ? r.rate * mark * q : NaN };
+    });
+  }
+
+  // Tổng theo ngày giờ máy của 2 sàn, từ ngày đầu khoảng tới hôm nay: [{ key, t, v: { Bybit: { n, rate }, ... } }]
+  function oilDayRows() {
+    const start = oilStart(), todayKey = dayKey(Date.now());
+    const rows = [], byKey = new Map();
+    const d0 = new Date(start);
+    for (let k = 0; k < 400; k++) {
+      const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + k);
+      const row = { key: dayKey(d.getTime()), t: d.getTime(), v: {} };
+      rows.push(row);
+      byKey.set(row.key, row);
+      if (row.key === todayKey) break;
     }
     for (const venue of ['Bybit', 'Binance']) {
       for (const r of oilHist[venue] || []) {
-        const key = dayKey(r.t);
-        if (key === todayKey || !byDay.has(key)) continue;
-        const day = byDay.get(key);
-        day.v[venue] = (day.v[venue] || 0) + r.rate * 100;
+        const row = byKey.get(dayKey(r.t));
+        if (!row) continue;
+        const x = row.v[venue] || (row.v[venue] = { n: 0, rate: 0 });
+        x.n++;
+        x.rate += r.rate;
       }
     }
-    exDaily.oil = Array.from(byDay.values());
+    return rows;
+  }
+
+  // Biểu đồ: tổng funding rate mỗi ngày (%) của 2 sàn, chỉ các ngày đủ (không tính hôm nay)
+  function buildOilDaily() {
+    const todayKey = dayKey(Date.now());
+    exDaily.oil = oilDayRows().filter((d) => d.key !== todayKey).map((d) => {
+      const v = {};
+      for (const venue in d.v) v[venue] = d.v[venue].rate * 100;
+      return { t: d.t, v };
+    });
     exDirty = true;
     schedule();
   }
@@ -3918,31 +3977,35 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const q = parseFloat(el.oilQty.value);
     const qOk = Number.isFinite(q) && q >= 0;
     if (oilLoading && !oilHist.Bybit && !oilHist.Binance) {
-      el.oilHistMeta.textContent = 'Đang tải lịch sử funding ' + oilDays + ' ngày…';
+      el.oilHistMeta.textContent = 'Đang tải lịch sử funding ' + OIL_RANGES[oilRange] + '…';
+      el.oilSumTable.innerHTML = el.oilMonthTable.innerHTML = el.oilDayTable.innerHTML = '';
       return;
     }
+    const start = oilStart();
+    const spanDays = (Date.now() - start) / 864e5;
     let approx = false;
-    el.oilHistMeta.textContent = 'Funding thực tế ' + oilDays + ' ngày qua. USDT tính cho ' + (qOk ? q : '—') + ' thùng theo mark lúc chốt từng kỳ, số của bên Short: dương là nhận, âm là trả. Tự tải lại sau mỗi kỳ funding.'
+    oilNeedMark = [];
+    el.oilHistMeta.textContent = 'Funding thực tế từ ' + dmy(start) + ' (' + OIL_RANGES[oilRange] + '). USDT tính cho ' + (qOk ? q : '—') + ' thùng theo mark lúc chốt từng kỳ, số của bên Short: dương là nhận, âm là trả. Tự tải lại sau mỗi kỳ funding.'
       + (oilErrors.length ? ' ' + oilErrors.join(' ') : '');
-    const since = Date.now() - oilDays * 864e5;
     const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
     let html = '<thead><tr><th>Sàn</th><th>TB quy năm</th><th>Tổng rate</th><th>USDT' + (qOk ? ' (' + q + ' thùng)' : '') + '</th><th>Số kỳ</th><th>Kỳ dương</th></tr></thead><tbody>';
-    for (const [k, name] of OIL_VENUES) {
-      const rows = (oilHist[name] || []).filter((r) => r.t >= since);
+    for (const [, name] of OIL_VENUES) {
+      const rows = oilPeriods(name, qOk ? q : NaN);
       if (!rows.length) {
         html += '<tr><td>' + name + '</td><td colspan="5">' + (oilHist[name] ? 'Chưa có kỳ funding nào' : '—') + '</td></tr>';
         continue;
       }
-      const markNow = oilVenue(k).mark;
       let sum = 0, usdt = 0, pos = 0;
       for (const r of rows) {
         sum += r.rate;
         if (r.rate > 0) pos++;
-        const m = Number.isFinite(r.mark) && r.mark > 0 ? r.mark : markNow;
-        if (!(Number.isFinite(r.mark) && r.mark > 0)) approx = true;
-        if (m != null && qOk) usdt += r.rate * m * q;
+        if (r.approx) approx = true;
+        if (r.approx && r.mark == null && !oilNeedMark.includes(name)) oilNeedMark.push(name);
+        if (Number.isFinite(r.usdt)) usdt += r.usdt;
       }
-      const annual = (sum / oilDays) * 365 * 100;
+      // Quy năm theo số ngày thực có dữ liệu của sàn (mã niêm yết sau đầu khoảng thì tính từ kỳ đầu tiên)
+      const days = Math.max(Math.min(spanDays, (Date.now() - rows[0].t) / 864e5 + 1 / 6), 1 / 6);
+      const annual = (sum / days) * 365 * 100;
       html += '<tr><td>' + name + '</td>'
         + '<td' + tone(annual) + '>' + signed(annual, 2) + '%</td>'
         + '<td>' + signed(sum * 100, 4) + '%</td>'
@@ -3953,17 +4016,80 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     el.oilSumTable.innerHTML = html + '</tbody>';
     if (approx) el.oilHistMeta.textContent += ' Kỳ thiếu mark lúc chốt thì dùng mark hiện tại.';
 
+    // Theo tháng: tổng rate mỗi sàn, tháng hiện tại tính tới lúc này
+    const dayRows = oilDayRows();
+    const months = [];
+    for (const d of dayRows) {
+      const key = d.key.slice(0, 7);
+      let m = months[months.length - 1];
+      if (!m || m.key !== key) months.push(m = { key, t: d.t, Bybit: null, Binance: null });
+      for (const venue in d.v) m[venue] = (m[venue] || 0) + d.v[venue].rate * 100;
+    }
+    let mt = '<thead><tr><th>Tháng</th><th>Bybit</th><th>Binance</th><th>Bybit − Binance</th></tr></thead><tbody>';
+    for (let k = months.length - 1; k >= 0; k--) {
+      const m = months[k], diff = m.Bybit != null && m.Binance != null ? m.Bybit - m.Binance : null;
+      const dt = new Date(m.t);
+      mt += '<tr><td' + (k === months.length - 1 ? ' class="cur"' : '') + '>Tháng ' + (dt.getMonth() + 1) + '/' + dt.getFullYear() + '</td>'
+        + '<td' + tone(m.Bybit) + '>' + (m.Bybit != null ? signed(m.Bybit, 4) + '%' : '—') + '</td>'
+        + '<td' + tone(m.Binance) + '>' + (m.Binance != null ? signed(m.Binance, 4) + '%' : '—') + '</td>'
+        + '<td' + tone(diff) + '>' + (diff != null ? signed(diff, 4) : '—') + '</td></tr>';
+    }
+    el.oilMonthTable.innerHTML = months.some((m) => m.Bybit != null || m.Binance != null) ? mt + '</tbody>' : '';
+
     const days = exDaily.oil.filter((d) => Object.keys(d.v).length).slice().reverse();
     let dt = '<thead><tr><th>Ngày</th><th>Bybit</th><th>Binance</th><th>Bybit − Binance</th></tr></thead><tbody>';
     for (const d of days) {
       const a = d.v.Bybit, b = d.v.Binance;
       const diff = a != null && b != null ? a - b : null;
-      dt += '<tr><td>' + new Date(d.t).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }) + '</td>'
+      dt += '<tr><td>' + dayFmt.format(new Date(d.t)) + '</td>'
         + '<td>' + (a != null ? signed(a, 4) + '%' : '—') + '</td>'
         + '<td>' + (b != null ? signed(b, 4) + '%' : '—') + '</td>'
         + '<td' + tone(diff) + '>' + (diff != null ? signed(diff, 4) : '—') + '</td></tr>';
     }
     el.oilDayTable.innerHTML = days.length ? dt + '</tbody>' : '';
+  }
+
+  // Xuất lịch sử funding dầu của cả hai sàn
+  function exportOil(kind) {
+    if (oilLoading || (!oilHist.Bybit && !oilHist.Binance)) { el.oilExportNote.textContent = 'Chưa có dữ liệu để xuất, chờ tải xong lịch sử funding.'; return; }
+    const q0 = parseFloat(el.oilQty.value), q = Number.isFinite(q0) && q0 >= 0 ? q0 : 1;
+    const start = oilStart();
+    const funding = { columns: ['exchange', 'time_utc', 'rate', 'mark', 'usdt_short', 'mark_is_current'], rows: [] };
+    for (const [, name] of OIL_VENUES) {
+      for (const p of oilPeriods(name, q)) funding.rows.push([name, isoMin(p.t), num(p.rate, 8), num(p.mark, 4), num(p.usdt, 6), p.approx ? 1 : 0]);
+    }
+    const daily = {
+      columns: ['date_local', 'bybit_rate_sum', 'binance_rate_sum', 'bybit_periods', 'binance_periods'],
+      rows: oilDayRows().map((d) => [d.key, d.v.Bybit ? num(d.v.Bybit.rate, 8) : null, d.v.Binance ? num(d.v.Binance.rate, 8) : null, d.v.Bybit ? d.v.Bybit.n : 0, d.v.Binance ? d.v.Binance.n : 0])
+    };
+    const base = 'gold-perp-live_CLUSDT-bybit-binance_' + RANGE_TAG[oilRange] + '_' + dayKey(Date.now());
+    let name, count;
+    if (kind === 'json') {
+      const doc = {
+        app: 'Gold Perp Live',
+        exportedAt: new Date().toISOString(),
+        source: { symbol: OIL, exchanges: ['Bybit', 'Binance'], fundingIntervalHoursNow: { Bybit: oilVenue('by').iv, Binance: oilVenue('bn').iv } },
+        range: { label: OIL_RANGES[oilRange], startUtc: isoMin(start), endUtc: isoMin(Date.now()) },
+        timezone: { name: Intl.DateTimeFormat().resolvedOptions().timeZone || '', utcOffsetHours: -new Date().getTimezoneOffset() / 60 },
+        qty: q,
+        qtyUnit: 'thùng',
+        notes: [
+          'funding: từng kỳ chốt của cả hai sàn. rate là funding rate (0.0001 = 0.01%), dương thì Long trả Short. mark là mark price lúc chốt (mark_is_current = 1 là thiếu mark, dùng mark hiện tại). usdt_short = rate × mark × qty, số bên Short nhận.',
+          'daily: theo ngày giờ máy (timezone), tổng rate và số kỳ của từng sàn. Ngày cuối là hôm nay, chưa đủ.'
+        ],
+        warnings: oilErrors.slice(),
+        tables: { funding, daily }
+      };
+      name = base + '.json';
+      saveFile(name, JSON.stringify(doc), 'application/json');
+      count = funding.rows.length + ' kỳ, ' + daily.rows.length + ' ngày';
+    } else {
+      const t = kind === 'ky' ? funding : daily;
+      name = base + '_' + kind + '.csv';
+      saveFile(name, toCsv(t), 'text/csv;charset=utf-8');
+      count = t.rows.length + ' dòng';
+    }
+    el.oilExportNote.textContent = 'Đã xuất ' + name + ' (' + count + ').' + (oilErrors.length ? ' Lưu ý: ' + oilErrors.join(' ') : '');
   }
 
   // ---------- Tab: XAUUSDT (sub tab Bybit / Binance), PAXGUSDT Binance, Dầu WTI, So sánh ----------
@@ -4226,15 +4352,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     renderOilHist();
   });
   el.oilRetry.addEventListener('click', () => loadOilHist());
-  el.oilDaysBtns.forEach((b) => b.addEventListener('click', () => {
-    const days = Number(b.dataset.oildays);
-    if (days === oilDays) return;
-    oilDays = days;
-    el.oilDaysBtns.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
-    oilHist = { Bybit: null, Binance: null };
-    exDaily.oil = [];
-    loadOilHist();
-  }));
+  let savedOilRange = null;
+  try { savedOilRange = localStorage.getItem('gold-perp-live.oilRange'); } catch (e) { /* bỏ qua */ }
+  setOilRange(savedOilRange, false);
+  el.oilRangeBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.oilrange !== oilRange) setOilRange(b.dataset.oilrange, true); }));
+  el.oilExportBtns.forEach((b) => b.addEventListener('click', () => exportOil(b.dataset.oilexport)));
 
   const redraw = () => { barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; drillDirty = true; exDirty = true; schedule(); };
   if ('ResizeObserver' in window) {

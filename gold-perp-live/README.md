@@ -5,7 +5,7 @@ Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh 
 - **XAUUSDT**: hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới và lịch sử funding của sàn đang chọn (14 / 30 / 90 ngày hoặc từ đầu năm).
 - **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang, lịch sử funding của sàn đang chọn. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
-- **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 ngày. Chỉ tải dữ liệu khi mở tab này.
+- **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm, kèm xuất dữ liệu. Chỉ tải dữ liệu khi mở tab này.
 - **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab áp dụng cho các khung đang thấy trong tab đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
@@ -134,8 +134,9 @@ Tab `#dau`, so sánh **CLUSDT** (hợp đồng vĩnh cửu theo hợp đồng t�
 
 - **Live**: giá khớp, % 24h, mark, funding kỳ này, funding quy năm và đếm ngược tới kỳ sau của từng sàn; chênh lệch Bybit − Binance về giá khớp, mark và funding quy năm.
 - **Funding theo vị thế**: nhập số thùng (mặc định 1, trang nhớ lại). Bảng USDT mỗi kỳ, mỗi ngày, mỗi năm của từng sàn cho bên Short (dương là nhận).
-- **Lịch sử funding 7 / 30 ngày**: funding trung bình quy năm, tổng rate, tổng USDT cho số thùng đang nhập (theo mark lúc chốt từng kỳ), số kỳ và % kỳ dương của từng sàn; biểu đồ và bảng tổng funding mỗi ngày của hai sàn. Tự tải lại 1 phút sau mỗi kỳ funding.
-- Nguồn: Binance trực tiếp (`/fapi/v1/fundingRate`, WebSocket), Bybit qua WebSocket và `api/exchanges.php` (CLUSDT có trong danh sách mã Bybit của file này).
+- **Lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm** (từ 0h ngày 1/1 theo giờ máy; trang nhớ lựa chọn, đổi sang khoảng ngắn hơn khoảng đã tải thì không phải tải lại): funding trung bình quy năm (theo số ngày có dữ liệu của từng sàn), tổng rate, tổng USDT cho số thùng đang nhập (theo mark lúc chốt từng kỳ), số kỳ và % kỳ dương của từng sàn; bảng tổng funding mỗi tháng của hai sàn và chênh lệch (tháng này tính tới lúc xem); biểu đồ và bảng tổng funding mỗi ngày (không tính hôm nay). Tự tải lại 1 phút sau mỗi kỳ funding.
+- **Xuất dữ liệu**: JSON một file cả hai sàn (funding từng kỳ, tổng theo ngày, kèm thông tin và ghi chú cột, để gửi phân tích), CSV theo kỳ (`exchange, time_utc, rate, mark, usdt_short, mark_is_current`) và CSV theo ngày (`date_local, bybit_rate_sum, binance_rate_sum, bybit_periods, binance_periods`).
+- Nguồn: Binance trực tiếp (`/fapi/v1/fundingRate`, mỗi lần tối đa 1000 kỳ nên khoảng dài gọi nhiều lần; WebSocket), Bybit qua WebSocket và `api/exchanges.php?symbol=CLUSDT&start=<mốc>` (kho `bybit_hist_CLUSDT.json` lưu dần trên host như vàng).
 
 ## So sánh funding XAUUSDT và PAXGUSDT
 
