@@ -76,8 +76,8 @@ Một khung dùng chung: ở tab XAUUSDT và XAGUSDT theo sub tab đang chọn (
 
 - USDT mỗi kỳ = `funding rate × mark lúc chốt × khối lượng`. Khối lượng dùng ô ở mục Funding theo vị thế (mặc định 1 oz): vàng và PAXG dùng chung một ô, bạc dùng ô riêng của tab XAGUSDT.
 - Số liệu tính cho bên Short: dương là nhận, âm là trả. Bên Long luôn ngược dấu vì funding chỉ chuyển giữa hai bên. Tổng mỗi ngày là số ròng.
-- Ngày chia theo giờ máy, khoảng N ngày gồm hôm nay. Khoảng 14 và 30 ngày vẽ một cột mỗi ngày; 90 ngày và từ đầu năm gộp cột theo tuần (thứ Hai đến Chủ nhật). Cột của hôm nay (tuần này) vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
-- Khung nằm ở đầu tab, ngay dưới hàng nút sub tab. Bảng mặc định xem theo kỳ; có thể chuyển sang theo ngày (số kỳ, tổng rate, tổng USDT, index cuối ngày, perp − index trung bình), theo tháng (thêm trung bình mỗi ngày đủ của tháng, % index thay đổi trong tháng so với cuối tháng trước, perp − index trung bình) hoặc theo từng kỳ (rate, mark lúc chốt, USDT, perp − index trung bình các giờ trong kỳ trước lúc chốt). Tháng chưa có ngày đủ thì cột trung bình mỗi ngày để trống. Bảng cuộn trong khung.
+- Ngày chia theo giờ máy, khoảng N ngày gồm hôm nay. Trung bình mỗi ngày chỉ tính các ngày đủ (không tính hôm nay).
+- Khung nằm ở đầu tab, ngay dưới hàng nút sub tab. Bảng nằm ngay dưới các số tổng hợp, mặc định xem theo kỳ; có thể chuyển sang theo ngày (số kỳ, tổng rate, tổng USDT, index cuối ngày, perp − index trung bình), theo tháng (thêm trung bình mỗi ngày đủ của tháng, % index thay đổi trong tháng so với cuối tháng trước, perp − index trung bình) hoặc theo từng kỳ (rate, mark lúc chốt, USDT, perp − index trung bình các giờ trong kỳ trước lúc chốt). Tháng chưa có ngày đủ thì cột trung bình mỗi ngày để trống. Bảng cuộn trong khung.
 
 ### Giá perp so với index
 
@@ -85,7 +85,7 @@ Cùng khung lịch sử funding, theo khoảng đang chọn, để xem funding c
 
 - **Index** là giá tham chiếu sàn dùng tính funding: với XAUUSDT, XAGUSDT là giá vàng, bạc giao ngay sàn tổng hợp từ nhiều nguồn; với PAXGUSDT là giá token PAXG.
 - Dữ liệu là nến 1 giờ đã đóng: giá khớp của perp và index. Binance trang tự lấy (`/fapi/v1/klines`, `/fapi/v1/indexPriceKlines`, mỗi lần tối đa 1500 nến). Bybit qua `api/exchanges.php?symbol=<MÃ>&start=<mốc>&px=1` (`/v5/market/kline`, `/v5/market/index-price-kline`), host lưu dần vào `api/bybit_px_<MÃ>.json` giống kho funding. Không lấy được giá thì phần funding vẫn hiện bình thường, chỉ thiếu phần so giá kèm thông báo.
-- **Perp − index mỗi ngày / tuần (%)**: trung bình chênh lệch `(giá perp − index) / index` các giờ trong ngày (tuần), vẽ ngay dưới biểu đồ funding với cùng trục thời gian. Perp cao hơn index thì funding thường cao hơn mức mặc định, thấp hơn thì funding giảm hoặc âm.
+- **Perp − index mỗi ngày / tuần (%)**: trung bình chênh lệch `(giá perp − index) / index` các giờ trong ngày (tuần), một cột mỗi ngày với khoảng 14 và 30 ngày, gộp theo tuần (thứ Hai đến Chủ nhật) với 90 ngày và từ đầu năm; cột hôm nay (tuần này) vẽ mờ vì chưa đủ. Perp cao hơn index thì funding thường cao hơn mức mặc định, thấp hơn thì funding giảm hoặc âm.
 - **Giá perp so với index**: hai đường giá (từng giờ với khoảng 14 và 30 ngày, giá đóng cửa mỗi ngày với 90 ngày và từ đầu năm). Rê chuột hoặc chạm để xem giá và mức chênh từng thời điểm.
 - Dòng ghi chú có chênh lệch trung bình cả khoảng và hệ số tương quan giữa chênh lệch với tổng funding rate từng ngày đủ (gần 1 là funding đi cùng chênh lệch).
 - Sàn tính funding theo giá đặt mua/bán có độ sâu (impact price) chứ không theo giá khớp, nên chênh lệch ở đây chỉ gần đúng.

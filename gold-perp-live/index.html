@@ -255,7 +255,6 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .hsum .v { font: 500 22px/1.15 var(--mono); font-variant-numeric: tabular-nums; }
 .hsum .v small { margin-left: 5px; font-size: 12.5px; color: var(--muted); }
 .hsum .s { font-size: 12.5px; color: var(--muted); }
-#bars { height: 200px; margin-top: 10px; }
 #gapBars { height: 150px; margin-top: 10px; }
 #histPanel .sub-h { margin-top: 18px; }
 .px-legend { margin-top: 8px; flex-wrap: wrap; gap: 4px 16px; }
@@ -411,8 +410,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
         <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
       </div>
-      <h3 class="sub-h" id="barsTitle">Funding mỗi ngày (USDT)</h3>
-      <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
+      <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
+        <button type="button" id="view-day" role="tab" data-view="day" aria-selected="false">Theo ngày</button>
+        <button type="button" id="view-month" role="tab" data-view="month" aria-selected="false">Theo tháng</button>
+        <button type="button" id="view-period" role="tab" data-view="period" aria-selected="true">Theo kỳ</button>
+      </div>
+      <div class="table-wrap"><table id="histTable"></table></div>
       <h3 class="sub-h" id="gapTitle">Perp − index trung bình mỗi ngày (%)</h3>
       <canvas id="gapBars" aria-label="Biểu đồ cột chênh lệch giá perp so với index mỗi ngày"></canvas>
       <h3 class="sub-h" id="pxTitle">Giá perp so với index</h3>
@@ -423,12 +426,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <div class="bs-guide" id="pxGuide" hidden></div>
         <div class="bs-tip multi" id="pxTip" hidden></div>
       </div>
-      <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
-        <button type="button" id="view-day" role="tab" data-view="day" aria-selected="false">Theo ngày</button>
-        <button type="button" id="view-month" role="tab" data-view="month" aria-selected="false">Theo tháng</button>
-        <button type="button" id="view-period" role="tab" data-view="period" aria-selected="true">Theo kỳ</button>
-      </div>
-      <div class="table-wrap"><table id="histTable"></table></div>
       <div class="export-bar">
         <span class="label">Xuất dữ liệu</span>
         <button type="button" class="linkbtn" data-export="json">JSON (gửi phân tích)</button>
@@ -1113,10 +1110,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     seg: document.querySelectorAll('.seg [data-sym]'),
     views: document.querySelectorAll('.seg [data-view]'),
     histRangeBtns: document.querySelectorAll('[data-histrange]'), hTotalLabel: $('hTotalLabel'),
-    barsTitle: $('barsTitle'), gapTitle: $('gapTitle'), gapBars: $('gapBars'), pxTitle: $('pxTitle'), pxMeta: $('pxMeta'),
+    gapTitle: $('gapTitle'), gapBars: $('gapBars'), pxTitle: $('pxTitle'), pxMeta: $('pxMeta'),
     pxChart: $('pxChart'), pxGuide: $('pxGuide'), pxTip: $('pxTip'),
     exportBtns: document.querySelectorAll('[data-export]'), exportNote: $('exportNote'),
-    histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'), bars: $('bars'),
+    histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'),
     hTotal: $('hTotal'), hTotalSub: $('hTotalSub'), hAvgDay: $('hAvgDay'), hAvgDaySub: $('hAvgDaySub'),
     hAvgRate: $('hAvgRate'), hAvgRateSub: $('hAvgRateSub'), hCount: $('hCount'), hCountSub: $('hCountSub'),
     premLevel: $('premLevel'), sjcMeta: $('sjcMeta'), premSell: $('premSell'), premSellSub: $('premSellSub'),
@@ -1965,9 +1962,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const weekly = days.length > 31;
     histBars = weekly ? groupWeeks(days, todayKey) : days.map((d) => ({ date: d.date, n: d.n, usdt: d.usdt, premSum: d.premSum, premN: d.premN, cur: d.key === todayKey }));
     const per = weekly ? 'tuần' : 'ngày';
-    el.bars.setAttribute('aria-label', 'Biểu đồ cột tổng funding mỗi ' + per);
     el.gapBars.setAttribute('aria-label', 'Biểu đồ cột chênh lệch giá perp so với index mỗi ' + per);
-    el.barsTitle.textContent = 'Funding mỗi ' + per + ' (USDT)';
     el.gapTitle.textContent = 'Perp − index trung bình mỗi ' + per + ' (%)';
     renderPx(days, weekly, todayKey);
 
@@ -2102,13 +2097,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }
 
   function drawBars() {
-    drawBarChart(el.bars, (b) => (b.n ? b.usdt : NaN), '');
     drawBarChart(el.gapBars, (b) => (b.premN ? b.premSum / b.premN : NaN), '%');
     drawPxChart();
   }
 
   // Biểu đồ cột theo ngày (hoặc tuần) của histBars; val(b) là NaN thì bỏ trống cột đó.
-  // Hai biểu đồ cột dùng cùng lề nên các cột thẳng hàng theo thời gian.
   function drawBarChart(c, val, unit) {
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -4361,7 +4354,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const redraw = () => { barsDirty = true; premDirty = true; cmpDirty = true; spDirty = true; drillDirty = true; exDirty = true; schedule(); };
   if ('ResizeObserver' in window) {
     const ro = new ResizeObserver(redraw);
-    ro.observe(el.bars);
     ro.observe(el.gapBars);
     ro.observe(el.pxChart);
     ro.observe(el.premChart);
