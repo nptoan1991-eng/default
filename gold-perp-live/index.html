@@ -391,6 +391,55 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <button type="button" class="linkbtn fold-all">Mở hết</button>
     </div>
 
+    <section class="panel" id="histPanel" data-panel="hist" aria-label="Lịch sử funding">
+      <div class="panel-head">
+        <h2>Lịch sử funding · <span id="histWhich">Bybit XAUUSDT</span></h2>
+        <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
+          <button type="button" role="radio" data-histrange="14" aria-checked="true">14 ngày</button>
+          <button type="button" role="radio" data-histrange="30" aria-checked="false">30 ngày</button>
+          <button type="button" role="radio" data-histrange="90" aria-checked="false">90 ngày</button>
+          <button type="button" role="radio" data-histrange="ytd" aria-checked="false">Từ đầu năm</button>
+        </div>
+      </div>
+      <div class="hist-meta">
+        <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
+        <button type="button" class="linkbtn" id="histRetry" hidden>Tải lại</button>
+      </div>
+      <div class="hsum">
+        <div><div class="label" id="hTotalLabel">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
+        <div><div class="label">Trung bình mỗi ngày</div><div class="v"><span id="hAvgDay">—</span><small>USDT</small></div><div class="s" id="hAvgDaySub">—</div></div>
+        <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
+        <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
+      </div>
+      <h3 class="sub-h" id="barsTitle">Funding mỗi ngày (USDT)</h3>
+      <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
+      <h3 class="sub-h" id="gapTitle">Perp − index trung bình mỗi ngày (%)</h3>
+      <canvas id="gapBars" aria-label="Biểu đồ cột chênh lệch giá perp so với index mỗi ngày"></canvas>
+      <h3 class="sub-h" id="pxTitle">Giá perp so với index</h3>
+      <p class="note" id="pxMeta">Đang tải giá theo giờ…</p>
+      <div class="legend px-legend"><span class="pp">Perp (giá khớp)</span><span class="pi">Index (giá tham chiếu tính funding)</span></div>
+      <div class="bs-wrap">
+        <canvas id="pxChart" aria-label="Biểu đồ giá perp và index"></canvas>
+        <div class="bs-guide" id="pxGuide" hidden></div>
+        <div class="bs-tip multi" id="pxTip" hidden></div>
+      </div>
+      <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
+        <button type="button" id="view-day" role="tab" data-view="day" aria-selected="false">Theo ngày</button>
+        <button type="button" id="view-month" role="tab" data-view="month" aria-selected="false">Theo tháng</button>
+        <button type="button" id="view-period" role="tab" data-view="period" aria-selected="true">Theo kỳ</button>
+      </div>
+      <div class="table-wrap"><table id="histTable"></table></div>
+      <div class="export-bar">
+        <span class="label">Xuất dữ liệu</span>
+        <button type="button" class="linkbtn" data-export="json">JSON (gửi phân tích)</button>
+        <button type="button" class="linkbtn" data-export="ky">CSV theo kỳ</button>
+        <button type="button" class="linkbtn" data-export="gio">CSV theo giờ</button>
+        <button type="button" class="linkbtn" data-export="ngay">CSV theo ngày</button>
+        <button type="button" class="linkbtn" data-export="oi">CSV open interest</button>
+      </div>
+      <p class="note" id="exportNote">Xuất theo sàn, mã và khoảng đang chọn. File JSON gồm funding từng kỳ, giá theo giờ, tổng hợp theo ngày, open interest và tỷ lệ Long/Short (nến 4 giờ).</p>
+    </section>
+
     <div class="sub-page" id="sub-bybit" role="tabpanel" aria-labelledby="sub-btn-bybit">
       <section class="panel price-panel" data-panel="xau-by-price" aria-label="Giá và funding · XAUUSDT Bybit">
         <div class="panel-head">
@@ -557,55 +606,6 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <p class="note" id="premStats"></p>
       <canvas id="premChart" aria-label="Biểu đồ chênh lệch bán ra của SJC so với thế giới"></canvas>
       <p class="note" id="premNote"></p>
-    </section>
-
-    <section class="panel" id="histPanel" data-panel="hist" aria-label="Lịch sử funding">
-      <div class="panel-head">
-        <h2>Lịch sử funding · <span id="histWhich">Bybit XAUUSDT</span></h2>
-        <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
-          <button type="button" role="radio" data-histrange="14" aria-checked="true">14 ngày</button>
-          <button type="button" role="radio" data-histrange="30" aria-checked="false">30 ngày</button>
-          <button type="button" role="radio" data-histrange="90" aria-checked="false">90 ngày</button>
-          <button type="button" role="radio" data-histrange="ytd" aria-checked="false">Từ đầu năm</button>
-        </div>
-      </div>
-      <div class="hist-meta">
-        <p class="note" id="histMeta">Đang tải lịch sử funding…</p>
-        <button type="button" class="linkbtn" id="histRetry" hidden>Tải lại</button>
-      </div>
-      <div class="hsum">
-        <div><div class="label" id="hTotalLabel">Tổng 14 ngày</div><div class="v"><span id="hTotal">—</span><small>USDT</small></div><div class="s" id="hTotalSub">—</div></div>
-        <div><div class="label">Trung bình mỗi ngày</div><div class="v"><span id="hAvgDay">—</span><small>USDT</small></div><div class="s" id="hAvgDaySub">—</div></div>
-        <div><div class="label">Rate trung bình mỗi kỳ</div><div class="v" id="hAvgRate">—</div><div class="s" id="hAvgRateSub">—</div></div>
-        <div><div class="label">Số kỳ funding</div><div class="v" id="hCount">—</div><div class="s" id="hCountSub">—</div></div>
-      </div>
-      <h3 class="sub-h" id="barsTitle">Funding mỗi ngày (USDT)</h3>
-      <canvas id="bars" aria-label="Biểu đồ cột tổng funding mỗi ngày"></canvas>
-      <h3 class="sub-h" id="gapTitle">Perp − index trung bình mỗi ngày (%)</h3>
-      <canvas id="gapBars" aria-label="Biểu đồ cột chênh lệch giá perp so với index mỗi ngày"></canvas>
-      <h3 class="sub-h" id="pxTitle">Giá perp so với index</h3>
-      <p class="note" id="pxMeta">Đang tải giá theo giờ…</p>
-      <div class="legend px-legend"><span class="pp">Perp (giá khớp)</span><span class="pi">Index (giá tham chiếu tính funding)</span></div>
-      <div class="bs-wrap">
-        <canvas id="pxChart" aria-label="Biểu đồ giá perp và index"></canvas>
-        <div class="bs-guide" id="pxGuide" hidden></div>
-        <div class="bs-tip multi" id="pxTip" hidden></div>
-      </div>
-      <div class="seg tabs" role="tablist" aria-label="Kiểu bảng">
-        <button type="button" id="view-day" role="tab" data-view="day" aria-selected="true">Theo ngày</button>
-        <button type="button" id="view-month" role="tab" data-view="month" aria-selected="false">Theo tháng</button>
-        <button type="button" id="view-period" role="tab" data-view="period" aria-selected="false">Theo kỳ</button>
-      </div>
-      <div class="table-wrap"><table id="histTable"></table></div>
-      <div class="export-bar">
-        <span class="label">Xuất dữ liệu</span>
-        <button type="button" class="linkbtn" data-export="json">JSON (gửi phân tích)</button>
-        <button type="button" class="linkbtn" data-export="ky">CSV theo kỳ</button>
-        <button type="button" class="linkbtn" data-export="gio">CSV theo giờ</button>
-        <button type="button" class="linkbtn" data-export="ngay">CSV theo ngày</button>
-        <button type="button" class="linkbtn" data-export="oi">CSV open interest</button>
-      </div>
-      <p class="note" id="exportNote">Xuất theo sàn, mã và khoảng đang chọn. File JSON gồm funding từng kỳ, giá theo giờ, tổng hợp theo ngày, open interest và tỷ lệ Long/Short (nến 4 giờ).</p>
     </section>
   </div>
 
@@ -1188,7 +1188,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   let prevLast = null, frame = 0;
   let hist = null, histError = null, histLoading = false, histDueAt = 0, histBars = [], barsDirty = true;
   let histSource = null, histSeq = 0, histRange = '14', histNeedMark = false, histPxPts = [], pxGeom = null;
-  let view = 'day';
+  let view = 'period';
   // Giá khớp gần nhất của cả 2 mã, dùng cho chênh lệch giá và SJC (SJC luôn so với XAUUSDT)
   const lastBy = { XAUUSDT: null, PAXGUSDT: null };
   let sjcData = null, sjcError = null, sjcDirty = true, premDirty = true;
@@ -1840,7 +1840,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // Chuyển khung lịch sử sang tab đang xem: tab XAUUSDT / XAGUSDT theo sub tab Bybit / Binance, tab PAXGUSDT là PAXGUSDT
   function placeHistory() {
     if (tab !== 'xau' && tab !== 'paxg' && tab !== 'xag') return;
-    TABS[tab].appendChild(el.histPanel);
+    TABS[tab].querySelector(':scope > .tab-bar').after(el.histPanel);
     setHistSource(tab === 'paxg' ? 'binance:PAXGUSDT'
       : tab === 'xag' ? (agSub === 'binance' ? 'binance:' : 'bybit:') + AG
       : xauSub === 'binance' ? 'binance:XAUUSDT' : 'bybit:XAUUSDT');

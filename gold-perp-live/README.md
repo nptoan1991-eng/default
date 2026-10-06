@@ -2,8 +2,8 @@
 
 Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu, gồm 5 tab:
 
-- **XAUUSDT**: hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo, SJC so với thế giới và lịch sử funding của sàn đang chọn (14 / 30 / 90 ngày hoặc từ đầu năm).
-- **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang, lịch sử funding của sàn đang chọn. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
+- **XAUUSDT**: đầu tab là lịch sử funding của sàn đang chọn (14 / 30 / 90 ngày hoặc từ đầu năm). Hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo và SJC so với thế giới.
+- **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang; lịch sử funding của sàn đang chọn nằm ở đầu tab. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm, kèm xuất dữ liệu. Chỉ tải dữ liệu khi mở tab này.
 - **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
@@ -77,7 +77,7 @@ Một khung dùng chung: ở tab XAUUSDT và XAGUSDT theo sub tab đang chọn (
 - USDT mỗi kỳ = `funding rate × mark lúc chốt × khối lượng`. Khối lượng dùng ô ở mục Funding theo vị thế (mặc định 1 oz): vàng và PAXG dùng chung một ô, bạc dùng ô riêng của tab XAGUSDT.
 - Số liệu tính cho bên Short: dương là nhận, âm là trả. Bên Long luôn ngược dấu vì funding chỉ chuyển giữa hai bên. Tổng mỗi ngày là số ròng.
 - Ngày chia theo giờ máy, khoảng N ngày gồm hôm nay. Khoảng 14 và 30 ngày vẽ một cột mỗi ngày; 90 ngày và từ đầu năm gộp cột theo tuần (thứ Hai đến Chủ nhật). Cột của hôm nay (tuần này) vẽ mờ vì chưa đủ kỳ, và trung bình mỗi ngày chỉ tính các ngày đủ.
-- Bảng xem theo ngày (số kỳ, tổng rate, tổng USDT, index cuối ngày, perp − index trung bình), theo tháng (thêm trung bình mỗi ngày đủ của tháng, % index thay đổi trong tháng so với cuối tháng trước, perp − index trung bình) hoặc theo từng kỳ (rate, mark lúc chốt, USDT, perp − index trung bình các giờ trong kỳ trước lúc chốt). Tháng chưa có ngày đủ thì cột trung bình mỗi ngày để trống. Bảng cuộn trong khung.
+- Khung nằm ở đầu tab, ngay dưới hàng nút sub tab. Bảng mặc định xem theo kỳ; có thể chuyển sang theo ngày (số kỳ, tổng rate, tổng USDT, index cuối ngày, perp − index trung bình), theo tháng (thêm trung bình mỗi ngày đủ của tháng, % index thay đổi trong tháng so với cuối tháng trước, perp − index trung bình) hoặc theo từng kỳ (rate, mark lúc chốt, USDT, perp − index trung bình các giờ trong kỳ trước lúc chốt). Tháng chưa có ngày đủ thì cột trung bình mỗi ngày để trống. Bảng cuộn trong khung.
 
 ### Giá perp so với index
 
