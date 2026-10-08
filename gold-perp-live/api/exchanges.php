@@ -37,7 +37,7 @@ if ($oiEx !== null && (!isset($OI_SOURCES[$oiEx]) || !in_array($symbol, $OI_SOUR
     echo json_encode(['errors' => ['Không có open interest cho ' . $oiEx . ' ' . $symbol . '.']], JSON_UNESCAPED_UNICODE);
     exit;
 }
-if ($oiEx === null && $symbol !== '' && !in_array($symbol, $BYBIT_SYMBOLS, true)) {
+if ($oiEx === null && $symbol !== '' && !in_array($symbol, array_merge($BYBIT_SYMBOLS, $BYBIT_STORE_EXTRA), true)) {
     http_response_code(400);
     echo json_encode(['errors' => ['Mã ' . $symbol . ' không có trong danh sách Bybit của trang.']], JSON_UNESCAPED_UNICODE);
     exit;

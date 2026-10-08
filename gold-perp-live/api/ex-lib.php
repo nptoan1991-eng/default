@@ -16,6 +16,8 @@ define('EX_HIST_TTL_MS', 30 * 60 * 1000);
 define('EX_STORE_MAX_DAYS', 400); // kho lịch sử từng mã giữ tối đa chừng này ngày
 
 $BYBIT_SYMBOLS = ['XAUUSDT', 'PAXGUSDT', 'CLUSDT', 'XAGUSDT']; // CLUSDT: tab Dầu WTI, XAGUSDT: tab XAGUSDT
+// Mã chỉ dùng kho lịch sử funding (?symbol=), không lấy giá/funding hiện tại qua host: BTCUSDT cho tab BTCUSDT
+$BYBIT_STORE_EXTRA = ['BTCUSDT'];
 $HL_COINS = ['xyz:GOLD' => 'xyz', 'PAXG' => '']; // tên hợp đồng => dex (HIP-3), '' là dex chính
 
 function ex_num($v) {

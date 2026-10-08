@@ -1,11 +1,12 @@
 # Gold Perp Live
 
-Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu, gồm 5 tab:
+Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu, gồm 6 tab:
 
 - **XAUUSDT**: đầu tab là lịch sử funding của sàn đang chọn (14 / 30 / 90 ngày hoặc từ đầu năm). Hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo và SJC so với thế giới.
 - **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang; lịch sử funding của sàn đang chọn nằm ở đầu tab. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm, kèm xuất dữ liệu. Chỉ tải dữ liệu khi mở tab này.
+- **BTCUSDT** (link `#btc`): riêng funding BTCUSDT trên Bybit. Đầu tab là lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm, bảng theo kỳ / ngày / tháng, xuất JSON và CSV theo kỳ, theo ngày; không có phần so giá với index và open interest), bên dưới là giá, mark, funding hiện tại, đếm ngược và funding theo vị thế với khối lượng tính bằng BTC (trang nhớ lại). Giá và funding hiện tại qua WebSocket Bybit, chỉ nhận khi mở tab; lịch sử qua `api/exchanges.php?symbol=BTCUSDT&start=<mốc>` (kho `bybit_hist_BTCUSDT.json`).
 - **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab áp dụng cho các khung đang thấy trong tab đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
