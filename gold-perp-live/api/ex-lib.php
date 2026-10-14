@@ -512,3 +512,39 @@ function oi_collect_all(&$errors) {
     }
     return $n;
 }
+
+// ---------- Premium index Bybit (chênh perp − index dùng tính funding) ----------
+// Nến 5 phút của 24 giờ qua (vẽ biểu đồ) và nến 1 phút của 8 giờ qua (tính trung bình kỳ funding đang chạy),
+// giá trị là tỷ lệ (0.0005 = 0.05%). Lưu trong bybit_prem_<MÃ>.json, cache 60 giây; lỗi thì 60 giây sau mới thử lại.
+define('EX_PREM_TTL_MS', 60000);
+
+function bybit_premium($symbol, $force, &$debug, &$errors) {
+    $file = __DIR__ . '/bybit_prem_' . $symbol . '.json';
+    $st = ex_read($file);
+    $now = fx_now_ms();
+    if (!$force && isset($st['at']) && $now - $st['at'] < EX_PREM_TTL_MS) return $st;
+    $what = 'Bybit: không lấy được premium index ' . $symbol . (isset($st['m5']) ? ', đang dùng dữ liệu lấy lúc trước.' : '.');
+    if (!$force && isset($st['failAt']) && $now - $st['failAt'] < 60000) {
+        $errors[] = $what;
+        return isset($st['m5']) ? $st : null;
+    }
+    $k = ex_log($debug, 'bybit_prem_' . $symbol);
+    $path = '/v5/market/premium-index-price-kline';
+    $m5 = bybit_kline($path, $symbol, $now - 86400000, $now, 5, 4, $debug[$k]);
+    $m1 = $m5 === null ? null : bybit_kline($path, $symbol, $now - 8 * 3600000, $now, 1, 4, $debug[$k]);
+    if ($m5 === null || $m1 === null) {
+        $errors[] = $what;
+        $st['failAt'] = $now;
+        ex_write($file, $st);
+        return isset($st['m5']) ? $st : null;
+    }
+    $pairs = function ($vals) {
+        ksort($vals);
+        $out = [];
+        foreach ($vals as $t => $v) $out[] = [$t, $v];
+        return $out;
+    };
+    $st = ['at' => $now, 'm5' => $pairs($m5['vals']), 'm1' => $pairs($m1['vals'])];
+    ex_write($file, $st);
+    return $st;
+}

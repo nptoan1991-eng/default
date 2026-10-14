@@ -15,6 +15,8 @@
  * giá khớp và index theo giờ (lưu trong bybit_px_<MÃ>.json), dùng so giá perp với giá vàng.
  * ?oi=1&ex=binance|bybit&symbol=XAUUSDT&start=<mili giây> lấy open interest và tỷ lệ tài khoản Long theo nến 4 giờ
  * (lưu trong oi_<sàn>_<MÃ>.json; Binance chỉ giữ 30 ngày nên cron alert-check.php lưu dần mỗi 6 giờ).
+ * ?premium=XAUUSDT lấy premium index Bybit (chênh perp − index dùng tính funding): nến 5 phút 24 giờ qua
+ * và nến 1 phút 8 giờ qua, cache 60 giây (bybit_prem_<MÃ>.json).
  * Các hàm nằm trong ex-lib.php.
  * ?debug=1 xem dữ liệu thô từng lần gọi.
  * Kết quả được cache: giá/funding hiện tại 30 giây, lịch sử 30 phút (hoặc tới kỳ chốt kế tiếp).
@@ -44,6 +46,28 @@ if ($oiEx === null && $symbol !== '' && !in_array($symbol, array_merge($BYBIT_SY
 }
 
 // Khoá để nhiều người mở trang cùng lúc không cùng gọi các sàn
+// ?premium=XAUUSDT: premium index Bybit (nến 5 phút 24 giờ, nến 1 phút 8 giờ) cho khung Perp − index live
+if (isset($_GET['premium'])) {
+    $ps = strtoupper((string) $_GET['premium']);
+    if (!in_array($ps, array_merge($BYBIT_SYMBOLS, $BYBIT_STORE_EXTRA), true)) {
+        http_response_code(400);
+        echo json_encode(['errors' => ['Mã ' . $ps . ' không có trong danh sách Bybit của trang.']], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $plock = @fopen(EX_LOCK_FILE, 'c');
+    if ($plock) flock($plock, LOCK_EX);
+    $errors = [];
+    $pr = bybit_premium($ps, $DEBUG, $debug, $errors);
+    if ($plock) {
+        flock($plock, LOCK_UN);
+        fclose($plock);
+    }
+    $out = ['symbol' => $ps, 'at' => $pr ? $pr['at'] : null, 'm5' => $pr ? $pr['m5'] : null, 'm1' => $pr ? $pr['m1'] : null, 'errors' => $errors];
+    if ($DEBUG) $out['debug'] = $debug;
+    echo json_encode($out, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $lock = @fopen(EX_LOCK_FILE, 'c');
 if ($lock) flock($lock, LOCK_EX);
 

@@ -33,7 +33,7 @@ gold-perp-live/
     └── ex-lib.php      các hàm gọi sàn và kho lịch sử dùng chung cho exchanges.php và alert-check.php
 ```
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, open interest) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `bybit_prem_<MÃ>.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, open interest) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
@@ -80,16 +80,17 @@ Một khung dùng chung: ở tab XAUUSDT và XAGUSDT theo sub tab đang chọn (
 - Ngày chia theo giờ máy, khoảng N ngày gồm hôm nay. Trung bình mỗi ngày chỉ tính các ngày đủ (không tính hôm nay).
 - Khung nằm ở đầu tab, ngay dưới hàng nút sub tab. Bảng nằm ngay dưới các số tổng hợp, mặc định xem theo kỳ; có thể chuyển sang theo ngày (số kỳ, tổng rate, tổng USDT, index cuối ngày, perp − index trung bình), theo tháng (thêm trung bình mỗi ngày đủ của tháng, % index thay đổi trong tháng so với cuối tháng trước, perp − index trung bình) hoặc theo từng kỳ (rate, mark lúc chốt, USDT, perp − index trung bình các giờ trong kỳ trước lúc chốt). Tháng chưa có ngày đủ thì cột trung bình mỗi ngày để trống. Bảng cuộn trong khung.
 
-### Giá perp so với index
+### Perp − index live (Bybit)
 
-Cùng khung lịch sử funding, theo khoảng đang chọn, để xem funding có đi cùng chênh lệch giá không:
+Khung nằm ngay trên Lịch sử funding ở tab XAUUSDT, XAGUSDT và BTCUSDT (mã Bybit tương ứng; tab PAXGUSDT là Binance nên không có). Theo dữ liệu từ đầu năm, funding Bybit gần như chỉ khác 0 khi chênh perp − index trung bình trong kỳ vượt khoảng ±0.05%.
 
-- **Index** là giá tham chiếu sàn dùng tính funding: với XAUUSDT, XAGUSDT là giá vàng, bạc giao ngay sàn tổng hợp từ nhiều nguồn; với PAXGUSDT là giá token PAXG.
-- Dữ liệu là nến 1 giờ đã đóng: giá khớp của perp và index. Binance trang tự lấy (`/fapi/v1/klines`, `/fapi/v1/indexPriceKlines`, mỗi lần tối đa 1500 nến). Bybit qua `api/exchanges.php?symbol=<MÃ>&start=<mốc>&px=1` (`/v5/market/kline`, `/v5/market/index-price-kline`), host lưu dần vào `api/bybit_px_<MÃ>.json` giống kho funding. Không lấy được giá thì phần funding vẫn hiện bình thường, chỉ thiếu phần so giá kèm thông báo.
-- **Perp − index mỗi ngày / tuần (%)**: trung bình chênh lệch `(giá perp − index) / index` các giờ trong ngày (tuần), một cột mỗi ngày với khoảng 14 và 30 ngày, gộp theo tuần (thứ Hai đến Chủ nhật) với 90 ngày và từ đầu năm; cột hôm nay (tuần này) vẽ mờ vì chưa đủ. Perp cao hơn index thì funding thường cao hơn mức mặc định, thấp hơn thì funding giảm hoặc âm.
-- **Giá perp so với index**: hai đường giá (từng giờ với khoảng 14 và 30 ngày, giá đóng cửa mỗi ngày với 90 ngày và từ đầu năm). Rê chuột hoặc chạm để xem giá và mức chênh từng thời điểm.
-- Dòng ghi chú có chênh lệch trung bình cả khoảng và hệ số tương quan giữa chênh lệch với tổng funding rate từng ngày đủ (gần 1 là funding đi cùng chênh lệch).
-- Sàn tính funding theo giá đặt mua/bán có độ sâu (impact price) chứ không theo giá khớp, nên chênh lệch ở đây chỉ gần đúng.
+- **Hiện tại**: `(max(0, giá mua tốt nhất − index) − max(0, index − giá bán tốt nhất)) / index`, giống cách Bybit tính premium index, từ WebSocket Bybit (cập nhật theo giây). Màu xanh khi trên +0.05%, đỏ khi dưới −0.05%.
+- **Trung bình từ đầu kỳ**: trung bình premium index Bybit từng phút từ lúc chốt kỳ trước, kèm đánh giá trong ngưỡng hay vượt ngưỡng.
+- **Funding kỳ này (Bybit dự báo)** và đếm ngược tới lúc chốt.
+- **Biểu đồ đường 24 giờ qua**: premium index Bybit nến 5 phút, hai vạch đứt ±0.05%, vạch dọc mờ là các lúc chốt funding, đoạn vượt ngưỡng tô màu, điểm cuối là số hiện tại. Rê chuột hoặc chạm để xem từng điểm.
+- Nguồn: `api/exchanges.php?premium=<MÃ>` lấy `/v5/market/premium-index-price-kline` (nến 5 phút 24 giờ, nến 1 phút 8 giờ), cache 60 giây trong `bybit_prem_<MÃ>.json`; trang tải lại mỗi phút khi đang mở tab.
+
+Cột "Perp − index" trong bảng lịch sử và biểu đồ cột "Perp − index trung bình mỗi ngày / tuần" vẫn giữ, tính theo giá khớp và index nến 1 giờ (`&px=1`, lưu trong `bybit_px_<MÃ>.json` cho Bybit).
 
 ### Xuất dữ liệu
 
