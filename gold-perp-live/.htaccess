@@ -1,0 +1,4 @@
+# Không cho công cụ tìm kiếm đưa trang và các file trong thư mục này vào kết quả tìm kiếm
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow, noarchive"
+</IfModule>

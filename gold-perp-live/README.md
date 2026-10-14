@@ -33,6 +33,8 @@ gold-perp-live/
     └── ex-lib.php      các hàm gọi sàn và kho lịch sử dùng chung cho exchanges.php và alert-check.php
 ```
 
+Trang không cho Google và các công cụ tìm kiếm khác lập chỉ mục: `index.html` có thẻ `<meta name="robots" content="noindex, nofollow, noarchive">`, và `.htaccess` gửi header `X-Robots-Tag` cùng nội dung cho mọi file trong thư mục (cần host Apache có mod_headers; host khác thì vẫn còn thẻ meta). Một số trình quản lý file ẩn file bắt đầu bằng dấu chấm, nhớ bật hiện file ẩn khi upload.
+
 Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `bybit_prem_<MÃ>.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, open interest) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
