@@ -84,6 +84,8 @@ Một khung dùng chung: ở tab XAUUSDT và XAGUSDT theo sub tab đang chọn (
 
 ### Perp − index live (Bybit)
 
+Perp − index hiển thị bằng **point** (1 pt = 0.001%, ví dụ 0.051% = 51 pt; ngưỡng 0.05% = 50 pt). Nút **pt / %** ở khung này và cạnh biểu đồ cột Perp − index trong Lịch sử funding đổi đơn vị cho mọi chỗ hiện Perp − index (ô số, biểu đồ, cột bảng); trang nhớ lựa chọn. Funding rate vẫn hiện bằng %, file xuất vẫn dùng %.
+
 Khung nằm ngay trên Lịch sử funding ở tab XAUUSDT, XAGUSDT và BTCUSDT (mã Bybit tương ứng; tab PAXGUSDT là Binance nên không có). Theo dữ liệu từ đầu năm, funding Bybit gần như chỉ khác 0 khi chênh perp − index trung bình trong kỳ vượt khoảng ±0.05%.
 
 - **Hiện tại**: `(max(0, giá mua tốt nhất − index) − max(0, index − giá bán tốt nhất)) / index`, giống cách Bybit tính premium index, từ WebSocket Bybit (cập nhật theo giây). Màu xanh khi trên +0.05%, đỏ khi dưới −0.05%.

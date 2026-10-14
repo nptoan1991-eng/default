@@ -258,6 +258,9 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .hsum .s { font-size: 12.5px; color: var(--muted); }
 #gapBars { height: 150px; margin-top: 10px; }
 #plChart { height: 200px; }
+.gap-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 16px; margin-top: 18px; }
+.gap-head .seg button { font-size: 12.5px; padding: 5px 11px; }
+#histPanel .gap-head .sub-h { margin: 0; }
 #histPanel .sub-h { margin-top: 18px; }
 .bs-tip.multi { white-space: pre; line-height: 1.45; }
 .export-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -394,6 +397,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <section class="panel" id="plPanel" data-panel="prem-live" aria-label="Perp − index live">
       <div class="panel-head">
         <h2>Perp − index live · <span id="plWhich">Bybit XAUUSDT</span></h2>
+        <div class="seg" role="radiogroup" aria-label="Đơn vị Perp − index"><button type="button" role="radio" data-premunit="pt" aria-checked="true">pt</button><button type="button" role="radio" data-premunit="pct" aria-checked="false">%</button></div>
       </div>
       <div class="hsum">
         <div><div class="label">Hiện tại</div><div class="v" id="plNow">—</div><div class="s" id="plNowSub">—</div></div>
@@ -401,7 +405,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <div><div class="label">Funding kỳ này (Bybit dự báo)</div><div class="v" id="plRate">—</div><div class="s" id="plRateSub">—</div></div>
         <div><div class="label">Chốt sau</div><div class="v count" id="plCd">--:--:--</div><div class="s" id="plCdSub">—</div></div>
       </div>
-      <h3 class="sub-h">Perp − index 24 giờ qua (nến 5 phút, %)</h3>
+      <h3 class="sub-h" id="plChartTitle">Perp − index 24 giờ qua (nến 5 phút, pt)</h3>
       <div class="bs-wrap">
         <canvas id="plChart" aria-label="Biểu đồ đường chênh perp so với index 24 giờ qua"></canvas>
         <div class="bs-guide" id="plGuide" hidden></div>
@@ -436,7 +440,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <button type="button" id="view-period" role="tab" data-view="period" aria-selected="true">Theo kỳ</button>
       </div>
       <div class="table-wrap"><table id="histTable"></table></div>
-      <h3 class="sub-h" id="gapTitle">Perp − index trung bình mỗi ngày (%)</h3>
+      <div class="gap-head" id="gapHead">
+        <h3 class="sub-h" id="gapTitle">Perp − index trung bình mỗi ngày (pt)</h3>
+        <div class="seg" role="radiogroup" aria-label="Đơn vị Perp − index"><button type="button" role="radio" data-premunit="pt" aria-checked="true">pt</button><button type="button" role="radio" data-premunit="pct" aria-checked="false">%</button></div>
+      </div>
       <canvas id="gapBars" aria-label="Biểu đồ cột chênh lệch giá perp so với index mỗi ngày"></canvas>
       <div class="export-bar">
         <span class="label">Xuất dữ liệu</span>
@@ -1168,7 +1175,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     seg: document.querySelectorAll('.seg [data-sym]'),
     views: document.querySelectorAll('.seg [data-view]'),
     histRangeBtns: document.querySelectorAll('[data-histrange]'), hTotalLabel: $('hTotalLabel'),
-    gapTitle: $('gapTitle'), gapBars: $('gapBars'),
+    gapTitle: $('gapTitle'), gapHead: $('gapHead'), gapBars: $('gapBars'), premUnitBtns: document.querySelectorAll('[data-premunit]'),
     exportBtns: document.querySelectorAll('[data-export]'), exportNote: $('exportNote'),
     histMeta: $('histMeta'), histRetry: $('histRetry'), histTable: $('histTable'),
     hTotal: $('hTotal'), hTotalSub: $('hTotalSub'), hAvgDay: $('hAvgDay'), hAvgDaySub: $('hAvgDaySub'),
@@ -1211,7 +1218,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     histPanel: $('histPanel'), histWhich: $('histWhich'),
     agSubBtns: document.querySelectorAll('.sub-tabs [data-agsub]'), agSubBybit: $('agsub-bybit'), agSubBinance: $('agsub-binance'),
     btQty: $('btQty'), plPanel: $('plPanel'), plWhich: $('plWhich'), plNow: $('plNow'), plNowSub: $('plNowSub'), plAvg: $('plAvg'), plAvgSub: $('plAvgSub'),
-    plRate: $('plRate'), plRateSub: $('plRateSub'), plCd: $('plCd'), plCdSub: $('plCdSub'), plChart: $('plChart'), plGuide: $('plGuide'), plTip: $('plTip'), plMeta: $('plMeta'), agyQty: $('agyQty'), agbQty: $('agbQty'), agFx: $('agFx'), agFxSub: $('agFxSub'), agBnFx: $('agBnFx'), agBnFxSub: $('agBnFxSub'),
+    plChartTitle: $('plChartTitle'), plRate: $('plRate'), plRateSub: $('plRateSub'), plCd: $('plCd'), plCdSub: $('plCdSub'), plChart: $('plChart'), plGuide: $('plGuide'), plTip: $('plTip'), plMeta: $('plMeta'), agyQty: $('agyQty'), agbQty: $('agbQty'), agFx: $('agFx'), agFxSub: $('agFxSub'), agBnFx: $('agBnFx'), agBnFxSub: $('agBnFxSub'),
     fxAgMids: document.querySelectorAll('[data-fxag="mid"]'), fxAgSubs: document.querySelectorAll('[data-fxag="sub"]'),
     fxAgStates: document.querySelectorAll('[data-fxag="state"]'), fxAgErrs: document.querySelectorAll('[data-fxag="err"]')
   };
@@ -1668,13 +1675,29 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     return o.last > 0 ? ((o.last - idx) / idx) * 100 : null;
   }
 
-  const bandText = (v) => (v > PREM_BAND ? 'trên +' + PREM_BAND + '%: Long trả Short' : v < -PREM_BAND ? 'dưới −' + PREM_BAND + '%: Short trả Long' : 'trong ±' + PREM_BAND + '%: funding ≈ 0');
+  // Đơn vị hiển thị Perp − index: point (1 pt = 0.001%, tức 0.051% = 51 pt) hoặc %; v luôn tính bằng %
+  let premUnit = 'pt';
+  const premK = () => (premUnit === 'pt' ? 1000 : 1);
+  const premSuffix = () => (premUnit === 'pt' ? ' pt' : '%');
+  const fmtPrem = (v, dec) => (premUnit === 'pt' ? signed(v * 1000, 0) + ' pt' : signed(v, dec == null ? 4 : dec) + '%');
+  const bandStr = (sign) => (premUnit === 'pt' ? sign + PREM_BAND * 1000 + ' pt' : sign + PREM_BAND + '%');
+  function setPremUnit(u, save) {
+    premUnit = u === 'pct' ? 'pct' : 'pt';
+    el.premUnitBtns.forEach((b) => b.setAttribute('aria-checked', String(b.dataset.premunit === premUnit)));
+    if (save) try { localStorage.setItem('gold-perp-live.premUnit', premUnit); } catch (e) { /* bỏ qua */ }
+    plDirty = true;
+    barsDirty = true;
+    renderHistory();
+    schedule();
+  }
+  const bandText = (v) => (v > PREM_BAND ? 'trên ' + bandStr('+') + ': Long trả Short' : v < -PREM_BAND ? 'dưới ' + bandStr('−') + ': Short trả Long' : 'trong ' + bandStr('±') + ': funding ≈ 0');
   const bandDir = (v) => (v > PREM_BAND ? 'up' : v < -PREM_BAND ? 'down' : '');
 
   function renderPremLive() {
     const sym = premSym;
     const now = premLiveNow(sym);
-    el.plNow.textContent = now != null ? signed(now, 4) + '%' : '—';
+    el.plChartTitle.textContent = 'Perp − index 24 giờ qua (nến 5 phút, ' + (premUnit === 'pt' ? 'pt' : '%') + ')';
+    el.plNow.textContent = now != null ? fmtPrem(now) : '—';
     el.plNow.dataset.dir = now != null ? bandDir(now) : '';
     el.plNowSub.textContent = now != null ? bandText(now) : 'Chờ dữ liệu WebSocket Bybit…';
     // Trung bình kỳ đang chạy: nến 1 phút từ lúc chốt kỳ trước
@@ -1683,7 +1706,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const m1 = premData && start ? premData.m1.filter((x) => x[0] >= start) : [];
     if (m1.length) {
       const avg = (m1.reduce((a, x) => a + x[1], 0) / m1.length) * 100;
-      el.plAvg.textContent = signed(avg, 4) + '%';
+      el.plAvg.textContent = fmtPrem(avg);
       el.plAvg.dataset.dir = bandDir(avg);
       el.plAvgSub.textContent = bandText(avg) + ' · ' + m1.length + ' phút';
     } else {
@@ -1700,7 +1723,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (plPts.length && now != null) plPts.push({ t: Date.now(), v: now, live: true });
     el.plMeta.textContent = (premErr && premData ? premErr + ' ' : premErr && !premData ? 'Không tải được premium index (' + premErr + '). ' : '')
       + 'Premium index của Bybit: chênh giữa giá mua/bán có độ sâu của perp và index, chính là số Bybit lấy trung bình trong kỳ để tính funding. '
-      + 'Theo dữ liệu từ đầu năm, funding gần như chỉ khác 0 khi trung bình kỳ vượt +' + PREM_BAND + '% (vạch đứt trên biểu đồ); phía âm gần như không bao giờ dưới −' + PREM_BAND + '%. '
+      + 'Theo dữ liệu từ đầu năm, funding gần như chỉ khác 0 khi trung bình kỳ vượt ' + bandStr('+') + ' (vạch đứt trên biểu đồ); phía âm gần như không bao giờ dưới ' + bandStr('−') + '. 1 pt = 0.001%. '
       + 'Vạch dọc mờ là các lúc chốt funding. Điểm cuối là số hiện tại tính từ giá mua/bán tốt nhất, cập nhật theo giây; các điểm khác cập nhật mỗi phút.';
   }
 
@@ -1717,13 +1740,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const pts = plPts;
+    const K = premK(), BAND = PREM_BAND * K;
+    const pts = plPts.map((p) => ({ t: p.t, v: p.v * K, live: p.live }));
     if (pts.length < 2) return;
     const cs = getComputedStyle(document.documentElement);
     const tok = (n) => cs.getPropertyValue(n).trim();
     const L = 2, R = 64, T = 10, B = 24;
     const pw = w - L - R, ph = h - T - B;
-    let lo = 0, hi = PREM_BAND * 1.6; // trục từ 0, chỉ mở rộng xuống khi dữ liệu âm
+    let lo = 0, hi = BAND * 1.6; // trục từ 0, chỉ mở rộng xuống khi dữ liệu âm
     for (const p of pts) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
     const step = niceStep((hi - lo) / 4);
     lo = Math.floor(lo / step) * step;
@@ -1745,7 +1769,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       ctx.strokeStyle = tok(zero ? '--muted' : '--line');
       ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
       ctx.fillStyle = tok('--muted');
-      ctx.fillText((zero ? '0' : signed(v, dec)) + '%', L + pw + 8, y);
+      ctx.fillText((zero ? '0' : signed(v, dec)) + premSuffix(), L + pw + 8, y);
     }
     // Các lúc chốt funding trong 24 giờ qua
     const next = byValOf(premSym, 'next'), iv = byIntervalOf(premSym) * 36e5;
@@ -1761,7 +1785,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.save();
     ctx.setLineDash([5, 4]);
     ctx.strokeStyle = tok('--warn');
-    const yb = Math.round(Y(PREM_BAND)) + 0.5;
+    const yb = Math.round(Y(BAND)) + 0.5;
     ctx.beginPath(); ctx.moveTo(L, yb); ctx.lineTo(L + pw, yb); ctx.stroke();
     ctx.restore();
     // Đường chênh lệch; đoạn vượt ngưỡng tô màu
@@ -1771,11 +1795,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const a = pts[k - 1], b = pts[k];
       if (b.t - a.t > 20 * 6e4 && !b.live) continue; // đứt đoạn khi thiếu dữ liệu
       const m = (a.v + b.v) / 2;
-      ctx.strokeStyle = tok(m > PREM_BAND ? '--up' : m < -PREM_BAND ? '--down' : '--ink');
+      ctx.strokeStyle = tok(m > BAND ? '--up' : m < -BAND ? '--down' : '--ink');
       ctx.beginPath(); ctx.moveTo(X(a.t), Y(a.v)); ctx.lineTo(X(b.t), Y(b.v)); ctx.stroke();
     }
     const last = pts[pts.length - 1];
-    ctx.fillStyle = tok(last.v > PREM_BAND ? '--up' : last.v < -PREM_BAND ? '--down' : '--gold');
+    ctx.fillStyle = tok(last.v > BAND ? '--up' : last.v < -BAND ? '--down' : '--gold');
     ctx.beginPath(); ctx.arc(X(last.t), Y(last.v), 3.5, 0, Math.PI * 2); ctx.fill();
 
     ctx.fillStyle = tok('--muted');
@@ -2064,7 +2088,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     hist = null; histError = null; histDueAt = 0;
     el.histWhich.textContent = HIST_NAME[src];
     const noPx = histIsBtc();
-    [el.gapTitle, el.gapBars].forEach((n) => { n.hidden = noPx; });
+    [el.gapHead, el.gapBars].forEach((n) => { n.hidden = noPx; });
     el.exportBtns.forEach((b) => { b.hidden = noPx && (b.dataset.export === 'gio' || b.dataset.export === 'oi'); });
     el.exportNote.hidden = noPx;
     loadHistory();
@@ -2214,7 +2238,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     histBars = weekly ? groupWeeks(days, todayKey) : days.map((d) => ({ date: d.date, n: d.n, usdt: d.usdt, premSum: d.premSum, premN: d.premN, cur: d.key === todayKey }));
     const per = weekly ? 'tuần' : 'ngày';
     el.gapBars.setAttribute('aria-label', 'Biểu đồ cột chênh lệch giá perp so với index mỗi ' + per);
-    el.gapTitle.textContent = 'Perp − index trung bình mỗi ' + per + ' (%)';
+    el.gapTitle.textContent = 'Perp − index trung bình mỗi ' + per + ' (' + (premUnit === 'pt' ? 'pt' : '%') + ')';
 
     const total = days.reduce((a, d) => a + d.usdt, 0);
     const full = days.filter((d) => d.key !== todayKey && d.n > 0);
@@ -2258,7 +2282,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
           + '<td>' + (d.n ? signed(d.rate * 100, 4) + '%' : '—') + '</td>'
           + '<td' + tone(d.usdt) + '>' + (d.n ? signedMoney(d.usdt) : '—') + '</td>'
           + pxCell(0, '<td>' + (Number.isFinite(d.idx) ? fmt2.format(d.idx) : '—') + '</td>'
-          + '<td' + tone(prem) + '>' + (Number.isFinite(prem) ? signed(prem, 3) + '%' : '—') + '</td>') + '</tr>';
+          + '<td' + tone(prem) + '>' + (Number.isFinite(prem) ? fmtPrem(prem, 3) : '—') + '</td>') + '</tr>';
       }
     } else if (view === 'month') {
       html = '<thead><tr><th>Tháng</th><th>Số kỳ</th><th>Tổng rate</th>' + usdtHead + '<th>TB mỗi ngày</th>' + (withPx ? '<th>Index ±</th><th>Perp − index</th>' : '') + '</tr></thead><tbody>';
@@ -2275,7 +2299,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
           + '<td' + tone(m.usdt) + '>' + (m.n ? signedMoney(m.usdt) : '—') + '</td>'
           + '<td' + tone(perDay) + '>' + (Number.isFinite(perDay) ? signedMoney(perDay) : '—') + '</td>'
           + pxCell(0, '<td' + tone(chg) + '>' + (Number.isFinite(chg) ? signed(chg, 2) + '%' : '—') + '</td>'
-          + '<td' + tone(prem) + '>' + (Number.isFinite(prem) ? signed(prem, 3) + '%' : '—') + '</td>') + '</tr>';
+          + '<td' + tone(prem) + '>' + (Number.isFinite(prem) ? fmtPrem(prem, 3) : '—') + '</td>') + '</tr>';
       }
     } else {
       html = '<thead><tr><th>Thời điểm chốt</th><th>Rate</th><th>Mark lúc chốt</th>' + usdtHead + (withPx ? '<th>Perp − index</th>' : '') + '</tr></thead><tbody>';
@@ -2285,7 +2309,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
           + '<td>' + signed(p.rate * 100, 4) + '%</td>'
           + '<td>' + (p.mark != null ? (p.approx ? '≈ ' : '') + fmt2.format(p.mark) : '—') + '</td>'
           + '<td' + tone(p.usdt) + '>' + (Number.isFinite(p.usdt) ? signedMoney(p.usdt) : '—') + '</td>'
-          + pxCell(0, '<td' + tone(prem) + '>' + (Number.isFinite(prem) ? signed(prem, 3) + '%' : '—') + '</td>') + '</tr>';
+          + pxCell(0, '<td' + tone(prem) + '>' + (Number.isFinite(prem) ? fmtPrem(prem, 3) : '—') + '</td>') + '</tr>';
       }
     }
     el.histTable.innerHTML = html + '</tbody>';
@@ -2311,7 +2335,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }
 
   function drawBars() {
-    drawBarChart(el.gapBars, (b) => (b.premN ? b.premSum / b.premN : NaN), '%');
+    drawBarChart(el.gapBars, (b) => (b.premN ? (b.premSum / b.premN) * premK() : NaN), premSuffix());
   }
 
   // Biểu đồ cột theo ngày (hoặc tuần) của histBars; val(b) là NaN thì bỏ trống cột đó.
@@ -4439,8 +4463,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }));
   el.histRetry.addEventListener('click', () => loadHistory());
   el.exportBtns.forEach((b) => b.addEventListener('click', () => exportData(b.dataset.export)));
+  let savedPremUnit = null;
+  try { savedPremUnit = localStorage.getItem('gold-perp-live.premUnit'); } catch (e) { /* bỏ qua */ }
+  setPremUnit(savedPremUnit, false);
+  el.premUnitBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.premunit !== premUnit) setPremUnit(b.dataset.premunit, true); }));
   bindChartTip(el.plChart, el.plTip, el.plGuide, () => plPts, () => plGeom,
-    (p) => (p.live ? 'Hiện tại' : stamp(p.t)) + ' · ' + signed(p.v, 4) + '%');
+    (p) => (p.live ? 'Hiện tại' : stamp(p.t)) + ' · ' + fmtPrem(p.v));
   // Khoảng lịch sử funding (nhớ lựa chọn); đặt trước sub tab để lần tải đầu đúng khoảng
   let savedRange = null;
   try { savedRange = localStorage.getItem('gold-perp-live.histRange'); } catch (e) { /* bỏ qua */ }
