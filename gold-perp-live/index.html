@@ -1699,7 +1699,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (plPts.length && now != null) plPts.push({ t: Date.now(), v: now, live: true });
     el.plMeta.textContent = (premErr && premData ? premErr + ' ' : premErr && !premData ? 'Không tải được premium index (' + premErr + '). ' : '')
       + 'Premium index của Bybit: chênh giữa giá mua/bán có độ sâu của perp và index, chính là số Bybit lấy trung bình trong kỳ để tính funding. '
-      + 'Theo dữ liệu từ đầu năm, funding gần như chỉ khác 0 khi trung bình kỳ vượt ±' + PREM_BAND + '% (hai vạch đứt trên biểu đồ). '
+      + 'Theo dữ liệu từ đầu năm, funding gần như chỉ khác 0 khi trung bình kỳ vượt +' + PREM_BAND + '% (vạch đứt trên biểu đồ); phía âm gần như không bao giờ dưới −' + PREM_BAND + '%. '
       + 'Vạch dọc mờ là các lúc chốt funding. Điểm cuối là số hiện tại tính từ giá mua/bán tốt nhất, cập nhật theo giây; các điểm khác cập nhật mỗi phút.';
   }
 
@@ -1722,7 +1722,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const tok = (n) => cs.getPropertyValue(n).trim();
     const L = 2, R = 64, T = 10, B = 24;
     const pw = w - L - R, ph = h - T - B;
-    let lo = -PREM_BAND * 1.6, hi = PREM_BAND * 1.6;
+    let lo = 0, hi = PREM_BAND * 1.6; // trục từ 0, chỉ mở rộng xuống khi dữ liệu âm
     for (const p of pts) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
     const step = niceStep((hi - lo) / 4);
     lo = Math.floor(lo / step) * step;
@@ -1756,14 +1756,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + ph); ctx.stroke();
       }
     }
-    // Ngưỡng ±0.05%
+    // Ngưỡng +0.05% (phía âm gần như không bao giờ vượt −0.05% nên không kẻ)
     ctx.save();
     ctx.setLineDash([5, 4]);
     ctx.strokeStyle = tok('--warn');
-    for (const v of [PREM_BAND, -PREM_BAND]) {
-      const y = Math.round(Y(v)) + 0.5;
-      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pw, y); ctx.stroke();
-    }
+    const yb = Math.round(Y(PREM_BAND)) + 0.5;
+    ctx.beginPath(); ctx.moveTo(L, yb); ctx.lineTo(L + pw, yb); ctx.stroke();
     ctx.restore();
     // Đường chênh lệch; đoạn vượt ngưỡng tô màu
     ctx.lineWidth = 1.6;
