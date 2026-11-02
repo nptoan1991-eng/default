@@ -628,22 +628,23 @@ function bybit_premium($symbol, $force, &$debug, &$errors) {
     return $st;
 }
 
-// ---------- Giá đóng nến Bybit cho khung chênh lệch XAU Bybit − PAXG Binance ----------
-// Nến 1 phút 24 giờ qua hoặc nến 5 phút 7 ngày qua, cache 60 giây (bybit_kl_<MÃ>_<phút>.json).
+// ---------- Giá đóng nến Bybit cho khung Token PAXG so với vàng (tab So sánh) ----------
+// Nến 1 phút 24 giờ qua hoặc nến 5 phút 7 ngày qua, cache 60 giây (bybit_kl_<MÃ>_<phút>[_idx].json).
+// $index = true: giá index (giá vàng Bybit dùng tính mark và funding), không thì giá khớp.
 // Trả ['at' => ..., 'rows' => [[thời điểm mở nến, giá đóng], ...]] hoặc null khi chưa lấy được lần nào.
-function bybit_closes($symbol, $minutes, $force, &$debug, &$errors) {
-    $file = __DIR__ . '/bybit_kl_' . $symbol . '_' . $minutes . '.json';
+function bybit_closes($symbol, $minutes, $index, $force, &$debug, &$errors) {
+    $file = __DIR__ . '/bybit_kl_' . $symbol . '_' . $minutes . ($index ? '_idx' : '') . '.json';
     $st = ex_read($file);
     $now = fx_now_ms();
     if (!$force && isset($st['at']) && $now - $st['at'] < EX_PREM_TTL_MS) return $st;
-    $what = 'Bybit: không lấy được giá ' . $symbol . (isset($st['rows']) ? ', đang dùng dữ liệu lấy lúc trước.' : '.');
+    $what = 'Bybit: không lấy được giá ' . ($index ? 'index ' : '') . $symbol . (isset($st['rows']) ? ', đang dùng dữ liệu lấy lúc trước.' : '.');
     if (!$force && isset($st['failAt']) && $now - $st['failAt'] < 60000) {
         $errors[] = $what;
         return isset($st['rows']) ? $st : null;
     }
-    $k = ex_log($debug, 'bybit_kl_' . $symbol . '_' . $minutes);
+    $k = ex_log($debug, 'bybit_kl_' . $symbol . '_' . $minutes . ($index ? '_idx' : ''));
     $span = $minutes === 1 ? 86400000 : 7 * 86400000;
-    $kl = bybit_kline('/v5/market/kline', $symbol, $now - $span, $now, $minutes, 4, $debug[$k]);
+    $kl = bybit_kline($index ? '/v5/market/index-price-kline' : '/v5/market/kline', $symbol, $now - $span, $now, $minutes, 4, $debug[$k]);
     if ($kl === null || !$kl['vals']) {
         $errors[] = $what;
         $st['failAt'] = $now;

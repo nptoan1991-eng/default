@@ -18,8 +18,9 @@
  * (lưu trong oi_<sàn>_<MÃ>.json; Binance chỉ giữ 30 ngày nên cron alert-check.php lưu dần mỗi 6 giờ).
  * ?premium=XAUUSDT lấy premium index Bybit (chênh perp − index dùng tính funding): nến 5 phút 24 giờ qua
  * và nến 1 phút 8 giờ qua, cache 60 giây (bybit_prem_<MÃ>.json).
- * ?kline=XAUUSDT&iv=1|5 lấy giá đóng nến Bybit: nến 1 phút 24 giờ qua hoặc nến 5 phút 7 ngày qua, cache 60 giây
- * (bybit_kl_<MÃ>_<phút>.json), dùng cho khung chênh lệch XAU Bybit − PAXG Binance ở tab So sánh.
+ * ?kline=XAUUSDT&iv=1|5[&kind=index] lấy giá đóng nến Bybit (giá khớp, hoặc index với kind=index): nến 1 phút
+ * 24 giờ qua hoặc nến 5 phút 7 ngày qua, cache 60 giây (bybit_kl_<MÃ>_<phút>[_idx].json), dùng cho khung
+ * Token PAXG so với vàng ở tab So sánh.
  * Các hàm nằm trong ex-lib.php.
  * ?debug=1 xem dữ liệu thô từng lần gọi.
  * Kết quả được cache: giá/funding hiện tại 30 giây, lịch sử 30 phút (hoặc tới kỳ chốt kế tiếp).
@@ -48,10 +49,12 @@ if ($oiEx === null && $symbol !== '' && !in_array($symbol, array_merge($BYBIT_SY
     exit;
 }
 
-// ?kline=XAUUSDT&iv=1|5: giá đóng nến Bybit (1 phút 24 giờ hoặc 5 phút 7 ngày) cho khung XAU Bybit − PAXG Binance
+// ?kline=XAUUSDT&iv=1|5[&kind=index]: giá đóng nến Bybit (1 phút 24 giờ hoặc 5 phút 7 ngày), giá khớp hoặc index,
+// cho khung Token PAXG so với vàng
 if (isset($_GET['kline'])) {
     $ks = strtoupper((string) $_GET['kline']);
     $iv = isset($_GET['iv']) && (int) $_GET['iv'] === 5 ? 5 : 1;
+    $kIdx = isset($_GET['kind']) && $_GET['kind'] === 'index';
     if (!in_array($ks, $BYBIT_SYMBOLS, true)) {
         http_response_code(400);
         echo json_encode(['errors' => ['Mã ' . $ks . ' không có trong danh sách Bybit của trang.']], JSON_UNESCAPED_UNICODE);
@@ -60,12 +63,12 @@ if (isset($_GET['kline'])) {
     $klock = @fopen(EX_LOCK_FILE, 'c');
     if ($klock) flock($klock, LOCK_EX);
     $errors = [];
-    $kl = bybit_closes($ks, $iv, $DEBUG, $debug, $errors);
+    $kl = bybit_closes($ks, $iv, $kIdx, $DEBUG, $debug, $errors);
     if ($klock) {
         flock($klock, LOCK_UN);
         fclose($klock);
     }
-    $out = ['symbol' => $ks, 'iv' => $iv, 'at' => $kl ? $kl['at'] : null, 'rows' => $kl ? $kl['rows'] : null, 'errors' => $errors];
+    $out = ['symbol' => $ks, 'iv' => $iv, 'kind' => $kIdx ? 'index' : 'last', 'at' => $kl ? $kl['at'] : null, 'rows' => $kl ? $kl['rows'] : null, 'errors' => $errors];
     if ($DEBUG) $out['debug'] = $debug;
     echo json_encode($out, JSON_UNESCAPED_UNICODE);
     exit;
