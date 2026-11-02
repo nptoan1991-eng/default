@@ -292,6 +292,31 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .main-tabs button:hover { color: var(--ink); }
 .main-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gold); }
 .tab-page { display: grid; gap: 18px; }
+/* Featured / All */
+.mode-seg { justify-self: start; }
+.mode-seg button { font: 600 14px var(--sans); padding: 7px 20px; }
+#allView { display: grid; gap: 18px; }
+.pick > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; font: 600 15px/1.3 var(--sans); }
+.pick > summary::-webkit-details-marker { display: none; }
+.pick > summary::before {
+  content: ""; flex: none; width: 7px; height: 7px; margin: 0 2px 0 1px;
+  border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted); transform: rotate(-45deg); transition: transform 0.15s;
+}
+.pick[open] > summary::before { transform: rotate(45deg); margin-bottom: 3px; }
+.pick > summary small { font: 500 13px var(--sans); color: var(--muted); }
+.pick-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 24px; margin-top: 14px; }
+.pick-group h3 { margin: 0 0 4px; font: 600 12px var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.pick-group label { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; font-size: 14px; cursor: pointer; }
+.pick-group input { margin: 3px 0 0; accent-color: var(--gold); }
+.pick-order { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pick-order ol { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; counter-reset: pick; }
+.pick-order li { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.pick-order li::before { counter-increment: pick; content: counter(pick) "."; flex: none; width: 24px; font: 12.5px var(--mono); color: var(--muted); }
+.pick-order li > span { flex: 1 1 auto; min-width: 0; }
+.pick-order .linkbtn { min-width: 30px; }
+.feat-pick { font: 500 13px var(--sans); padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+body:not([data-mode="featured"]) .feat-only { display: none !important; }
+.feat-empty p { margin: 0; color: var(--muted); }
 .sub-tabs { justify-self: start; }
 .sub-tabs button { font: 600 13.5px var(--sans); padding: 6px 16px; }
 .sub-page { display: grid; gap: 18px; }
@@ -391,6 +416,28 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <button type="button" class="linkbtn" id="alertClose">Đóng</button>
   </div>
 
+  <nav class="seg mode-seg" role="tablist" aria-label="Chế độ xem">
+    <button type="button" role="tab" id="mode-btn-featured" data-mode="featured" aria-controls="featView" aria-selected="false">Featured</button>
+    <button type="button" role="tab" id="mode-btn-all" data-mode="all" aria-controls="allView" aria-selected="true">All</button>
+  </nav>
+
+  <div class="tab-page" id="featView" role="tabpanel" aria-labelledby="mode-btn-featured" hidden>
+    <div class="tab-bar">
+      <button type="button" class="linkbtn" id="featEdit">Chọn khung</button>
+      <button type="button" class="linkbtn fold-all">Mở hết</button>
+    </div>
+    <section class="panel feat-empty" id="featEmpty" hidden>
+      <p>Chưa có khung nào trong Featured. Vào tab All, tick các khung muốn xem ở danh sách đầu trang.</p>
+    </section>
+  </div>
+
+  <div id="allView" role="tabpanel" aria-labelledby="mode-btn-all">
+  <details class="panel pick" id="pickBox">
+    <summary>Chọn khung cho Featured <small id="pickCount"></small></summary>
+    <div class="pick-groups" id="pickGroups"></div>
+    <div class="pick-order" id="pickOrder" hidden></div>
+  </details>
+
   <nav class="main-tabs" role="tablist" aria-label="Phần của trang">
     <button type="button" id="tab-btn-xau" role="tab" data-tab="xau" aria-controls="tab-xau" aria-selected="true">XAUUSDT</button>
     <button type="button" id="tab-btn-xag" role="tab" data-tab="xag" aria-controls="tab-xag" aria-selected="false">XAGUSDT</button>
@@ -412,6 +459,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <section class="panel" id="plPanel" data-panel="prem-live" aria-label="Perp − index live">
       <div class="panel-head">
         <h2>Perp − index live · <span id="plWhich">Bybit XAUUSDT</span></h2>
+        <select class="feat-pick feat-only" id="plPick" aria-label="Mã cho khung Perp − index live trong Featured">
+          <option value="XAUUSDT">XAUUSDT Bybit</option><option value="XAGUSDT">XAGUSDT Bybit</option><option value="BTCUSDT">BTCUSDT Bybit</option>
+        </select>
         <div class="seg" role="radiogroup" aria-label="Đơn vị Perp − index"><button type="button" role="radio" data-premunit="pt" aria-checked="true">pt</button><button type="button" role="radio" data-premunit="pct" aria-checked="false">%</button></div>
       </div>
       <div class="hsum">
@@ -432,6 +482,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <section class="panel" id="histPanel" data-panel="hist" aria-label="Lịch sử funding">
       <div class="panel-head">
         <h2>Lịch sử funding · <span id="histWhich">Bybit XAUUSDT</span></h2>
+        <select class="feat-pick feat-only" id="histPick" aria-label="Mã cho khung Lịch sử funding trong Featured">
+          <option value="bybit:XAUUSDT">XAUUSDT Bybit</option><option value="binance:XAUUSDT">XAUUSDT Binance</option>
+          <option value="bybit:XAGUSDT">XAGUSDT Bybit</option><option value="binance:XAGUSDT">XAGUSDT Binance</option>
+          <option value="binance:PAXGUSDT">PAXGUSDT Binance</option><option value="bybit:BTCUSDT">BTCUSDT Bybit</option>
+        </select>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
           <button type="button" role="radio" data-histrange="14" aria-checked="true">14 ngày</button>
           <button type="button" role="radio" data-histrange="30" aria-checked="false">30 ngày</button>
@@ -1182,6 +1237,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <div class="table-wrap"><table id="cmpTable"></table></div>
     </section>
   </div>
+  </div>
 
   <footer>
     <span>Nguồn: <code>wss://stream.bybit.com/v5/public/linear</code> và <code>wss://fstream.binance.com/market</code>, dữ liệu public, không cần API key</span>
@@ -1217,6 +1273,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const BY_DEAD_MS = 45000;    // Bybit chỉ gửi khi giá đổi, nhưng trả pong cho mỗi lần ping 20 giây
 
   const $ = (id) => document.getElementById(id);
+  // Khung đang hiện (không nằm trong chế độ, tab hay sub tab đang ẩn): chỉ nhận và vẽ dữ liệu cho các khung này
+  const PANEL = {};
+  function shown(key) {
+    const p = PANEL[key] || (PANEL[key] = document.querySelector('[data-panel="' + key + '"]'));
+    return !!p && !p.closest('[hidden]');
+  }
+  const anyShown = (...keys) => keys.some(shown);
   const el = {
     last: $('last'), chg: $('chg'), symNote: $('symNote'),
     mark: $('mark'),
@@ -1600,13 +1663,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (cmpDirty) { cmpDirty = false; drawCompare(); }
     if (spDirty) { spDirty = false; SP_KEYS.forEach(drawSpreadChart); }
     if (drillDirty) { drillDirty = false; drawDrill(); }
-    if (tab === 'xau' && xauSub === 'binance') renderBinanceXau();
-    if (tab === 'dau') renderOil();
-    if (tab === 'xag') renderSilver();
-    if (tab === 'btc') renderBtc();
+    if (anyShown('xau-bn-price', 'xau-bn-gap')) renderBinanceXau();
+    if (anyShown('oil-venues', 'oil-pos', 'oil-hist')) renderOil();
+    if (anyShown('xag-by-price', 'xag-bn-price', 'xag-bn-gap')) renderSilver();
+    if (shown('btc-price')) renderBtc();
     if (premSym && plDirty) { plDirty = false; renderPremLive(); drawPremChart(); }
     if (exDirty) { exDirty = false; drawExChart('gold'); drawExChart('paxg'); drawExChart('oil'); }
-    if (tab === 'so-sanh' && xpDirty) { xpDirty = false; renderXp(); drawXpChart(); }
+    if (xpDirty && shown('ss-xp')) { xpDirty = false; renderXp(); drawXpChart(); }
   }
 
   function renderBybit() {
@@ -1672,13 +1735,15 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // Tiêu đề tab trình duyệt theo giá của phần đang xem
   function renderTitle() {
     let v, name;
-    if (tab === 'paxg') { v = s.last; name = 'PAXGUSDT Binance'; }
-    else if (tab === 'dau') { v = byValOf('CLUSDT', 'last'); name = 'CLUSDT Bybit'; }
-    else if (tab === 'xag') { v = agSub === 'binance' ? bnSideVal(AG, 'last') : byValOf(AG, 'last'); name = 'XAGUSDT ' + (agSub === 'binance' ? 'Binance' : 'Bybit'); }
-    else if (tab === 'btc') { v = byValOf(BT, 'last'); name = 'BTCUSDT Bybit'; }
-    else if (tab === 'xau' && xauSub === 'binance') { v = bnXVal('last'); name = 'XAUUSDT Binance'; }
+    // Featured: tiêu đề theo XAUUSDT Bybit
+    const t = mode === 'all' ? tab : 'xau', xs = mode === 'all' ? xauSub : 'bybit';
+    if (t === 'paxg') { v = s.last; name = 'PAXGUSDT Binance'; }
+    else if (t === 'dau') { v = byValOf('CLUSDT', 'last'); name = 'CLUSDT Bybit'; }
+    else if (t === 'xag') { v = agSub === 'binance' ? bnSideVal(AG, 'last') : byValOf(AG, 'last'); name = 'XAGUSDT ' + (agSub === 'binance' ? 'Binance' : 'Bybit'); }
+    else if (t === 'btc') { v = byValOf(BT, 'last'); name = 'BTCUSDT Bybit'; }
+    else if (t === 'xau' && xs === 'binance') { v = bnXVal('last'); name = 'XAUUSDT Binance'; }
     else { v = byVal('last'); name = 'XAUUSDT Bybit'; }
-    document.title = v != null ? (tab === 'dau' || tab === 'xag' ? fmtOil.format(v) : fmt2.format(v)) + ' · ' + name + ' | Gold Perp Live' : 'Gold Perp Live';
+    document.title = v != null ? (t === 'dau' || t === 'xag' ? fmtOil.format(v) : fmt2.format(v)) + ' · ' + name + ' | Gold Perp Live' : 'Gold Perp Live';
   }
 
   // ---------- Perp − index live (Bybit) ----------
@@ -1930,7 +1995,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const yiv = byIntervalOf(AG);
     renderContractBlock('agy', y, yiv, byAG.intervalH || (exLive['bybit:' + AG] && exLive['bybit:' + AG].intervalH), fmtOil);
     renderPositionBox(POS_AGY, y.mark, y.rate, yiv, el.agyQty.value);
-    if (agSub !== 'binance') return;
+    if (!anyShown('xag-bn-price', 'xag-bn-gap')) return;
     const b = { last: bnSideVal(AG, 'last'), chgPct: bnAG.chgPct, mark: bnSideVal(AG, 'mark'), rate: bnSideVal(AG, 'rate') };
     const biv = bnIv(AG);
     renderContractBlock('agb', b, biv, bnIntervals && bnIntervals[AG], fmtOil);
@@ -1958,14 +2023,14 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   function renderCountdown(now) {
     countdownTo(byVal('next'), now, el.byCountdown, el.byNextAt);
     countdownTo(s.next, now, el.countdown, el.nextAt);
-    if (xauSub === 'binance') countdownTo(bnXVal('next'), now, el.bxCountdown, el.bxNextAt);
-    if (tab === 'xag') {
+    if (shown('xau-bn-price')) countdownTo(bnXVal('next'), now, el.bxCountdown, el.bxNextAt);
+    if (anyShown('xag-by-price', 'xag-bn-price')) {
       countdownTo(byValOf(AG, 'next'), now, $('agyCountdown'), $('agyNextAt'));
-      if (agSub === 'binance') countdownTo(bnSideVal(AG, 'next'), now, $('agbCountdown'), $('agbNextAt'));
+      if (shown('xag-bn-price')) countdownTo(bnSideVal(AG, 'next'), now, $('agbCountdown'), $('agbNextAt'));
     }
-    if (tab === 'btc') countdownTo(byValOf(BT, 'next'), now, $('btCountdown'), $('btNextAt'));
+    if (shown('btc-price')) countdownTo(byValOf(BT, 'next'), now, $('btCountdown'), $('btNextAt'));
     if (premSym) { countdownTo(byValOf(premSym, 'next'), now, el.plCd, el.plCdSub); plDirty = true; }
-    if (tab === 'dau') {
+    if (shown('oil-venues')) {
       countdownTo(byValOf(OIL, 'next'), now, $('oilCd_by'), $('oilAt_by'));
       countdownTo(bnSideVal(OIL, 'next'), now, $('oilCd_bn'), $('oilAt_bn'));
     }
@@ -1995,13 +2060,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (histDueAt && now >= histDueAt) { histDueAt = 0; loadHistory(); loadCompare(); }
     else if (histNeedMark && histLive('mark') != null) renderHistory();
     // Tab dầu: tải lại lịch sử funding 1 phút sau mỗi kỳ chốt
-    if (tab === 'dau' && oilLoaded) {
+    if (oilLoaded && anyShown('oil-venues', 'oil-pos', 'oil-hist')) {
       const on = byValOf(OIL, 'next') || bnSideVal(OIL, 'next');
       if (!oilDueAt && on > now) oilDueAt = on + 60000;
       if (oilDueAt && now >= oilDueAt) { oilDueAt = 0; loadOilHist(); }
       else if (oilNeedMark.some((n) => oilVenue(n === 'Bybit' ? 'by' : 'bn').mark != null)) renderOilHist();
     }
-    if (tab === 'so-sanh') renderExchanges();
+    if (shown('ss-funding')) renderExchanges();
     xpTick(now);
   }
 
@@ -2164,6 +2229,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   // Chuyển khung lịch sử sang tab đang xem: tab XAUUSDT / XAGUSDT theo sub tab Bybit / Binance, tab PAXGUSDT là PAXGUSDT
   function placeHistory() {
+    // Featured: hai khung nằm theo thứ tự Featured, mã theo ô chọn trong khung
+    if (mode === 'featured') {
+      el.plPanel.hidden = false;
+      setPremSymbol(featured.includes('prem-live') ? featPrem : null);
+      if (featured.includes('hist')) setHistSource(featHist);
+      return;
+    }
     if (tab !== 'xau' && tab !== 'paxg' && tab !== 'xag' && tab !== 'btc') return;
     const bar = TABS[tab].querySelector(':scope > .tab-bar');
     // Khung Perp − index live (Bybit) ở tab XAUUSDT, XAGUSDT, BTCUSDT; tab PAXGUSDT là Binance nên ẩn
@@ -3558,7 +3630,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         + (p.src === 'log' ? ' · Swissquote' + (p.hi != null ? ', trong giờ ' + signed(p.lo, 2) + ' đến ' + signed(p.hi, 2) : '') : p.src === 'idx' ? ' · vàng theo index' : '')
         + ' · bấm để phân tích',
       // Khung phân tích nằm ở tab So sánh; bấm từ tab PAXGUSDT thì chuyển tab trước
-      (p) => { if (tab !== 'so-sanh') setTab('so-sanh', true); openDrill(p.t); });
+      (p) => { if (!shown('ss-spread')) { setMode('all', false); setTab('so-sanh', true); } openDrill(p.t); });
   }
 
   // ---------- Phân tích từng phút quanh một thời điểm ----------
@@ -3896,7 +3968,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (xpTicks.size > 7 * 1440 + 10) {
       for (const k of xpTicks.keys()) { if (k < now - 7 * 864e5) xpTicks.delete(k); else break; }
     }
-    if (tab !== 'so-sanh') return;
+    if (!shown('ss-xp')) return;
     const iv = XP_RANGES[xpRange].iv;
     if (!xpBusy[iv] && now - xpAt[iv] > (iv === 1 ? 6e4 : iv === 5 ? 3e5 : 6e5)) loadXp(iv);
     if (iv === 60 && !xpBusy[1] && now - xpAt[1] > 6e4) loadXp(1);
@@ -4636,16 +4708,20 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // ---------- Tab: XAUUSDT (sub tab Bybit / Binance), PAXGUSDT Binance, Dầu WTI, So sánh ----------
   const TABS = { xau: $('tab-xau'), xag: $('tab-xag'), paxg: $('tab-paxg'), dau: $('tab-dau'), btc: $('tab-btc'), 'so-sanh': $('tab-so-sanh') };
   let tab = 'xau', xauSub = 'bybit', agSub = 'bybit';
-  const tabFromHash = () => { const h = location.hash.slice(1); return TABS[h] && h !== 'xau' ? h : null; };
   function setTab(name, updateHash) {
     tab = TABS[name] ? name : 'xau';
     Object.keys(TABS).forEach((k) => { TABS[k].hidden = k !== tab; });
     el.tabBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
-    if (updateHash) history.replaceState(null, '', tab === 'xau' ? location.pathname + location.search : '#' + tab);
+    if (updateHash) history.replaceState(null, '', '#' + tab);
     try { localStorage.setItem('gold-perp-live.tab', tab); } catch (e) { /* bỏ qua */ }
-    syncLazy();
+    afterLayout();
+  }
+
+  // Sau khi đổi phần đang hiện: đặt khung dùng chung, mở / đóng luồng dữ liệu, vẽ lại
+  function afterLayout() {
     placeHistory();
-    if (tab === 'so-sanh') renderExchanges();
+    syncLazy();
+    if (shown('ss-funding')) renderExchanges();
     updateFoldBars();
     redraw();
   }
@@ -4658,9 +4734,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     updateFoldBars();
     if (!fromClick) return;
     try { localStorage.setItem('gold-perp-live.xauSub', xauSub); } catch (e) { /* bỏ qua */ }
-    syncLazy();
-    placeHistory();
-    redraw();
+    afterLayout();
   }
 
   function setAgSub(name, fromClick) {
@@ -4671,19 +4745,135 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     updateFoldBars();
     if (!fromClick) return;
     try { localStorage.setItem('gold-perp-live.agSub', agSub); } catch (e) { /* bỏ qua */ }
-    syncLazy();
-    placeHistory();
-    redraw();
+    afterLayout();
   }
+
+  // ---------- Featured / All ----------
+  // Mỗi khung chỉ có một bản. Ở Featured, các khung đã tick được chuyển sang featView theo thứ tự đã chọn;
+  // về All thì trả lại đúng chỗ cũ (đánh dấu bằng một comment đặt trước khung lúc mở trang).
+  const featView = $('featView'), allView = $('allView');
+  const modeBtns = document.querySelectorAll('.mode-seg [data-mode]');
+  const SLOT = {};
+  const PICK_SHARED = ['prem-live', 'hist']; // khung dùng chung cho nhiều mã, ở Featured có ô chọn mã
+  const PICK_NAME = { 'prem-live': 'Perp − index live (Bybit)', hist: 'Lịch sử funding' };
+  const pickGroups = [{ name: 'Dùng chung nhiều mã', keys: PICK_SHARED.slice() }];
+  document.querySelectorAll('[data-panel]').forEach((p) => {
+    const key = p.dataset.panel;
+    PANEL[key] = p;
+    SLOT[key] = document.createComment(' khung ' + key + ' ');
+    p.before(SLOT[key]);
+    if (PICK_SHARED.includes(key)) return;
+    const page = p.closest('.tab-page');
+    const gname = $('tab-btn-' + page.id.slice(4)).textContent.trim();
+    let g = pickGroups.find((x) => x.name === gname);
+    if (!g) pickGroups.push(g = { name: gname, keys: [] });
+    g.keys.push(key);
+  });
+  const pickName = (key) => PICK_NAME[key] || PANEL[key].getAttribute('aria-label');
+
+  let mode = 'all', featured = [], featPrem = 'XAUUSDT', featHist = 'bybit:XAUUSDT';
+  try {
+    const f = JSON.parse(localStorage.getItem('gold-perp-live.featured') || '[]');
+    if (Array.isArray(f)) featured = f.filter((k, i) => PANEL[k] && f.indexOf(k) === i);
+    const fp = localStorage.getItem('gold-perp-live.featPrem'), fh = localStorage.getItem('gold-perp-live.featHist');
+    if (fp && $('plPick').querySelector('option[value="' + fp + '"]')) featPrem = fp;
+    if (fh && $('histPick').querySelector('option[value="' + fh + '"]')) featHist = fh;
+  } catch (e) { /* bỏ qua */ }
+  $('plPick').value = featPrem;
+  $('histPick').value = featHist;
+
+  function saveFeatured() {
+    try { localStorage.setItem('gold-perp-live.featured', JSON.stringify(featured)); } catch (e) { /* bỏ qua */ }
+  }
+
+  // Đặt các khung theo chế độ đang xem
+  function layoutPanels() {
+    const inFeat = mode === 'featured' ? featured : [];
+    Object.keys(PANEL).forEach((k) => {
+      if (!inFeat.includes(k) && PANEL[k].parentNode === featView) SLOT[k].after(PANEL[k]);
+    });
+    inFeat.forEach((k) => featView.appendChild(PANEL[k]));
+    $('featEmpty').hidden = mode !== 'featured' || featured.length > 0;
+  }
+
+  function setMode(m, updateHash) {
+    mode = m === 'featured' ? 'featured' : 'all';
+    document.body.dataset.mode = mode;
+    modeBtns.forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === mode)));
+    featView.hidden = mode !== 'featured';
+    allView.hidden = mode !== 'all';
+    layoutPanels();
+    if (updateHash) history.replaceState(null, '', mode === 'featured' ? '#featured' : '#' + tab);
+    afterLayout();
+  }
+
+  // Danh sách tick ở đầu tab All, và thứ tự các khung trong Featured (nút ↑ ↓)
+  function renderPick() {
+    $('pickCount').textContent = featured.length ? '· ' + featured.length + ' khung đã chọn' : '· chưa chọn khung nào';
+    $('pickGroups').innerHTML = pickGroups.map((g) => '<div class="pick-group"><h3>' + g.name + '</h3>'
+      + g.keys.map((k) => '<label><input type="checkbox" data-pick="' + k + '"' + (featured.includes(k) ? ' checked' : '') + '><span>'
+        + pickName(k) + '</span></label>').join('') + '</div>').join('');
+    const order = $('pickOrder');
+    order.hidden = !featured.length;
+    order.innerHTML = '<h3 class="sub-h">Thứ tự trong Featured</h3><ol>' + featured.map((k, i) => '<li><span>' + pickName(k) + '</span>'
+      + '<button type="button" class="linkbtn" data-move="-1" data-key="' + k + '" aria-label="Đưa lên"' + (i ? '' : ' disabled') + '>↑</button>'
+      + '<button type="button" class="linkbtn" data-move="1" data-key="' + k + '" aria-label="Đưa xuống"' + (i < featured.length - 1 ? '' : ' disabled') + '>↓</button>'
+      + '<button type="button" class="linkbtn" data-unpick="' + k + '">Bỏ</button></li>').join('') + '</ol>';
+  }
+
+  function changeFeatured(next) {
+    featured = next;
+    saveFeatured();
+    renderPick();
+    if (mode === 'featured') { layoutPanels(); afterLayout(); }
+  }
+
+  $('pickBox').addEventListener('change', (e) => {
+    const k = e.target.dataset && e.target.dataset.pick;
+    if (!k) return;
+    changeFeatured(e.target.checked ? featured.filter((x) => x !== k).concat(k) : featured.filter((x) => x !== k));
+  });
+  $('pickBox').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.unpick) { changeFeatured(featured.filter((x) => x !== b.dataset.unpick)); return; }
+    if (!b.dataset.move) return;
+    const i = featured.indexOf(b.dataset.key), j = i + Number(b.dataset.move);
+    if (i < 0 || j < 0 || j >= featured.length) return;
+    const next = featured.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    changeFeatured(next);
+  });
+  modeBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.mode !== mode) setMode(b.dataset.mode, true); }));
+  $('featEdit').addEventListener('click', () => {
+    setMode('all', true);
+    $('pickBox').open = true;
+    $('pickBox').scrollIntoView({ block: 'start' });
+  });
+  // Ô chọn mã của hai khung dùng chung (chỉ hiện ở Featured)
+  $('plPick').addEventListener('change', (e) => {
+    featPrem = e.target.value;
+    try { localStorage.setItem('gold-perp-live.featPrem', featPrem); } catch (err) { /* bỏ qua */ }
+    afterLayout();
+  });
+  $('histPick').addEventListener('change', (e) => {
+    featHist = e.target.value;
+    try { localStorage.setItem('gold-perp-live.featHist', featHist); } catch (err) { /* bỏ qua */ }
+    afterLayout();
+  });
+  renderPick();
+  $('pickBox').open = !featured.length;
 
   // Chỉ nhận dữ liệu của phần đang xem: rời sub tab Binance hoặc tab Dầu WTI thì đóng luồng đó
   let fxAgTimer = null;
   function syncLazy() {
-    const ag = tab === 'xag';
+    // Khung dùng chung (Lịch sử funding, Perp − index live) cũng cần luồng của mã đang chọn trong khung
+    const hs = shown('hist') ? histSource : null, ps = shown('prem-live') ? premSym : null;
+    const ag = anyShown('xag-by-price', 'xag-bn-price', 'xag-bn-gap', 'xag-fx') || hs === 'bybit:' + AG || hs === 'binance:' + AG || ps === AG;
     // Bạc: Bybit và giá forex khi xem tab hoặc khi bật cảnh báo; Binance chỉ khi xem tab (mark, funding chỉ ở sub tab Binance)
     byWant(AG, ag || alertOn);
     bnWant(['xagusdt@aggTrade'], ag);
-    bnWant(['xagusdt@markPrice@1s', 'xagusdt@ticker'], ag && agSub === 'binance');
+    bnWant(['xagusdt@markPrice@1s', 'xagusdt@ticker'], anyShown('xag-bn-price', 'xag-bn-gap') || hs === 'binance:' + AG);
     if ((ag || alertOn) && !fxAgTimer) {
       loadFxAg();
       fxAgTimer = setInterval(loadFxAg, FX_REFRESH_MS);
@@ -4691,13 +4881,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       clearInterval(fxAgTimer);
       fxAgTimer = null;
     }
-    bnWant(['xauusdt@markPrice@1s', 'xauusdt@ticker'], tab === 'xau' && xauSub === 'binance');
+    bnWant(['xauusdt@markPrice@1s', 'xauusdt@ticker'], anyShown('xau-bn-price', 'xau-bn-gap') || hs === 'binance:XAUUSDT');
     // Index PAXGUSDT (trường i của markPrice) cho khung Token PAXG so với vàng; đang xem PAXGUSDT thì đã có trong luồng chính
-    bnWant(['paxgusdt@markPrice@1s'], tab === 'so-sanh' && sym !== 'PAXGUSDT');
-    const oil = tab === 'dau';
+    bnWant(['paxgusdt@markPrice@1s'], shown('ss-xp') && sym !== 'PAXGUSDT');
+    const oil = anyShown('oil-venues', 'oil-pos', 'oil-hist');
     bnWant(['clusdt@aggTrade', 'clusdt@markPrice@1s', 'clusdt@ticker'], oil);
     byWant(OIL, oil);
-    byWant(BT, tab === 'btc');
+    byWant(BT, shown('btc-price') || hs === 'bybit:' + BT || ps === BT);
     if (oil && !oilLoaded) { oilLoaded = true; loadOilHist(); }
   }
 
@@ -4956,10 +5146,18 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     loadExchanges(true);
   }));
   el.tabBtns.forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab, true)));
-  window.addEventListener('hashchange', () => setTab(tabFromHash() || 'xau', false));
+  // #featured: Featured; #xau, #so-sanh…: tab tương ứng trong All. Không có link thì vào Featured nếu đã chọn khung.
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.slice(1);
+    if (h === 'featured') { setMode('featured', false); return; }
+    if (mode !== 'all') setMode('all', false);
+    setTab(TABS[h] ? h : tab, false);
+  });
   let savedTab = null;
   try { savedTab = localStorage.getItem('gold-perp-live.tab'); } catch (e) { /* bỏ qua */ }
-  setTab(tabFromHash() || savedTab || 'xau', false);
+  const hash0 = location.hash.slice(1);
+  setTab(TABS[hash0] ? hash0 : TABS[savedTab] ? savedTab : 'xau', false);
+  setMode(hash0 === 'featured' || (!TABS[hash0] && featured.length) ? 'featured' : 'all', false);
   setInterval(tick, 1000);
   loadSjc();
   loadXauKlines();

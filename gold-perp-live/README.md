@@ -1,6 +1,22 @@
 # Gold Perp Live
 
-Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu, gồm 6 tab:
+Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh cửu. Đầu trang có 2 chế độ xem:
+
+- **Featured** (link `#featured`): chỉ hiện các khung bạn đã tick, theo thứ tự bạn sắp xếp.
+- **All**: toàn bộ trang như trước, gồm 6 tab con (bên dưới).
+
+**Chọn khung cho Featured:** ở đầu tab All có danh sách **Chọn khung cho Featured**, chia nhóm theo tab.
+- Tick khung nào thì khung đó có trong Featured. Khung mới tick nằm cuối danh sách.
+- Phần **Thứ tự trong Featured** có nút ↑ ↓ để đổi chỗ và nút **Bỏ**. Ở Featured, nút **Chọn khung** quay lại danh sách này.
+- Hai khung dùng chung nhiều mã có ô chọn mã riêng khi ở Featured:
+  - **Lịch sử funding:** XAUUSDT Bybit hoặc Binance, XAGUSDT Bybit hoặc Binance, PAXGUSDT Binance, BTCUSDT Bybit.
+  - **Perp − index live:** XAUUSDT, XAGUSDT hoặc BTCUSDT Bybit.
+- Trình duyệt nhớ danh sách, thứ tự và mã đã chọn.
+- Mở trang không kèm link thì vào Featured nếu đã chọn ít nhất một khung, không thì vào All. Link tab cũ (`#xau`, `#so-sanh`…) mở đúng tab đó trong All.
+
+**Cách hoạt động:** mỗi khung chỉ có một bản. Ở Featured, khung được chuyển sang trang Featured, về All thì trả lại đúng chỗ cũ. Trang chỉ nhận dữ liệu (WebSocket, lịch sử) cho các khung đang hiện, ở cả hai chế độ.
+
+Các tab con trong All:
 
 - **XAUUSDT**: đầu tab là lịch sử funding của sàn đang chọn (14 / 30 / 90 ngày hoặc từ đầu năm). Hai sub tab. **Bybit** (mặc định): giá khớp, mark price, funding và đếm ngược, funding theo vị thế. **Binance**: cùng các mục đó cho XAUUSDT Binance, kèm chênh lệch Bybit − Binance; dữ liệu Binance chỉ tải khi bấm vào sub tab này. Bên dưới là Bybit XAU so với forex kèm cảnh báo và SJC so với thế giới.
 - **XAGUSDT** (link `#xag`): bạc, cùng cách bố trí với tab XAUUSDT: sub tab **Bybit** (chính) và **Binance** (tải khi bấm), XAGUSDT Bybit so với giá bạc forex XAG/USD kèm cảnh báo trên trang; lịch sử funding của sàn đang chọn nằm ở đầu tab. Chỉ tải dữ liệu khi mở tab (hoặc khi đang bật cảnh báo).
@@ -9,7 +25,7 @@ Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh 
 - **BTCUSDT** (link `#btc`): riêng funding BTCUSDT trên Bybit. Đầu tab là lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm, bảng theo kỳ / ngày / tháng, xuất JSON và CSV theo kỳ, theo ngày; không có phần so giá với index và open interest), bên dưới là giá, mark, funding hiện tại, đếm ngược và funding theo vị thế với khối lượng tính bằng BTC (trang nhớ lại). Giá và funding hiện tại qua WebSocket Bybit, chỉ nhận khi mở tab; lịch sử qua `api/exchanges.php?symbol=BTCUSDT&start=<mốc>` (kho `bybit_hist_BTCUSDT.json`).
 - **So sánh** (link `#so-sanh`): token PAXG so với vàng (thanh đo và biểu đồ thời gian thực), funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
-Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab áp dụng cho các khung đang thấy trong tab đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
+Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab (và ở Featured) áp dụng cho các khung đang thấy ở đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
 
 ## Cách dùng
 
