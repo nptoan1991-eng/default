@@ -627,3 +627,33 @@ function bybit_premium($symbol, $force, &$debug, &$errors) {
     ex_write($file, $st);
     return $st;
 }
+
+// ---------- Giá đóng nến Bybit cho khung chênh lệch XAU Bybit − PAXG Binance ----------
+// Nến 1 phút 24 giờ qua hoặc nến 5 phút 7 ngày qua, cache 60 giây (bybit_kl_<MÃ>_<phút>.json).
+// Trả ['at' => ..., 'rows' => [[thời điểm mở nến, giá đóng], ...]] hoặc null khi chưa lấy được lần nào.
+function bybit_closes($symbol, $minutes, $force, &$debug, &$errors) {
+    $file = __DIR__ . '/bybit_kl_' . $symbol . '_' . $minutes . '.json';
+    $st = ex_read($file);
+    $now = fx_now_ms();
+    if (!$force && isset($st['at']) && $now - $st['at'] < EX_PREM_TTL_MS) return $st;
+    $what = 'Bybit: không lấy được giá ' . $symbol . (isset($st['rows']) ? ', đang dùng dữ liệu lấy lúc trước.' : '.');
+    if (!$force && isset($st['failAt']) && $now - $st['failAt'] < 60000) {
+        $errors[] = $what;
+        return isset($st['rows']) ? $st : null;
+    }
+    $k = ex_log($debug, 'bybit_kl_' . $symbol . '_' . $minutes);
+    $span = $minutes === 1 ? 86400000 : 7 * 86400000;
+    $kl = bybit_kline('/v5/market/kline', $symbol, $now - $span, $now, $minutes, 4, $debug[$k]);
+    if ($kl === null || !$kl['vals']) {
+        $errors[] = $what;
+        $st['failAt'] = $now;
+        ex_write($file, $st);
+        return isset($st['rows']) ? $st : null;
+    }
+    ksort($kl['vals']);
+    $rows = [];
+    foreach ($kl['vals'] as $t => $v) $rows[] = [$t, $v];
+    $st = ['at' => $now, 'rows' => $rows];
+    ex_write($file, $st);
+    return $st;
+}

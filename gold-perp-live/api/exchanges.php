@@ -1,6 +1,6 @@
 <?php
 /**
- * Giá và funding các hợp đồng vàng trên Bybit và Hyperliquid cho khung "Funding 3 sàn"
+ * Giá và funding các hợp đồng vàng trên Bybit và Hyperliquid cho khung "Funding 4 sàn"
  * (Binance do trang tự lấy). Đi qua host để trình duyệt không bị chặn và gom về một định dạng.
  * Tab XAUUSDT / XAGUSDT cũng dùng file này: lịch sử funding Bybit của một mã (kèm mark lúc chốt
  * từng kỳ, tới hơn một năm), và giá/funding Bybit dự phòng khi WebSocket của Bybit chưa kết nối
@@ -8,6 +8,7 @@
  *
  * - Bybit: XAUUSDT, PAXGUSDT, CLUSDT, XAGUSDT (REST v5, funding theo chu kỳ của từng mã: vàng thường 8 giờ, dầu 4 giờ)
  * - Hyperliquid: xyz:GOLD (thị trường HIP-3 của TradeXYZ), PAXG (funding mỗi giờ)
+ * - OKX: vàng (XAU-USDT-SWAP, không có thì XAUT-USDT-SWAP) và PAXG-USDT-SWAP
  *
  * ?days=N lấy thêm lịch sử funding N ngày của mọi mã (tối đa 60).
  * ?symbol=XAUUSDT&start=<mili giây> lấy lịch sử funding Bybit của một mã từ mốc start (tối đa 400 ngày),
@@ -17,6 +18,8 @@
  * (lưu trong oi_<sàn>_<MÃ>.json; Binance chỉ giữ 30 ngày nên cron alert-check.php lưu dần mỗi 6 giờ).
  * ?premium=XAUUSDT lấy premium index Bybit (chênh perp − index dùng tính funding): nến 5 phút 24 giờ qua
  * và nến 1 phút 8 giờ qua, cache 60 giây (bybit_prem_<MÃ>.json).
+ * ?kline=XAUUSDT&iv=1|5 lấy giá đóng nến Bybit: nến 1 phút 24 giờ qua hoặc nến 5 phút 7 ngày qua, cache 60 giây
+ * (bybit_kl_<MÃ>_<phút>.json), dùng cho khung chênh lệch XAU Bybit − PAXG Binance ở tab So sánh.
  * Các hàm nằm trong ex-lib.php.
  * ?debug=1 xem dữ liệu thô từng lần gọi.
  * Kết quả được cache: giá/funding hiện tại 30 giây, lịch sử 30 phút (hoặc tới kỳ chốt kế tiếp).
@@ -42,6 +45,29 @@ if ($oiEx !== null && (!isset($OI_SOURCES[$oiEx]) || !in_array($symbol, $OI_SOUR
 if ($oiEx === null && $symbol !== '' && !in_array($symbol, array_merge($BYBIT_SYMBOLS, $BYBIT_STORE_EXTRA), true)) {
     http_response_code(400);
     echo json_encode(['errors' => ['Mã ' . $symbol . ' không có trong danh sách Bybit của trang.']], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// ?kline=XAUUSDT&iv=1|5: giá đóng nến Bybit (1 phút 24 giờ hoặc 5 phút 7 ngày) cho khung XAU Bybit − PAXG Binance
+if (isset($_GET['kline'])) {
+    $ks = strtoupper((string) $_GET['kline']);
+    $iv = isset($_GET['iv']) && (int) $_GET['iv'] === 5 ? 5 : 1;
+    if (!in_array($ks, $BYBIT_SYMBOLS, true)) {
+        http_response_code(400);
+        echo json_encode(['errors' => ['Mã ' . $ks . ' không có trong danh sách Bybit của trang.']], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    $klock = @fopen(EX_LOCK_FILE, 'c');
+    if ($klock) flock($klock, LOCK_EX);
+    $errors = [];
+    $kl = bybit_closes($ks, $iv, $DEBUG, $debug, $errors);
+    if ($klock) {
+        flock($klock, LOCK_UN);
+        fclose($klock);
+    }
+    $out = ['symbol' => $ks, 'iv' => $iv, 'at' => $kl ? $kl['at'] : null, 'rows' => $kl ? $kl['rows'] : null, 'errors' => $errors];
+    if ($DEBUG) $out['debug'] = $debug;
+    echo json_encode($out, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
