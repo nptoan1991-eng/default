@@ -303,6 +303,7 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .ex-legend .eb::before { border-top-color: var(--gold); }
 .ex-legend .ey::before { border-top-color: var(--blue); }
 .ex-legend .eh::before { border-top-color: var(--violet); }
+.ex-legend .eo::before { border-top-color: var(--ink); }
 #tab-so-sanh .sub-h { margin-top: 18px; }
 .drill-legend { margin-top: 10px; flex-wrap: wrap; }
 .drill-legend .dp::before { border-top-color: var(--blue); }
@@ -324,6 +325,7 @@ canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .sub-h { margin: 18px 0 0; font: 600 13.5px/1.3 var(--sans); }
 .tabs { margin-top: 18px; }
 .table-wrap { margin-top: 10px; max-height: 380px; overflow: auto; }
+.table-wrap.ex-wrap { max-height: none; } /* bảng so sánh sàn ngắn, hiện đủ các dòng không cần cuộn dọc */
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 th, td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
 th:first-child, td:first-child { text-align: left; padding-left: 0; }
@@ -997,31 +999,31 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   <div class="tab-page" id="tab-so-sanh" role="tabpanel" aria-labelledby="tab-btn-so-sanh" hidden>
     <div class="tab-bar"><button type="button" class="linkbtn fold-all">Mở hết</button></div>
-    <section class="panel" data-panel="ss-funding" aria-label="So sánh funding 3 sàn">
+    <section class="panel" data-panel="ss-funding" aria-label="So sánh funding 4 sàn">
       <div class="panel-head">
-        <h2>Funding 3 sàn</h2>
+        <h2>Funding 4 sàn</h2>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
           <button type="button" id="ex-7" role="radio" data-exdays="7" aria-checked="true">7 ngày</button>
           <button type="button" id="ex-30" role="radio" data-exdays="30" aria-checked="false">30 ngày</button>
         </div>
       </div>
       <div class="hist-meta">
-        <p class="note" id="exMeta">Đang tải giá và funding của 3 sàn…</p>
+        <p class="note" id="exMeta">Đang tải giá và funding của 4 sàn…</p>
         <button type="button" class="linkbtn" id="exRetry" hidden>Tải lại</button>
       </div>
-      <div class="table-wrap"><table id="exTable" class="ex-table"></table></div>
+      <div class="table-wrap ex-wrap"><table id="exTable" class="ex-table"></table></div>
       <p class="note">Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên funding được quy về cùng 8 giờ và theo năm để so sánh. USDT/ngày tính cho khối lượng ở mục Funding theo vị thế (tab XAUUSDT), cho bên Short: dương là nhận, âm là trả. Ô tô đậm là funding quy năm cao nhất trong nhóm. TB là funding thực tế trung bình của khoảng đã chọn, quy theo năm. Trên điện thoại, kéo ngang bảng để xem các cột còn lại.</p>
       <h3 class="sub-h">Funding mỗi ngày · Vàng giao ngay</h3>
-      <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span></div>
+      <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span><span class="eo">OKX</span></div>
       <div class="bs-wrap">
-        <canvas id="exChart_gold" aria-label="Biểu đồ funding mỗi ngày của hợp đồng vàng giao ngay trên 3 sàn"></canvas>
+        <canvas id="exChart_gold" aria-label="Biểu đồ funding mỗi ngày của hợp đồng vàng giao ngay trên 4 sàn"></canvas>
         <div class="bs-guide" id="exGuide_gold" hidden></div>
         <div class="bs-tip" id="exTip_gold" hidden></div>
       </div>
       <h3 class="sub-h">Funding mỗi ngày · Token PAXG</h3>
-      <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span></div>
+      <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span><span class="eo">OKX</span></div>
       <div class="bs-wrap">
-        <canvas id="exChart_paxg" aria-label="Biểu đồ funding mỗi ngày của hợp đồng PAXG trên 3 sàn"></canvas>
+        <canvas id="exChart_paxg" aria-label="Biểu đồ funding mỗi ngày của hợp đồng PAXG trên 4 sàn"></canvas>
         <div class="bs-guide" id="exGuide_paxg" hidden></div>
         <div class="bs-tip" id="exTip_paxg" hidden></div>
       </div>
@@ -3706,19 +3708,22 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       null);
   }
 
-  // ---------- Funding 3 sàn: Binance, Bybit, Hyperliquid ----------
-  // Binance lấy trực tiếp; Bybit và Hyperliquid qua api/exchanges.php trên host.
+  // ---------- Funding 4 sàn: Binance, Bybit, Hyperliquid, OKX ----------
+  // Binance lấy trực tiếp; Bybit, Hyperliquid và OKX qua api/exchanges.php trên host.
   const EX_API = 'api/exchanges.php';
   const EX_ROWS = [
     { group: 'gold', key: 'binance:XAUUSDT', venue: 'Binance', name: 'XAUUSDT' },
     { group: 'gold', key: 'bybit:XAUUSDT', venue: 'Bybit', name: 'XAUUSDT' },
     { group: 'gold', key: 'hyperliquid:xyz:GOLD', venue: 'Hyperliquid', name: 'xyz:GOLD' },
+    // OKX: host thử XAU-USDT-SWAP trước, không có thì XAUT-USDT-SWAP; tên hiện theo hợp đồng host lấy được
+    { group: 'gold', key: 'okx:gold', venue: 'OKX', name: 'XAU-USDT' },
     { group: 'paxg', key: 'binance:PAXGUSDT', venue: 'Binance', name: 'PAXGUSDT' },
     { group: 'paxg', key: 'bybit:PAXGUSDT', venue: 'Bybit', name: 'PAXGUSDT' },
-    { group: 'paxg', key: 'hyperliquid:PAXG', venue: 'Hyperliquid', name: 'PAXG' }
+    { group: 'paxg', key: 'hyperliquid:PAXG', venue: 'Hyperliquid', name: 'PAXG' },
+    { group: 'paxg', key: 'okx:paxg', venue: 'OKX', name: 'PAXG-USDT' }
   ];
   const EX_GROUPS = { gold: 'Vàng giao ngay', paxg: 'Token PAXG' };
-  const EX_COLORS = { Binance: '--gold', Bybit: '--blue', Hyperliquid: '--violet' };
+  const EX_COLORS = { Binance: '--gold', Bybit: '--blue', Hyperliquid: '--violet', OKX: '--ink' };
   let exDays = 7, exLive = {}, exHist = {}, exErrors = [], exLoading = false, exFetchedAt = null, exDirty = true;
   let bnIntervals = null;
   const exDaily = { gold: [], paxg: [], oil: [] }, exGeom = {};
@@ -3751,7 +3756,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     await loadBnIntervals();
     const since = Date.now() - days * 864e5;
     const host = location.protocol === 'file:'
-      ? Promise.reject(new Error('Bybit và Hyperliquid cần mở trang từ host có thư mục api/'))
+      ? Promise.reject(new Error('Bybit, Hyperliquid và OKX cần mở trang từ host có thư mục api/'))
       : fetch(EX_API + (withHistory ? '?days=' + days : ''), { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/exchanges.php trả HTTP ' + r.status))));
     const jobs = [bnLive('XAUUSDT'), bnLive('PAXGUSDT'), host];
@@ -3819,7 +3824,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const qOk = Number.isFinite(q) && q >= 0;
     el.exRetry.hidden = exLoading || !exErrors.length;
     el.exMeta.textContent = exLoading && !Object.keys(exLive).length
-      ? 'Đang tải giá và funding của 3 sàn…'
+      ? 'Đang tải giá và funding của 4 sàn…'
       : 'Cập nhật lúc ' + clock(exFetchedAt || Date.now()) + ', tự tải lại mỗi phút.' + (exErrors.length ? ' ' + exErrors.join(' ') : '');
     const priceOf = (row) => {
       const L = exLive[row.key];
@@ -3861,7 +3866,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const L = s.L;
       const diff = s.price != null && ref != null && s.row !== EX_ROWS[0] ? s.price - ref : null;
       const isBest = s.annual != null && s.annual === best[group];
-      html += '<tr><td>' + s.row.venue + ' · ' + s.row.name + '</td>'
+      const name = L && L.inst ? L.inst.replace(/-SWAP$/, '') : s.row.name;
+      html += '<tr><td>' + s.row.venue + ' · ' + name + '</td>'
         + '<td' + (isBest ? ' class="best"' : tone(s.annual)) + '>' + (s.annual != null ? signed(s.annual, 2) + '%' : '—') + '</td>'
         + '<td' + tone(s.histAnnual) + '>' + (s.histAnnual != null ? signed(s.histAnnual, 2) + '%' : '—') + '</td>'
         + '<td>' + (L ? signed(L.rate * 100, 4) + '% / ' + L.intervalH + 'h' : '—') + '</td>'

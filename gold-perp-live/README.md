@@ -7,7 +7,7 @@ Dashboard xem dữ liệu live của hợp đồng vàng, bạc và dầu vĩnh 
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm, kèm xuất dữ liệu. Chỉ tải dữ liệu khi mở tab này.
 - **BTCUSDT** (link `#btc`): riêng funding BTCUSDT trên Bybit. Đầu tab là lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm, bảng theo kỳ / ngày / tháng, xuất JSON và CSV theo kỳ, theo ngày; không có phần so giá với index và open interest), bên dưới là giá, mark, funding hiện tại, đếm ngược và funding theo vị thế với khối lượng tính bằng BTC (trang nhớ lại). Giá và funding hiện tại qua WebSocket Bybit, chỉ nhận khi mở tab; lịch sử qua `api/exchanges.php?symbol=BTCUSDT&start=<mốc>` (kho `bybit_hist_BTCUSDT.json`).
-- **So sánh** (link `#so-sanh`): funding 3 sàn (Binance, Bybit, Hyperliquid), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
+- **So sánh** (link `#so-sanh`): funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab áp dụng cho các khung đang thấy trong tab đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
 
@@ -29,13 +29,13 @@ gold-perp-live/
     ├── alert-config.example.php   cấu hình mẫu cho cảnh báo
     ├── spread-lib.php  ghi nhật ký XAU/PAXG − giá Swissquote theo giờ
     ├── spread-history.php   đọc nhật ký đó cho trang
-    ├── exchanges.php   giá, funding, lịch sử funding, giá theo giờ và open interest cho trang (Bybit, Hyperliquid, Binance)
+    ├── exchanges.php   giá, funding, lịch sử funding, giá theo giờ và open interest cho trang (Bybit, Hyperliquid, OKX, Binance)
     └── ex-lib.php      các hàm gọi sàn và kho lịch sử dùng chung cho exchanges.php và alert-check.php
 ```
 
 Trang không cho Google và các công cụ tìm kiếm khác lập chỉ mục: `index.html` có thẻ `<meta name="robots" content="noindex, nofollow, noarchive">`, và `.htaccess` gửi header `X-Robots-Tag` cùng nội dung cho mọi file trong thư mục (cần host Apache có mod_headers; host khác thì vẫn còn thẻ meta). Một số trình quản lý file ẩn file bắt đầu bằng dấu chấm, nhớ bật hiện file ẩn khi upload.
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `bybit_prem_<MÃ>.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, open interest) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `bybit_prem_<MÃ>.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, OKX, open interest) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
@@ -110,19 +110,20 @@ Thời gian trong file là UTC (dạng `2026-09-30T08:00Z`), riêng cột ngày 
 
 **Open interest và tỷ lệ Long/Short** lấy qua host: Binance `/futures/data/openInterestHist`, `/futures/data/globalLongShortAccountRatio`; Bybit `/v5/market/open-interest`, `/v5/market/account-ratio` (`api/exchanges.php?oi=1&ex=<binance|bybit>&symbol=<MÃ>&start=<mốc>`). Binance chỉ giữ 30 ngày gần nhất, nên host lưu dần vào `api/oi_<sàn>_<MÃ>.json` (giữ tối đa 400 ngày): mỗi lần xuất, và cron `alert-check.php` mỗi 6 giờ cập nhật cho XAUUSDT, XAGUSDT, PAXGUSDT Binance và XAUUSDT, XAGUSDT Bybit. Cần cron đang chạy thì lịch sử Binance mới dài dần ra.
 
-## Funding 3 sàn
+## Funding 4 sàn
 
 Tab So sánh. Bảng live chia theo tài sản gốc:
 
-| Nhóm | Binance | Bybit | Hyperliquid |
-| --- | --- | --- | --- |
-| Vàng giao ngay | XAUUSDT | XAUUSDT | xyz:GOLD (thị trường HIP-3 của TradeXYZ) |
-| Token PAXG | PAXGUSDT | PAXGUSDT | PAXG |
+| Nhóm | Binance | Bybit | Hyperliquid | OKX |
+| --- | --- | --- | --- | --- |
+| Vàng giao ngay | XAUUSDT | XAUUSDT | xyz:GOLD (thị trường HIP-3 của TradeXYZ) | XAU-USDT-SWAP, không có thì XAUT-USDT-SWAP (token Tether Gold) |
+| Token PAXG | PAXGUSDT | PAXGUSDT | PAXG | PAXG-USDT-SWAP |
 
-- Binance lấy trực tiếp (`/fapi/v1/premiumIndex`, `/fapi/v1/fundingRate`). Bybit (`/v5/market/tickers`, `/v5/market/funding/history`, `/v5/market/mark-price-kline`) và Hyperliquid (`metaAndAssetCtxs`, `fundingHistory`) lấy qua `api/exchanges.php` trên host, cache 30 giây cho số liệu hiện tại và 30 phút cho lịch sử (lịch sử tải lại sớm hơn ngay sau mỗi kỳ funding của Bybit). Host phải truy cập được Bybit và Hyperliquid (Bybit chặn IP Mỹ). Giá Bybit XAUUSDT trong bảng lấy theo WebSocket nếu có.
-- Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên bảng quy về **cùng 8 giờ** và **theo năm**. Có thêm USDT/ngày cho khối lượng đang nhập (bên Short), kỳ funding tới, giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là funding quy năm cao nhất trong nhóm.
-- Lịch sử 7 hoặc 30 ngày: funding thực tế trung bình quy năm của từng hợp đồng, và biểu đồ tổng funding mỗi ngày của 3 sàn cho từng nhóm.
-- Kiểm tra: mở `api/exchanges.php?debug=1` để xem dữ liệu thô từng lần gọi Bybit và Hyperliquid. Nếu sàn nào đổi định dạng, gửi nội dung trang debug để sửa.
+- Binance lấy trực tiếp (`/fapi/v1/premiumIndex`, `/fapi/v1/fundingRate`). Bybit (`/v5/market/tickers`, `/v5/market/funding/history`, `/v5/market/mark-price-kline`) Hyperliquid (`metaAndAssetCtxs`, `fundingHistory`) và OKX (`/api/v5/public/funding-rate`, `/api/v5/market/ticker`, `/api/v5/public/mark-price`, `/api/v5/public/funding-rate-history`) lấy qua `api/exchanges.php` trên host, cache 30 giây cho số liệu hiện tại và 30 phút cho lịch sử (lịch sử tải lại sớm hơn ngay sau mỗi kỳ funding của Bybit). Host phải truy cập được Bybit, Hyperliquid và OKX (Bybit chặn IP Mỹ, OKX cũng hạn chế một số nước). Giá Bybit XAUUSDT trong bảng lấy theo WebSocket nếu có.
+- Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ, OKX lấy độ dài kỳ từ hai mốc chốt kế tiếp), nên bảng quy về **cùng 8 giờ** và **theo năm**. Có thêm USDT/ngày cho khối lượng đang nhập (bên Short), kỳ funding tới, giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là funding quy năm cao nhất trong nhóm.
+- Lịch sử 7 hoặc 30 ngày: funding thực tế trung bình quy năm của từng hợp đồng, và biểu đồ tổng funding mỗi ngày của 4 sàn cho từng nhóm.
+- OKX: tên hợp đồng trong bảng là hợp đồng host lấy được. Lịch sử funding OKX dùng mức đã thực trả (`realizedRate`), sàn chỉ giữ khoảng 3 tháng.
+- Kiểm tra: mở `api/exchanges.php?debug=1` để xem dữ liệu thô từng lần gọi Bybit, Hyperliquid và OKX (mục `okx_...`). Nếu sàn nào đổi định dạng, gửi nội dung trang debug để sửa.
 
 ## XAGUSDT (bạc)
 

@@ -342,6 +342,75 @@ function hl_hist($coin, $start, &$debug) {
     return $out ? array_map(null, array_keys($out), array_values($out)) : null;
 }
 
+// ---------- OKX ----------
+// Mỗi nhóm thử các hợp đồng theo thứ tự, lấy hợp đồng đầu tiên có dữ liệu (vàng: XAU, không có thì XAUT)
+define('EX_OKX', 'https://www.okx.com');
+$OKX_INSTS = ['gold' => ['XAU-USDT-SWAP', 'XAUT-USDT-SWAP'], 'paxg' => ['PAXG-USDT-SWAP']];
+
+// OKX trả {"code":"0","data":[...]}; code khác "0" (ví dụ hợp đồng không tồn tại) thì trả null
+function okx_get($path, &$log) {
+    $raw = fx_fetch(EX_OKX . $path, $log);
+    $json = $raw !== false ? json_decode($raw, true) : null;
+    return (isset($json['code'], $json['data']) && (string) $json['code'] === '0' && is_array($json['data']) && $json['data']) ? $json['data'] : null;
+}
+
+function okx_live($inst, &$debug) {
+    $k = ex_log($debug, 'okx_funding_' . $inst);
+    $f = okx_get('/api/v5/public/funding-rate?instId=' . $inst, $debug[$k]);
+    $f = $f ? $f[0] : null;
+    if (!$f || !isset($f['fundingRate']) || ex_num($f['fundingRate']) === null) return null;
+    $kt = ex_log($debug, 'okx_ticker_' . $inst);
+    $t = okx_get('/api/v5/market/ticker?instId=' . $inst, $debug[$kt]);
+    $km = ex_log($debug, 'okx_mark_' . $inst);
+    $m = okx_get('/api/v5/public/mark-price?instType=SWAP&instId=' . $inst, $debug[$km]);
+    // fundingTime là kỳ chốt sắp tới, nextFundingTime là kỳ sau đó: hiệu hai mốc là độ dài kỳ
+    $next = isset($f['fundingTime']) && is_numeric($f['fundingTime']) ? (int) $f['fundingTime'] : null;
+    $after = isset($f['nextFundingTime']) && is_numeric($f['nextFundingTime']) ? (int) $f['nextFundingTime'] : null;
+    $interval = $next && $after > $next ? round(($after - $next) / 3600000) : 0;
+    return [
+        'price' => $t && isset($t[0]['last']) ? ex_num($t[0]['last']) : null,
+        'mark' => $m && isset($m[0]['markPx']) ? ex_num($m[0]['markPx']) : null,
+        'rate' => ex_num($f['fundingRate']),
+        'intervalH' => $interval ?: 8,
+        'next' => $next,
+        'inst' => $inst,
+    ];
+}
+
+// Lịch sử funding OKX (sàn chỉ giữ khoảng 3 tháng): mới nhất trước, lùi dần bằng tham số after.
+// Dùng realizedRate (mức đã thực trả), không có thì fundingRate.
+function okx_hist($inst, $start, &$debug) {
+    $k = ex_log($debug, 'okx_hist_' . $inst);
+    $out = [];
+    $after = null;
+    for ($page = 0; $page < 10; $page++) {
+        $list = okx_get('/api/v5/public/funding-rate-history?instId=' . $inst . '&limit=100' . ($after ? '&after=' . $after : ''), $debug[$k]);
+        if (!$list) break;
+        $oldest = PHP_INT_MAX;
+        foreach ($list as $r) {
+            if (!isset($r['fundingTime']) || !is_numeric($r['fundingTime'])) continue;
+            $t = (int) $r['fundingTime'];
+            $oldest = min($oldest, $t);
+            $rate = isset($r['realizedRate']) && is_numeric($r['realizedRate']) ? (float) $r['realizedRate']
+                : (isset($r['fundingRate']) && is_numeric($r['fundingRate']) ? (float) $r['fundingRate'] : null);
+            if ($t >= $start && $rate !== null) $out[$t] = $rate;
+        }
+        if (count($list) < 100 || $oldest <= $start || $oldest === PHP_INT_MAX) break;
+        $after = $oldest;
+    }
+    ksort($out);
+    return $out ? array_map(null, array_keys($out), array_values($out)) : null;
+}
+
+// Chạy $fn với từng hợp đồng của nhóm, trả kết quả đầu tiên khác null
+function okx_first($insts, $fn) {
+    foreach ($insts as $inst) {
+        $v = $fn($inst);
+        if ($v) return $v;
+    }
+    return null;
+}
+
 function ex_read($file) {
     if (!is_readable($file)) return [];
     $data = json_decode((string) @file_get_contents($file), true);
@@ -354,7 +423,7 @@ function ex_write($file, $data) {
 }
 
 function ex_refresh_live(&$debug) {
-    global $BYBIT_SYMBOLS, $HL_COINS;
+    global $BYBIT_SYMBOLS, $HL_COINS, $OKX_INSTS;
     $live = [];
     $errors = [];
     foreach ($BYBIT_SYMBOLS as $s) {
@@ -369,11 +438,16 @@ function ex_refresh_live(&$debug) {
         if ($v) $live['hyperliquid:' . $coin] = $v;
         else $errors[] = 'Hyperliquid: không lấy được ' . $coin . '.';
     }
+    foreach ($OKX_INSTS as $group => $insts) {
+        $v = okx_first($insts, function ($inst) use (&$debug) { return okx_live($inst, $debug); });
+        if ($v) $live['okx:' . $group] = $v;
+        else $errors[] = 'OKX: không lấy được ' . implode(' / ', $insts) . '.';
+    }
     return ['at' => fx_now_ms(), 'live' => $live, 'errors' => $errors];
 }
 
 function ex_refresh_hist($days, &$debug) {
-    global $BYBIT_SYMBOLS, $HL_COINS;
+    global $BYBIT_SYMBOLS, $HL_COINS, $OKX_INSTS;
     $start = fx_now_ms() - $days * 86400000;
     $hist = [];
     $errors = [];
@@ -386,6 +460,11 @@ function ex_refresh_hist($days, &$debug) {
         $v = hl_hist($coin, $start, $debug);
         if ($v) $hist['hyperliquid:' . $coin] = $v;
         else $errors[] = 'Hyperliquid: không lấy được lịch sử funding ' . $coin . '.';
+    }
+    foreach ($OKX_INSTS as $group => $insts) {
+        $v = okx_first($insts, function ($inst) use (&$debug, $start) { return okx_hist($inst, $start, $debug); });
+        if ($v) $hist['okx:' . $group] = $v;
+        else $errors[] = 'OKX: không lấy được lịch sử funding ' . implode(' / ', $insts) . '.';
     }
     return ['at' => fx_now_ms(), 'days' => $days, 'history' => $hist, 'errors' => $errors];
 }
