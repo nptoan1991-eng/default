@@ -116,11 +116,11 @@ Khung đầu tab So sánh theo dõi một con số: giá khớp XAUUSDT Bybit tr
 
 - **Số hiện tại:** theo giá WebSocket của hai sàn, cập nhật mỗi giây. Có nút đổi đơn vị USDT / % (theo giá XAU), trang nhớ lựa chọn.
 - **So với thường gặp:** khoảng thường gặp lấy từ phân tích `analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md`. Từ tháng 9/2026, 98% số giờ nằm trong khoảng −0.19% đến +0.38%, trung vị +0.11%. Ra ngoài khoảng thì báo "PAXG rẻ bất thường" hoặc "PAXG đắt bất thường".
-- **Biểu đồ đường:** chọn 1 giờ, 24 giờ (nến 1 phút) hoặc 7 ngày (nến 5 phút). Vạch đứt là hai đầu khoảng thường gặp. Đoạn nằm ngoài khoảng được tô màu, điểm cuối là giá hiện tại.
+- **Biểu đồ đường:** chọn 1 giờ hoặc 24 giờ (nến 1 phút), 7 ngày (nến 5 phút), hoặc 30 ngày, 90 ngày, từ 9/3 (nến 1 giờ, 9/3/2026 là ngày Bybit mở XAUUSDT). Vạch đứt là hai đầu khoảng thường gặp. Đoạn nằm ngoài khoảng được tô màu, điểm cuối là giá hiện tại.
 - **Nguồn dữ liệu:**
   - Lịch sử PAXGUSDT lấy thẳng từ Binance (`/fapi/v1/klines`).
-  - Lịch sử XAUUSDT lấy qua host (`api/exchanges.php?kline=XAUUSDT&iv=1|5`, Bybit `/v5/market/kline`, cache 60 giây).
-  - Trang tải lại lịch sử mỗi phút (7 ngày thì mỗi 5 phút) khi đang mở tab So sánh. Giữa hai lần tải, đường được nối tiếp bằng giá WebSocket.
+  - Lịch sử XAUUSDT lấy qua host: nến 1 và 5 phút qua `api/exchanges.php?kline=XAUUSDT&iv=1|5` (Bybit `/v5/market/kline`, cache 60 giây). Nến 1 giờ dùng kho giá theo giờ có sẵn (`?symbol=XAUUSDT&start=<mốc>&px=1`, file `bybit_px_XAUUSDT.json`).
+  - Trang tải lại lịch sử mỗi phút (7 ngày thì mỗi 5 phút, nến 1 giờ thì mỗi 10 phút) khi đang mở tab So sánh. Với nến 1 giờ, phần sau giờ cuối đã đóng được nối bằng nến 1 phút. Giữa hai lần tải, đường được nối tiếp bằng giá WebSocket.
 
 ## Funding 4 sàn
 

@@ -107,6 +107,8 @@ h1 { margin: 0; font: 800 19px/1.15 var(--sans); letter-spacing: -0.01em; }
   font: 500 13px var(--mono); padding: 6px 12px; border-radius: 5px;
 }
 .seg button:hover { color: var(--ink); }
+.seg.xp-range { flex-wrap: wrap; }
+.seg.xp-range button { white-space: nowrap; }
 .seg button[aria-checked="true"] { background: var(--ink); color: var(--bg); }
 button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .pill {
@@ -1013,10 +1015,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       </div>
       <div class="gap-head">
         <h3 class="sub-h" id="xpChartTitle">Chênh lệch 24 giờ qua</h3>
-        <div class="seg" role="radiogroup" aria-label="Khoảng thời gian chênh lệch">
+        <div class="seg xp-range" role="radiogroup" aria-label="Khoảng thời gian chênh lệch">
           <button type="button" role="radio" data-xprange="1h" aria-checked="false">1 giờ</button>
           <button type="button" role="radio" data-xprange="24h" aria-checked="true">24 giờ</button>
           <button type="button" role="radio" data-xprange="7d" aria-checked="false">7 ngày</button>
+          <button type="button" role="radio" data-xprange="30d" aria-checked="false">30 ngày</button>
+          <button type="button" role="radio" data-xprange="90d" aria-checked="false">90 ngày</button>
+          <button type="button" role="radio" data-xprange="all" aria-checked="false">Từ 9/3</button>
         </div>
       </div>
       <div class="bs-wrap">
@@ -3744,14 +3749,20 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // Khoảng thường gặp theo % giá XAU: 98% số giờ từ 9/2026 nằm trong khoảng này
   // (analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md, đổi dấu vì ở đây là XAU − PAXG).
   const XP_BAND = { lo: -0.19, hi: 0.38, mid: 0.11 };
-  const XP_RANGES = { '1h': { ms: 36e5, iv: 1, name: '1 giờ qua' }, '24h': { ms: 864e5, iv: 1, name: '24 giờ qua' }, '7d': { ms: 7 * 864e5, iv: 5, name: '7 ngày qua' } };
+  // Bybit mở XAUUSDT ngày 9/3/2026 (giờ UTC), mốc đầu của khoảng "Từ 9/3"
+  const XP_SINCE = Date.UTC(2026, 2, 9);
+  const XP_RANGES = {
+    '1h': { ms: 36e5, iv: 1, name: '1 giờ qua' }, '24h': { ms: 864e5, iv: 1, name: '24 giờ qua' }, '7d': { ms: 7 * 864e5, iv: 5, name: '7 ngày qua' },
+    '30d': { ms: 30 * 864e5, iv: 60, name: '30 ngày qua' }, '90d': { ms: 90 * 864e5, iv: 60, name: '90 ngày qua' }, all: { ms: 0, iv: 60, name: 'từ 9/3' }
+  };
+  const xpFrom = (R, now) => (R.ms ? now - R.ms : XP_SINCE);
   const xpEl = {
     now: $('xpNow'), nowSub: $('xpNowSub'), band: $('xpBand'), bandSub: $('xpBandSub'), avgLabel: $('xpAvgLabel'), avg: $('xpAvg'), avgSub: $('xpAvgSub'),
     x: $('xpX'), p: $('xpP'), title: $('xpChartTitle'), chart: $('xpChart'), guide: $('xpGuide'), tip: $('xpTip'), meta: $('xpMeta'),
     unitBtns: document.querySelectorAll('[data-xpunit]'), rangeBtns: document.querySelectorAll('[data-xprange]')
   };
   let xpRange = '24h', xpUnit = 'usd', xpDirty = true, xpPts = [], xpGeom = null;
-  const xpData = { 1: null, 5: null }, xpErr = { 1: null, 5: null }, xpAt = { 1: 0, 5: 0 }, xpBusy = { 1: false, 5: false };
+  const xpData = { 1: null, 5: null, 60: null }, xpErr = { 1: null, 5: null, 60: null }, xpAt = { 1: 0, 5: 0, 60: 0 }, xpBusy = { 1: false, 5: false, 60: false };
   const xpTicks = new Map(); // đầu phút => { x, p } giá khớp cuối cùng trong phút, từ WebSocket
 
   const xpLive = () => {
@@ -3782,7 +3793,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const out = [];
     let from = start;
     for (let page = 0; page < 5; page++) {
-      const r = await fetch(REST_BASE + '/fapi/v1/klines?symbol=' + symbol + '&interval=' + iv + 'm&startTime=' + from + '&limit=1500', { cache: 'no-store' });
+      const r = await fetch(REST_BASE + '/fapi/v1/klines?symbol=' + symbol + '&interval=' + (iv === 60 ? '1h' : iv + 'm') + '&startTime=' + from + '&limit=1500', { cache: 'no-store' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const list = await r.json();
       for (const k of list) out.push([+k[0], +k[4]]);
@@ -3796,18 +3807,21 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (xpBusy[iv]) return;
     xpBusy[iv] = true;
     xpAt[iv] = Date.now();
-    const start = Date.now() - (iv === 1 ? 864e5 : 7 * 864e5);
+    // Nến giờ: Bybit lấy từ kho giá theo giờ trên host (cùng kho với lịch sử funding, ?symbol=&px=1)
+    const start = iv === 60 ? XP_SINCE : Date.now() - (iv === 1 ? 864e5 : 7 * 864e5);
+    const url = iv === 60 ? EX_API + '?symbol=XAUUSDT&start=' + start + '&px=1' : EX_API + '?kline=XAUUSDT&iv=' + iv;
     const host = location.protocol === 'file:'
       ? Promise.reject(new Error('cần mở trang từ host có thư mục api/'))
-      : fetch(EX_API + '?kline=XAUUSDT&iv=' + iv, { cache: 'no-store' })
+      : fetch(url, { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/exchanges.php trả HTTP ' + r.status))));
     const [hx, hp] = await Promise.allSettled([host, bnCloses('PAXGUSDT', iv, start)]);
     const errs = [];
     let xr = null;
     if (hx.status === 'fulfilled') {
       const d = hx.value || {};
-      if (Array.isArray(d.rows)) xr = d.rows;
-      (d.errors || []).forEach((m) => errs.push(m));
+      const rows = iv === 60 ? (d.prices && d.prices['bybit:XAUUSDT']) : d.rows;
+      if (Array.isArray(rows)) xr = rows.filter((r) => r[1] > 0).map((r) => [r[0], r[1]]);
+      (iv === 60 ? d.pxErrors || [] : d.errors || []).forEach((m) => errs.push(m));
       if (!xr && !errs.length) errs.push('Bybit: host chưa có dữ liệu, hãy upload lại cả thư mục api/.');
     } else {
       errs.push('Bybit: không lấy được giá XAUUSDT (' + hx.reason.message + ').');
@@ -3832,18 +3846,25 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     if (tab !== 'so-sanh') return;
     const iv = XP_RANGES[xpRange].iv;
-    if (!xpBusy[iv] && now - xpAt[iv] > (iv === 1 ? 6e4 : 3e5)) loadXp(iv);
+    if (!xpBusy[iv] && now - xpAt[iv] > (iv === 1 ? 6e4 : iv === 5 ? 3e5 : 6e5)) loadXp(iv);
+    // Nến giờ: phần sau giờ cuối đã đóng nối bằng nến 1 phút
+    if (iv === 60 && !xpBusy[1] && now - xpAt[1] > 6e4) loadXp(1);
     xpDirty = true;
   }
 
   function xpSeries() {
-    const R = XP_RANGES[xpRange], step = R.iv * 6e4, now = Date.now(), from = now - R.ms;
+    const R = XP_RANGES[xpRange], step = R.iv * 6e4, now = Date.now(), from = xpFrom(R, now);
     const hist = xpData[R.iv] || [];
     const pts = hist.filter((d) => d.t + step > from).map((d) => ({ t: d.t + step, x: d.x, p: d.p }));
-    // Nối tiếp bằng giá WebSocket các phút sau nến cuối của lịch sử (nến 5 phút lấy phút cuối trong nến)
+    // Nối tiếp các phút sau nến cuối của lịch sử (nến 5 phút / 1 giờ lấy phút cuối trong nến):
+    // nến 1 phút đã tải (cho nến giờ) rồi giá WebSocket
     const lastT = hist.length ? hist[hist.length - 1].t : -Infinity;
     const extra = new Map();
-    xpTicks.forEach((v, k) => {
+    const mins = new Map();
+    if (R.iv === 60) (xpData[1] || []).forEach((d) => mins.set(d.t, d));
+    xpTicks.forEach((v, k) => mins.set(k, v));
+    Array.from(mins.keys()).sort((a, b) => a - b).forEach((k) => {
+      const v = mins.get(k);
       const b = Math.floor(k / step) * step;
       if (b > lastT && b + step > from && b + step <= now) extra.set(b, v);
     });
@@ -3886,13 +3907,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       xpEl.avg.textContent = '—';
       xpEl.avgSub.textContent = xpBusy[R.iv] ? 'Đang tải…' : '—';
     }
-    xpEl.title.textContent = 'Chênh lệch ' + R.name + ' (nến ' + R.iv + ' phút, ' + (xpUnit === 'pct' ? '%' : 'USDT') + ')';
+    xpEl.title.textContent = 'Chênh lệch ' + R.name + ' (nến ' + (R.iv === 60 ? '1 giờ' : R.iv + ' phút') + ', ' + (xpUnit === 'pct' ? '%' : 'USDT') + ')';
     const err = xpErr[R.iv];
     xpEl.meta.textContent = (err ? err + ' ' : '')
       + 'XAUUSDT Bybit trừ PAXGUSDT Binance, theo giá khớp (giá đóng nến). Dương là PAXG rẻ hơn XAU. '
       + 'Vạch đứt là khoảng thường gặp theo phân tích từ tháng 9/2026: 98% số giờ nằm trong khoảng ' + signed(XP_BAND.lo, 2) + '% đến ' + signed(XP_BAND.hi, 2) + '%'
       + (xpUnit === 'usd' ? ', đổi ra USDT theo giá XAU hiện tại' : '') + '. Lệch ra ngoài thường xảy ra vào cuối tuần và thường quay về sau 1–2 ngày. '
-      + 'Điểm cuối là giá hiện tại, cập nhật mỗi giây; lịch sử tải lại mỗi ' + (R.iv === 1 ? 'phút' : '5 phút') + '.';
+      + 'Điểm cuối là giá hiện tại, cập nhật mỗi giây; lịch sử tải lại mỗi ' + (R.iv === 1 ? 'phút' : R.iv === 5 ? '5 phút' : '10 phút') + '.';
   }
 
   function drawXpChart() {
@@ -3955,13 +3976,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     const gap = XP_RANGES[xpRange].iv * 6e4 * 4;
     ctx.lineWidth = 1.6;
     ctx.lineJoin = 'round';
+    // Gom các đoạn liền nhau cùng màu thành một nét (nến giờ từ 9/3 có hàng nghìn điểm)
+    let color = null;
+    const flush = () => { if (color) ctx.stroke(); color = null; };
     for (let k = 1; k < pts.length; k++) {
       const a = pts[k - 1], b = pts[k];
-      if (b.t - a.t > gap && !b.live) continue; // đứt đoạn khi thiếu dữ liệu
+      if (b.t - a.t > gap && !b.live) { flush(); continue; } // đứt đoạn khi thiếu dữ liệu
       const m = (a.v + b.v) / 2;
-      ctx.strokeStyle = tok(m > bHi ? '--up' : m < bLo ? '--down' : '--ink');
-      ctx.beginPath(); ctx.moveTo(X(a.t), Y(a.v)); ctx.lineTo(X(b.t), Y(b.v)); ctx.stroke();
+      const c = m > bHi ? '--up' : m < bLo ? '--down' : '--ink';
+      if (c !== color) {
+        flush();
+        color = c;
+        ctx.strokeStyle = tok(c);
+        ctx.beginPath();
+        ctx.moveTo(X(a.t), Y(a.v));
+      }
+      ctx.lineTo(X(b.t), Y(b.v));
     }
+    flush();
     const last = pts[pts.length - 1];
     ctx.fillStyle = tok(last.v > bHi ? '--up' : last.v < bLo ? '--down' : '--gold');
     ctx.beginPath(); ctx.arc(X(last.t), Y(last.v), 3.5, 0, Math.PI * 2); ctx.fill();
