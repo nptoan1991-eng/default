@@ -27,6 +27,12 @@ Các tab con trong All:
 
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab (và ở Featured) áp dụng cho các khung đang thấy ở đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
 
+**Bố cục theo độ rộng màn hình:**
+- **Từ 1280px:** nội dung trải ngang, cách mỗi bên 100px.
+- **Từ 1600px** (ví dụ màn hình 1080p): các khung trong mỗi tab và trong Featured chia **2 cột xếp so le**. Khung thứ 1, 3, 5… nằm cột trái, khung thứ 2, 4, 6… nằm cột phải, mỗi cột xếp liền nhau. Thứ tự tính theo các khung đang hiện. Thanh nút đầu tab trải hết chiều ngang.
+- Mở hoặc thu gọn một khung chỉ làm các khung bên dưới trong cùng cột dịch lên hoặc xuống, khung không đổi cột.
+- **Màn hình hẹp hơn 1280px và điện thoại:** giữ như cũ.
+
 ## Cách dùng
 
 Upload nguyên thư mục `gold-perp-live/` lên host PHP rồi mở `https://<tên-miền>/gold-perp-live/`. Trang chính là `index.html` nên web server tự mở khi vào link thư mục.

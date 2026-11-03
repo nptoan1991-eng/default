@@ -390,6 +390,18 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   .pos-grid { grid-template-columns: minmax(0, 1fr); }
   canvas { height: 210px; }
 }
+/* Màn hình rộng: từ 1280px nội dung trải ngang, cách mỗi bên 100px; từ 1600px khung chia 2 cột xếp so le.
+   Khung thứ 1, 3, 5… nằm cột trái, 2, 4, 6… cột phải (theo thứ tự đang hiện), mỗi cột xếp liền nhau.
+   JS (layoutColumns) đặt cột và số hàng 1px mỗi khung chiếm theo chiều cao thật của khung. */
+@media (min-width: 1280px) {
+  body { padding-inline: 100px; }
+  .wrap { max-width: none; }
+}
+/* Hai cột từ 1600px (mỗi cột từ khoảng 690px trở lên, đủ cho các bảng nhiều cột) */
+@media (min-width: 1600px) {
+  .tab-page { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; grid-auto-rows: 1px; row-gap: 0; column-gap: 18px; align-items: start; }
+  .tab-page .sub-page { display: contents; }
+}
 @media (prefers-reduced-motion: reduce) { .price, .venue-price { transition: none; } }
 </style>
 </head>
@@ -4755,8 +4767,39 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     syncLazy();
     if (shown('ss-funding')) renderExchanges();
     updateFoldBars();
+    layoutColumns();
     redraw();
   }
+
+  // ---------- Bố cục 2 cột trên màn hình rộng (từ 1600px) ----------
+  // Lưới mỗi hàng cao 1px: khung thứ k đang hiện nằm cột 1 + k % 2 và chiếm số hàng bằng chiều cao của nó cộng
+  // khoảng cách 18px; grid-auto-flow dense đặt khung vào chỗ trống cao nhất của cột, nên mỗi cột xếp liền nhau.
+  // Thanh nút đầu tab và các phần khác trải hết chiều ngang. Tính lại khi khung đổi chiều cao (mở, thu gọn, có dữ liệu).
+  const COLS_MQ = window.matchMedia('(min-width: 1600px)');
+  const COL_GAP = 18;
+  let colsFrame = 0;
+  function layoutColumns() {
+    const wide = COLS_MQ.matches;
+    document.querySelectorAll('.tab-page').forEach((page) => {
+      if (page.hidden && wide) return;
+      let k = 0;
+      Array.from(page.children).forEach((child) => {
+        const items = child.classList.contains('sub-page') ? Array.from(child.children) : [child];
+        items.forEach((it) => {
+          if (!wide) { it.style.gridColumn = ''; it.style.gridRowEnd = ''; return; }
+          if (it.hidden || child.hidden) return;
+          it.style.gridColumn = it.matches('[data-panel]') ? String(1 + (k++ % 2)) : '1 / -1';
+          it.style.gridRowEnd = 'span ' + Math.max(1, Math.ceil(it.getBoundingClientRect().height + COL_GAP));
+        });
+      });
+    });
+  }
+  const scheduleColumns = () => { if (!colsFrame) colsFrame = requestAnimationFrame(() => { colsFrame = 0; layoutColumns(); }); };
+  if ('ResizeObserver' in window) {
+    const colsRo = new ResizeObserver(scheduleColumns);
+    document.querySelectorAll('.tab-page > *, .tab-page > .sub-page > *').forEach((n) => colsRo.observe(n));
+  }
+  if (COLS_MQ.addEventListener) COLS_MQ.addEventListener('change', scheduleColumns);
 
   function setXauSub(name, fromClick) {
     xauSub = name === 'binance' ? 'binance' : 'bybit';
