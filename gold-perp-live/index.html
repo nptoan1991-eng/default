@@ -1109,6 +1109,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     <section class="panel" data-panel="ss-funding" aria-label="So sánh funding 4 sàn">
       <div class="panel-head">
         <h2>Funding 4 sàn</h2>
+        <div class="seg" role="radiogroup" aria-label="Cách tính funding trong bảng">
+          <button type="button" role="radio" data-exbasis="real" aria-checked="true">Thực tế</button>
+          <button type="button" role="radio" data-exbasis="now" aria-checked="false">Kỳ đang chạy</button>
+        </div>
         <div class="seg" role="radiogroup" aria-label="Khoảng lịch sử funding">
           <button type="button" id="ex-7" role="radio" data-exdays="7" aria-checked="true">7 ngày</button>
           <button type="button" id="ex-30" role="radio" data-exdays="30" aria-checked="false">30 ngày</button>
@@ -1119,7 +1123,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         <button type="button" class="linkbtn" id="exRetry" hidden>Tải lại</button>
       </div>
       <div class="table-wrap ex-wrap"><table id="exTable" class="ex-table"></table></div>
-      <p class="note">Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên funding được quy về cùng 8 giờ và theo năm để so sánh. USDT/ngày tính cho khối lượng ở mục Funding theo vị thế (tab XAUUSDT), cho bên Short: dương là nhận, âm là trả. Ô tô đậm là funding quy năm cao nhất trong nhóm. TB là funding thực tế trung bình của khoảng đã chọn, quy theo năm. Trên điện thoại, kéo ngang bảng để xem các cột còn lại.</p>
+      <p class="note" id="exNote"></p>
       <h3 class="sub-h">Funding mỗi ngày · Vàng giao ngay</h3>
       <div class="legend ex-legend"><span class="eb">Binance</span><span class="ey">Bybit</span><span class="eh">Hyperliquid</span><span class="eo">OKX</span></div>
       <div class="bs-wrap">
@@ -1316,7 +1320,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     drillVerdict: $('drillVerdict'), drillChart: $('drillChart'), drillGuide: $('drillGuide'), drillTip: $('drillTip'),
     drillTable: $('drillTable'),
     tabBtns: document.querySelectorAll('.main-tabs [data-tab]'), exMeta: $('exMeta'), exRetry: $('exRetry'),
-    exTable: $('exTable'), exDaysBtns: document.querySelectorAll('.seg [data-exdays]'),
+    exTable: $('exTable'), exNote: $('exNote'), exBasisBtns: document.querySelectorAll('.seg [data-exbasis]'), exDaysBtns: document.querySelectorAll('.seg [data-exdays]'),
     byStatus: $('byStatus'), byStatusText: $('byStatusText'), byNotice: $('byNotice'),
     byLast: $('byLast'), byChg: $('byChg'), byMark: $('byMark'), byRate: $('byRate'), byPayer: $('byPayer'), byAnnual: $('byAnnual'),
     byCountdown: $('byCountdown'), byNextAt: $('byNextAt'), byQty: $('byQty'),
@@ -4179,6 +4183,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   ];
   const EX_GROUPS = { gold: 'Vàng giao ngay', paxg: 'Token PAXG' };
   const EX_COLORS = { Binance: '--gold', Bybit: '--blue', Hyperliquid: '--violet', OKX: '--ink' };
+  let exBasis = 'real'; // 'real': funding thực tế đã trả, 'now': kỳ đang chạy
   let exDays = 7, exLive = {}, exHist = {}, exErrors = [], exLoading = false, exFetchedAt = null, exDirty = true;
   let bnIntervals = null;
   const exDaily = { gold: [], paxg: [], oil: [] }, exGeom = {};
@@ -4288,19 +4293,34 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       return L ? (L.price || L.mark) : null;
     };
     const ref = priceOf(EX_ROWS[0]);
-    const since = Date.now() - exDays * 864e5;
+    const now = Date.now(), since = now - exDays * 864e5, real = exBasis === 'real';
+    // Mỗi dòng tính theo đúng một mốc thời gian:
+    // - Thực tế: funding đã trả trong exDays ngày qua (tổng rate chia số ngày có dữ liệu)
+    // - Kỳ đang chạy: rate sàn đang dự báo cho kỳ sắp chốt, còn đổi tới lúc chốt
     const stats = EX_ROWS.map((row) => {
       const L = exLive[row.key];
       const price = priceOf(row);
-      const perDay = L ? (L.rate * 24) / L.intervalH : null;
-      const hist = (exHist[row.key] || []).filter(([t]) => t >= since);
-      const histAnnual = hist.length ? (hist.reduce((a, [, r]) => a + r, 0) / exDays) * 365 * 100 : null;
+      let perDay = null, rate = null, iv = L ? L.intervalH : null, count = null, days = null;
+      if (real) {
+        const hist = (exHist[row.key] || []).filter(([t]) => t >= since && t <= now);
+        if (hist.length) {
+          if (hist.length > 1) iv = Math.max(1, Math.round((hist[hist.length - 1][0] - hist[0][0]) / (hist.length - 1) / 36e5));
+          // Lịch sử ngắn hơn khoảng đã chọn (sàn mới mở, host chưa lấy đủ) thì chia theo số ngày thực có
+          days = Math.min(exDays, (now - hist[0][0]) / 864e5 + (iv || 8) / 24);
+          const sum = hist.reduce((a, [, r]) => a + r, 0);
+          perDay = sum / days;
+          rate = sum / hist.length;
+          count = hist.length;
+        }
+      } else if (L) {
+        perDay = (L.rate * 24) / L.intervalH;
+        rate = L.rate;
+      }
       return {
-        row, L, price,
-        per8h: L ? (L.rate * 8) / L.intervalH : null,
+        row, L, price, rate, iv, count, days,
+        per8h: perDay != null ? perDay / 3 : null,
         annual: perDay != null ? perDay * 365 * 100 : null,
-        usdtDay: perDay != null && price && qOk ? price * q * perDay : null,
-        histAnnual
+        usdtDay: perDay != null && price && qOk ? price * q * perDay : null
       };
     });
     const best = {};
@@ -4309,29 +4329,35 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     }
     const hhmm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
     const tone = (v) => (v > 0 ? ' data-dir="up"' : v < 0 ? ' data-dir="down"' : '');
+    const tag = real ? 'thực tế ' + exDays + ' ngày' : 'kỳ đang chạy';
     // Cột funding đứng trước để trên điện thoại thấy ngay, giá và độ lệch để sau
-    let html = '<thead><tr><th>Hợp đồng</th><th>Quy năm</th><th>TB ' + exDays + ' ngày</th><th>Funding kỳ này</th><th>Quy về 8h</th>'
-      + '<th>USDT/ngày' + (qOk ? ' (' + q + ' oz)' : '') + '</th><th>Kỳ tới</th><th>Giá</th><th>Lệch XAU Binance</th></tr></thead>';
+    let html = '<thead><tr><th>Hợp đồng</th><th>Quy năm<br><small>' + tag + '</small></th>'
+      + '<th>' + (real ? 'Rate TB mỗi kỳ' : 'Funding kỳ này') + '</th><th>Quy về 8h</th>'
+      + '<th>USDT/ngày' + (qOk ? ' (' + q + ' oz)' : '') + '</th><th>' + (real ? 'Số kỳ' : 'Kỳ tới') + '</th><th>Giá</th><th>Lệch XAU Binance</th></tr></thead>';
     let group = null;
     for (const s of stats) {
       if (s.row.group !== group) {
         group = s.row.group;
-        html += (html.includes('<tbody>') ? '</tbody>' : '') + '<tbody><tr class="grp"><td colspan="9">' + EX_GROUPS[group] + '</td></tr>';
+        html += (html.includes('<tbody>') ? '</tbody>' : '') + '<tbody><tr class="grp"><td colspan="8">' + EX_GROUPS[group] + '</td></tr>';
       }
       const L = s.L;
       const diff = s.price != null && ref != null && s.row !== EX_ROWS[0] ? s.price - ref : null;
       const isBest = s.annual != null && s.annual === best[group];
       const name = L && L.inst ? L.inst.replace(/-SWAP$/, '') : s.row.name;
+      const short = real && s.days != null && s.days < exDays - 0.5 ? ' title="Chỉ có ' + s.days.toFixed(1) + ' ngày dữ liệu"' : '';
       html += '<tr><td>' + s.row.venue + ' · ' + name + '</td>'
-        + '<td' + (isBest ? ' class="best"' : tone(s.annual)) + '>' + (s.annual != null ? signed(s.annual, 2) + '%' : '—') + '</td>'
-        + '<td' + tone(s.histAnnual) + '>' + (s.histAnnual != null ? signed(s.histAnnual, 2) + '%' : '—') + '</td>'
-        + '<td>' + (L ? signed(L.rate * 100, 4) + '% / ' + L.intervalH + 'h' : '—') + '</td>'
+        + '<td' + (isBest ? ' class="best"' : tone(s.annual)) + short + '>' + (s.annual != null ? signed(s.annual, 2) + '%' + (short ? '*' : '') : '—') + '</td>'
+        + '<td>' + (s.rate != null ? signed(s.rate * 100, 4) + '%' + (s.iv ? ' / ' + s.iv + 'h' : '') : '—') + '</td>'
         + '<td' + tone(s.per8h) + '>' + (s.per8h != null ? signed(s.per8h * 100, 4) + '%' : '—') + '</td>'
         + '<td' + tone(s.usdtDay) + '>' + (s.usdtDay != null ? signedMoney(s.usdtDay) : '—') + '</td>'
-        + '<td>' + (L && L.next ? hhmm(L.next) : '—') + '</td>'
+        + '<td>' + (real ? (s.count != null ? s.count : '—') : L && L.next ? hhmm(L.next) : '—') + '</td>'
         + '<td>' + (s.price != null ? fmt2.format(s.price) : '—') + '</td>'
         + '<td' + tone(diff) + '>' + (diff != null ? signed(diff, 2) : '—') + '</td></tr>';
     }
+    el.exNote.textContent = (real
+      ? 'Đang tính theo funding THỰC TẾ đã trả trong ' + exDays + ' ngày qua: tổng rate các kỳ chia cho số ngày, rồi quy về 8 giờ, theo năm và ra USDT/ngày. Rate TB mỗi kỳ là trung bình các kỳ đã chốt, kèm độ dài kỳ. Dấu * là sàn chỉ có ít ngày dữ liệu hơn khoảng đã chọn (rê chuột để xem).'
+      : 'Đang tính theo KỲ ĐANG CHẠY: rate sàn đang dự báo cho kỳ sắp chốt (còn đổi tới lúc chốt), quy về 8 giờ, theo năm và ra USDT/ngày như thể mọi kỳ đều bằng kỳ này. Nhạy với diễn biến ngay lúc này nhưng nhảy theo từng kỳ.')
+      + ' Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ), nên so sánh theo cột quy về 8h và quy năm. USDT/ngày tính cho khối lượng ở mục Funding theo vị thế (tab XAUUSDT), cho bên Short: dương là nhận, âm là trả. Ô tô đậm là quy năm cao nhất trong nhóm. Trên điện thoại, kéo ngang bảng để xem các cột còn lại.';
     el.exTable.innerHTML = html + '</tbody>';
   }
 
@@ -5138,6 +5164,17 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   ['gold', 'paxg', 'oil'].forEach(bindExTip);
   el.exRetry.addEventListener('click', () => loadExchanges(true));
+  try { if (localStorage.getItem('gold-perp-live.exBasis') === 'now') exBasis = 'now'; } catch (e) { /* bỏ qua */ }
+  el.exBasisBtns.forEach((b) => {
+    b.setAttribute('aria-checked', String(b.dataset.exbasis === exBasis));
+    b.addEventListener('click', () => {
+      if (b.dataset.exbasis === exBasis) return;
+      exBasis = b.dataset.exbasis;
+      el.exBasisBtns.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+      try { localStorage.setItem('gold-perp-live.exBasis', exBasis); } catch (e) { /* bỏ qua */ }
+      renderExchanges();
+    });
+  });
   el.exDaysBtns.forEach((b) => b.addEventListener('click', () => {
     const days = Number(b.dataset.exdays);
     if (days === exDays) return;

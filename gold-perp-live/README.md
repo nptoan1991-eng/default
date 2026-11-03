@@ -167,8 +167,11 @@ Tab So sánh. Bảng live chia theo tài sản gốc:
 | Token PAXG | PAXGUSDT | PAXGUSDT | PAXG | PAXG-USDT-SWAP |
 
 - Binance lấy trực tiếp (`/fapi/v1/premiumIndex`, `/fapi/v1/fundingRate`). Bybit (`/v5/market/tickers`, `/v5/market/funding/history`, `/v5/market/mark-price-kline`) Hyperliquid (`metaAndAssetCtxs`, `fundingHistory`) và OKX (`/api/v5/public/funding-rate`, `/api/v5/market/ticker`, `/api/v5/public/mark-price`, `/api/v5/public/funding-rate-history`) lấy qua `api/exchanges.php` trên host, cache 30 giây cho số liệu hiện tại và 30 phút cho lịch sử (lịch sử tải lại sớm hơn ngay sau mỗi kỳ funding của Bybit). Host phải truy cập được Bybit, Hyperliquid và OKX (Bybit chặn IP Mỹ, OKX cũng hạn chế một số nước). Giá Bybit XAUUSDT trong bảng lấy theo WebSocket nếu có.
-- Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ, OKX lấy độ dài kỳ từ hai mốc chốt kế tiếp), nên bảng quy về **cùng 8 giờ** và **theo năm**. Có thêm USDT/ngày cho khối lượng đang nhập (bên Short), kỳ funding tới, giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là funding quy năm cao nhất trong nhóm.
-- Lịch sử 7 hoặc 30 ngày: funding thực tế trung bình quy năm của từng hợp đồng, và biểu đồ tổng funding mỗi ngày của 4 sàn cho từng nhóm.
+- **Nút chọn cách tính:** cả bảng tính theo đúng một mốc thời gian, không trộn hai loại. Trang nhớ lựa chọn.
+  - **Thực tế** (mặc định): funding đã trả trong 7 hoặc 30 ngày qua. Tổng rate các kỳ chia cho số ngày, rồi quy về 8 giờ, theo năm và ra USDT/ngày. Có thêm rate trung bình mỗi kỳ (kèm độ dài kỳ) và số kỳ. Sàn có ít ngày dữ liệu hơn khoảng đã chọn thì chia theo số ngày thực có và đánh dấu `*`.
+  - **Kỳ đang chạy:** rate sàn đang dự báo cho kỳ sắp chốt (còn đổi tới lúc chốt), quy về 8 giờ, theo năm và USDT/ngày như thể mọi kỳ đều bằng kỳ này, kèm giờ chốt kỳ tới.
+- Mỗi sàn chốt funding theo chu kỳ riêng (Hyperliquid mỗi giờ, OKX lấy độ dài kỳ từ hai mốc chốt kế tiếp), nên bảng quy về **cùng 8 giờ** và **theo năm**. USDT/ngày tính cho khối lượng đang nhập (bên Short). Bảng có thêm giá và độ lệch so với XAUUSDT Binance. Ô tô đậm là quy năm cao nhất trong nhóm theo cách tính đang chọn.
+- Biểu đồ tổng funding mỗi ngày của 4 sàn cho từng nhóm luôn là số thực tế, theo khoảng 7 hoặc 30 ngày.
 - OKX: tên hợp đồng trong bảng là hợp đồng host lấy được. Lịch sử funding OKX dùng mức đã thực trả (`realizedRate`), sàn chỉ giữ khoảng 3 tháng.
 - Kiểm tra: mở `api/exchanges.php?debug=1` để xem dữ liệu thô từng lần gọi Bybit, Hyperliquid và OKX (mục `okx_...`). Nếu sàn nào đổi định dạng, gửi nội dung trang debug để sửa.
 
