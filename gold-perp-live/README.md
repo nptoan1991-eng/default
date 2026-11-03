@@ -106,7 +106,7 @@ Khung nằm ngay trên Lịch sử funding ở tab XAUUSDT, XAGUSDT và BTCUSDT 
 
 - **Hiện tại**: `(max(0, giá mua tốt nhất − index) − max(0, index − giá bán tốt nhất)) / index`, giống cách Bybit tính premium index, từ WebSocket Bybit (cập nhật theo giây). Màu xanh khi trên +0.05%, đỏ khi dưới −0.05%.
 - **Trung bình từ đầu kỳ**: trung bình premium index Bybit từng phút từ lúc chốt kỳ trước, kèm đánh giá trong ngưỡng hay vượt ngưỡng.
-- **Funding kỳ này (Bybit dự báo)** và đếm ngược tới lúc chốt.
+- **Funding kỳ này (Bybit dự báo)** tính ra USDT cho 1 oz (BTCUSDT là 1 BTC): rate × mark, dương là Short nhận, kèm rate và chu kỳ. Có đếm ngược tới lúc chốt.
 - **Biểu đồ đường 24 giờ qua**: premium index Bybit nến 5 phút, vạch đứt +0.05% (phía âm gần như không bao giờ vượt −0.05% nên không kẻ), trục bắt đầu từ 0 và chỉ kéo xuống khi có giá trị âm, vạch dọc mờ là các lúc chốt funding, đoạn vượt ngưỡng tô màu, điểm cuối là số hiện tại. Rê chuột hoặc chạm để xem từng điểm.
 - Nguồn: `api/exchanges.php?premium=<MÃ>` lấy `/v5/market/premium-index-price-kline` (nến 5 phút 24 giờ, nến 1 phút 8 giờ), cache 60 giây trong `bybit_prem_<MÃ>.json`; trang tải lại mỗi phút khi đang mở tab.
 

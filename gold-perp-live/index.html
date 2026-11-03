@@ -467,7 +467,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       <div class="hsum">
         <div><div class="label">Hiện tại</div><div class="v" id="plNow">—</div><div class="s" id="plNowSub">—</div></div>
         <div><div class="label">Trung bình từ đầu kỳ</div><div class="v" id="plAvg">—</div><div class="s" id="plAvgSub">—</div></div>
-        <div><div class="label">Funding kỳ này (Bybit dự báo)</div><div class="v" id="plRate">—</div><div class="s" id="plRateSub">—</div></div>
+        <div><div class="label" id="plRateLabel">Funding kỳ này (Bybit dự báo, 1 oz)</div><div class="v" id="plRate">—</div><div class="s" id="plRateSub">—</div></div>
         <div><div class="label">Chốt sau</div><div class="v count" id="plCd">--:--:--</div><div class="s" id="plCdSub">—</div></div>
       </div>
       <h3 class="sub-h" id="plChartTitle">Perp − index 24 giờ qua (nến 5 phút, pt)</h3>
@@ -1838,10 +1838,16 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       el.plAvg.dataset.dir = '';
       el.plAvgSub.textContent = premErr || 'Đang tải…';
     }
-    const rate = byValOf(sym, 'rate');
-    el.plRate.textContent = rate != null ? signed(rate * 100, 4) + '%' : '—';
+    // Số USDT của kỳ này cho 1 đơn vị (1 oz, BTCUSDT là 1 BTC) = rate × mark, dương là Short nhận
+    const rate = byValOf(sym, 'rate'), mark = byValOf(sym, 'mark') || byValOf(sym, 'last');
+    const unit = sym === BT ? 'BTC' : 'oz';
+    $('plRateLabel').textContent = 'Funding kỳ này (Bybit dự báo, 1 ' + unit + ')';
+    const usd = rate != null && mark ? rate * mark : null;
+    el.plRate.textContent = usd != null ? signed(usd, 4) + ' USDT' : '—';
     el.plRate.dataset.dir = rate != null ? dir(rate) : '';
-    el.plRateSub.textContent = rate != null ? (rate > 0 ? 'Long trả Short' : rate < 0 ? 'Short trả Long' : 'Không phát sinh') + ' · chu kỳ ' + iv + 'h' : '—';
+    el.plRateSub.textContent = rate != null
+      ? (rate > 0 ? 'Short nhận, Long trả' : rate < 0 ? 'Short trả, Long nhận' : 'Không phát sinh') + ' · rate ' + signed(rate * 100, 4) + '% · chu kỳ ' + iv + 'h'
+      : '—';
     // Điểm biểu đồ: nến 5 phút 24 giờ qua, thêm điểm hiện tại
     plPts = premData ? premData.m5.filter((x) => x[0] >= Date.now() - 864e5).map((x) => ({ t: x[0], v: x[1] * 100 })) : [];
     if (plPts.length && now != null) plPts.push({ t: Date.now(), v: now, live: true });
