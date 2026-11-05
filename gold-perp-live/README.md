@@ -141,21 +141,21 @@ Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
 - Index PAXGUSDT là giá token PAXG trên các sàn spot. Dương là token đắt hơn vàng, âm là rẻ hơn.
 - Theo phân tích `analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md`, phần này gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance.
 
-**Giá vàng forex lấy ở đâu:**
-- **Số hiện tại:** giá Swissquote (giữa bid và ask, `api/fx-price.php`, lấy lại mỗi 10 giây). Index PAXG hiện tại lấy từ trường `i` của luồng markPrice PAXGUSDT Binance.
-- **Lịch sử theo giờ** (30 ngày, 90 ngày, từ 9/3): giờ nào host có ghi Swissquote (`api/spread-history.php`, do cron cảnh báo ghi) thì dùng. Không có thì dùng index XAUUSDT của Binance (`/fapi/v1/indexPriceKlines`): sàn tổng hợp giá vàng giao ngay từ các nhà cung cấp dữ liệu, ngày thường gần bằng forex.
-- **Lịch sử theo phút** (1 giờ, 24 giờ, 7 ngày): index XAUUSDT của Binance.
+**Giá vàng forex: chỉ dùng Swissquote** (giữa bid và ask). Không dùng index vàng của sàn: index đó tham chiếu cả giá hợp đồng tương lai, nên cao hơn giá giao ngay vài USDT, và ghép với Swissquote sẽ làm đường bị nhảy.
+- **Số hiện tại:** `api/fx-price.php`, lấy lại mỗi 10 giây. Index PAXG hiện tại lấy từ trường `i` của luồng markPrice PAXGUSDT Binance.
+- **Điểm theo phút:** trang tự ghi mỗi phút từ lúc mở (kể cả khi đang xem khung khác), giữ tối đa 7 ngày. Tải lại trang thì mất.
+- **Điểm theo giờ:** nhật ký Swissquote host ghi (`api/spread-history.php`, do cron `alert-check.php` ghi), so với index PAXG lúc đóng nến giờ (`/fapi/v1/indexPriceKlines`). Giờ vàng giao dịch mà host không ghi thì đường đứt.
 - **Lúc vàng thế giới nghỉ** (17:00 thứ Sáu tới 18:00 Chủ nhật, và 17:00–18:00 mỗi ngày, giờ New York): giá vàng giữ ở mức lúc đóng cửa, token vẫn chạy. Mức lệch cuối tuần vì vậy gồm cả phần thị trường đoán giá vàng phiên sau. Biểu đồ tô nền xám các cuối tuần.
 
 **Trong khung có:**
 - **Số hiện tại:** đổi đơn vị USDT/oz hoặc %, trang nhớ lựa chọn. Khi forex đang nghỉ, khung ghi rõ đang so với giá đóng cửa.
 - **Đánh giá và thanh đo:**
-  - Trang tự tính khoảng thường gặp từ các giờ vàng giao dịch kể từ 1/9/2026 (nến giờ ở trên), và tự cập nhật khi tải lại lịch sử (30 phút một lần, hoặc 10 phút khi đang xem nến giờ).
+  - Trang tự tính khoảng thường gặp từ các giờ vàng giao dịch có giá Swissquote kể từ 1/9/2026, cần ít nhất 48 giờ. Tự cập nhật mỗi lần tải lại lịch sử giờ (10 phút một lần khi khung đang hiện).
   - Ngoài khoảng 5%–95% là "Token rẻ bất thường" hoặc "Token đắt bất thường". Ngoài khoảng 25%–75% là "hơi rẻ" hoặc "hơi đắt".
   - Kèm câu kiểu "Cao hơn 95% số giờ vàng giao dịch từ 1/9".
 - **Thanh đo** từ −0.4% đến +0.4%: vùng xám ở giữa là 90% số giờ, hai đầu tô màu là 5% số giờ rẻ nhất và 5% đắt nhất, vạch mảnh là trung vị, vạch đậm là hiện tại.
 - **XAU Bybit − PAXG Binance:** chênh lệch giá khớp hai hợp đồng perp, để đối chiếu.
-- **Biểu đồ đường** với các nút 1 giờ, 24 giờ (nến 1 phút), 7 ngày (nến 5 phút), 30 ngày, 90 ngày, từ 9/3 (nến 1 giờ). Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
+- **Biểu đồ đường** với các nút 1 giờ (các phút trang đã ghi), 24 giờ, 30 ngày, 90 ngày, từ 9/3 (điểm theo giờ, nối thêm các phút trang ghi sau giờ cuối). Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
 - `api/exchanges.php?kline=…` (giá đóng nến Bybit) vẫn còn trên host nhưng khung này không dùng nữa.
 
 ## Funding 4 sàn
