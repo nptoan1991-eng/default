@@ -23,7 +23,7 @@ Các tab con trong All:
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm, kèm xuất dữ liệu. Chỉ tải dữ liệu khi mở tab này.
 - **BTCUSDT** (link `#btc`): riêng funding BTCUSDT trên Bybit. Đầu tab là lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm, bảng theo kỳ / ngày / tháng, xuất JSON và CSV theo kỳ, theo ngày; không có phần so giá với index và open interest), bên dưới là giá, mark, funding hiện tại, đếm ngược và funding theo vị thế với khối lượng tính bằng BTC (trang nhớ lại). Giá và funding hiện tại qua WebSocket Bybit, chỉ nhận khi mở tab; lịch sử qua `api/exchanges.php?symbol=BTCUSDT&start=<mốc>` (kho `bybit_hist_BTCUSDT.json`).
-- **So sánh** (link `#so-sanh`): token PAXG so với vàng (thanh đo và biểu đồ thời gian thực), funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
+- **So sánh** (link `#so-sanh`): token PAXG so với vàng forex (thanh đo và biểu đồ thời gian thực), funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab (và ở Featured) áp dụng cho các khung đang thấy ở đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
 
@@ -132,36 +132,31 @@ Thời gian trong file là UTC (dạng `2026-09-30T08:00Z`), riêng cột ngày 
 
 **Open interest và tỷ lệ Long/Short** lấy qua host: Binance `/futures/data/openInterestHist`, `/futures/data/globalLongShortAccountRatio`; Bybit `/v5/market/open-interest`, `/v5/market/account-ratio` (`api/exchanges.php?oi=1&ex=<binance|bybit>&symbol=<MÃ>&start=<mốc>`). Binance chỉ giữ 30 ngày gần nhất, nên host lưu dần vào `api/oi_<sàn>_<MÃ>.json` (giữ tối đa 400 ngày): mỗi lần xuất, và cron `alert-check.php` mỗi 6 giờ cập nhật cho XAUUSDT, XAGUSDT, PAXGUSDT Binance và XAUUSDT, XAGUSDT Bybit. Cần cron đang chạy thì lịch sử Binance mới dài dần ra.
 
-## Token PAXG so với vàng
+## Token PAXG so với vàng forex
 
-Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng**:
+Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
 
-> (index PAXGUSDT Binance − index XAUUSDT Bybit) / index XAUUSDT × 100
+> (index PAXGUSDT Binance − giá vàng XAU/USD) / giá vàng × 100
 
-- Index PAXGUSDT là giá token PAXG trên các sàn spot. Index XAUUSDT Bybit là giá vàng sàn dùng để tính mark và funding.
-- Dương là token đắt hơn vàng, âm là rẻ hơn.
-- Theo phân tích `analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md`, phần này gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance. Hai phần còn lại nhỏ và đều: perp PAXGUSDT luôn thấp hơn token khoảng 0.045%, perp XAUUSDT chỉ lệch nhỏ quanh giá vàng.
+- Index PAXGUSDT là giá token PAXG trên các sàn spot. Dương là token đắt hơn vàng, âm là rẻ hơn.
+- Theo phân tích `analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md`, phần này gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance.
 
-Trong khung có:
-- **Số hiện tại:** theo index WebSocket của hai sàn, cập nhật mỗi giây. Có nút đổi đơn vị USDT/oz hoặc %, trang nhớ lựa chọn.
-- **Đánh giá:** so với phân bố theo giờ từ 1/9/2026 đến 2/11/2026.
-  - Ngoài khoảng 5%–95% (−0.23% đến +0.20%) là "Token rẻ bất thường" hoặc "Token đắt bất thường".
-  - Ngoài khoảng 25%–75% là "hơi rẻ" hoặc "hơi đắt".
-  - Kèm câu kiểu "Cao hơn 95% số giờ từ 1/9".
-- **Thanh đo** từ −0.4% đến +0.4%:
-  - vùng xám ở giữa là khoảng 90% số giờ thường gặp;
-  - hai đầu tô màu là 5% số giờ rẻ nhất và 5% số giờ đắt nhất;
-  - vạch mảnh là trung vị, vạch đậm là vị trí hiện tại.
+**Giá vàng forex lấy ở đâu:**
+- **Số hiện tại:** giá Swissquote (giữa bid và ask, `api/fx-price.php`, lấy lại mỗi 10 giây). Index PAXG hiện tại lấy từ trường `i` của luồng markPrice PAXGUSDT Binance.
+- **Lịch sử theo giờ** (30 ngày, 90 ngày, từ 9/3): giờ nào host có ghi Swissquote (`api/spread-history.php`, do cron cảnh báo ghi) thì dùng. Không có thì dùng index XAUUSDT của Binance (`/fapi/v1/indexPriceKlines`): sàn tổng hợp giá vàng giao ngay từ các nhà cung cấp dữ liệu, ngày thường gần bằng forex.
+- **Lịch sử theo phút** (1 giờ, 24 giờ, 7 ngày): index XAUUSDT của Binance.
+- **Lúc vàng thế giới nghỉ** (17:00 thứ Sáu tới 18:00 Chủ nhật, và 17:00–18:00 mỗi ngày, giờ New York): giá vàng giữ ở mức lúc đóng cửa, token vẫn chạy. Mức lệch cuối tuần vì vậy gồm cả phần thị trường đoán giá vàng phiên sau. Biểu đồ tô nền xám các cuối tuần.
+
+**Trong khung có:**
+- **Số hiện tại:** đổi đơn vị USDT/oz hoặc %, trang nhớ lựa chọn. Khi forex đang nghỉ, khung ghi rõ đang so với giá đóng cửa.
+- **Đánh giá và thanh đo:**
+  - Trang tự tính khoảng thường gặp từ các giờ vàng giao dịch kể từ 1/9/2026 (nến giờ ở trên), và tự cập nhật khi tải lại lịch sử (30 phút một lần, hoặc 10 phút khi đang xem nến giờ).
+  - Ngoài khoảng 5%–95% là "Token rẻ bất thường" hoặc "Token đắt bất thường". Ngoài khoảng 25%–75% là "hơi rẻ" hoặc "hơi đắt".
+  - Kèm câu kiểu "Cao hơn 95% số giờ vàng giao dịch từ 1/9".
+- **Thanh đo** từ −0.4% đến +0.4%: vùng xám ở giữa là 90% số giờ, hai đầu tô màu là 5% số giờ rẻ nhất và 5% đắt nhất, vạch mảnh là trung vị, vạch đậm là hiện tại.
 - **XAU Bybit − PAXG Binance:** chênh lệch giá khớp hai hợp đồng perp, để đối chiếu.
-- **Biểu đồ đường** với các nút 1 giờ, 24 giờ (nến 1 phút), 7 ngày (nến 5 phút), 30 ngày, 90 ngày, từ 9/3 (nến 1 giờ; 9/3/2026 là ngày Bybit mở XAUUSDT).
-  - Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị.
-  - Đoạn nằm ngoài khoảng 90% được tô màu.
-  - Nền xám là cuối tuần (thứ 6 22:00 tới Chủ nhật 23:00 giờ UTC). Lúc đó vàng thế giới nghỉ và index vàng Bybit tự tính.
-- **Nguồn dữ liệu:**
-  - Index PAXGUSDT: lịch sử lấy thẳng từ Binance (`/fapi/v1/indexPriceKlines`), số hiện tại lấy từ trường `i` của luồng `paxgusdt@markPrice@1s`.
-  - Index XAUUSDT Bybit: nến 1 và 5 phút qua `api/exchanges.php?kline=XAUUSDT&kind=index&iv=1|5` (Bybit `/v5/market/index-price-kline`, cache 60 giây). Nến 1 giờ dùng kho giá theo giờ có sẵn (`?symbol=XAUUSDT&start=<mốc>&px=1`). Số hiện tại lấy từ `indexPrice` của WebSocket.
-  - Khi đang mở tab So sánh, trang tải lại lịch sử mỗi phút (7 ngày thì mỗi 5 phút, nến 1 giờ thì mỗi 10 phút). Giữa hai lần tải, đường được nối tiếp bằng giá WebSocket.
-- Khoảng thường gặp nằm trong `TK_Q` ở `index.html`. Khi có dữ liệu mới, chạy lại `analysis/scripts/spread_xau_paxg.py` để cập nhật.
+- **Biểu đồ đường** với các nút 1 giờ, 24 giờ (nến 1 phút), 7 ngày (nến 5 phút), 30 ngày, 90 ngày, từ 9/3 (nến 1 giờ). Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
+- `api/exchanges.php?kline=…` (giá đóng nến Bybit) vẫn còn trên host nhưng khung này không dùng nữa.
 
 ## Funding 4 sàn
 
