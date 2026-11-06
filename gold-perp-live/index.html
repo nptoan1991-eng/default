@@ -1747,18 +1747,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     setGap(el.bxGap, el.bxGapSub, br != null ? br * (24 / biv) * 365 * 100 : null, rate != null ? rate * (24 / iv) * 365 * 100 : null, 2, shortBetter);
   }
 
-  // Tiêu đề tab trình duyệt theo giá của phần đang xem
+  // Tiêu đề tab trình duyệt: Token PAXG − vàng forex hiện tại (index PAXGUSDT Binance − Swissquote), theo đơn vị
+  // đang chọn ở khung Token PAXG so với vàng forex; cập nhật cả khi tab trình duyệt đang ẩn
   function renderTitle() {
-    let v, name;
-    // Featured: tiêu đề theo XAUUSDT Bybit
-    const t = mode === 'all' ? tab : 'xau', xs = mode === 'all' ? xauSub : 'bybit';
-    if (t === 'paxg') { v = s.last; name = 'PAXGUSDT Binance'; }
-    else if (t === 'dau') { v = byValOf('CLUSDT', 'last'); name = 'CLUSDT Bybit'; }
-    else if (t === 'xag') { v = agSub === 'binance' ? bnSideVal(AG, 'last') : byValOf(AG, 'last'); name = 'XAGUSDT ' + (agSub === 'binance' ? 'Binance' : 'Bybit'); }
-    else if (t === 'btc') { v = byValOf(BT, 'last'); name = 'BTCUSDT Bybit'; }
-    else if (t === 'xau' && xs === 'binance') { v = bnXVal('last'); name = 'XAUUSDT Binance'; }
-    else { v = byVal('last'); name = 'XAUUSDT Bybit'; }
-    document.title = v != null ? (t === 'dau' || t === 'xag' ? fmtOil.format(v) : fmt2.format(v)) + ' · ' + name + ' | Gold Perp Live' : 'Gold Perp Live';
+    const L = xpLive();
+    document.title = L
+      ? xpFmt(xpVal(L)) + (L.open ? '' : ' (forex nghỉ)') + ' · PAXG − vàng forex | Gold Perp Live'
+      : 'Gold Perp Live';
   }
 
   // ---------- Perp − index live (Bybit) ----------

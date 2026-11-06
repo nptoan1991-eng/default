@@ -155,6 +155,7 @@ Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
   - Kèm câu kiểu "Cao hơn 95% số giờ vàng giao dịch từ 1/9".
 - **Thanh đo** từ −0.4% đến +0.4%: vùng xám ở giữa là 90% số giờ, hai đầu tô màu là 5% số giờ rẻ nhất và 5% đắt nhất, vạch mảnh là trung vị, vạch đậm là hiện tại.
 - **XAU Bybit − PAXG Binance:** chênh lệch giá khớp hai hợp đồng perp, để đối chiếu.
+- **Tiêu đề tab trình duyệt** luôn hiện số Token PAXG − vàng forex hiện tại, theo đơn vị đang chọn, ví dụ `−4.25 USDT · PAXG − vàng forex`. Tiêu đề thêm "(forex nghỉ)" khi forex đang nghỉ. Ở tab nào cũng vậy, và vẫn cập nhật khi tab trình duyệt đang ẩn.
 - **Biểu đồ đường** với các nút 1 giờ (các phút trang đã ghi), 24 giờ, 30 ngày, 90 ngày, từ 9/3 (điểm theo giờ, nối thêm các phút trang ghi sau giờ cuối). Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
 - `api/exchanges.php?kline=…` (giá đóng nến Bybit) vẫn còn trên host nhưng khung này không dùng nữa.
 
