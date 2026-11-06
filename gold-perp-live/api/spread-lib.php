@@ -8,6 +8,29 @@
 define('SPREAD_FILE', __DIR__ . '/spread_history.json');
 define('SPREAD_KEEP_DAYS', 400);
 
+// Token PAXG − vàng forex theo từng phút, cho khung Token PAXG so với vàng forex trên trang.
+// Mỗi lần cron chạy ghi một dòng [đầu phút (ms), giá vàng Swissquote giữa bid và ask, index PAXGUSDT Binance,
+// 1 nếu forex đang giao dịch / 0 nếu đang nghỉ (giá forex là giá đóng cửa)], giữ 7 ngày gần nhất.
+define('TOKEN_FILE', __DIR__ . '/token_minutes.json');
+define('TOKEN_KEEP_MS', 7 * 86400000);
+
+function token_read() {
+    if (!is_readable(TOKEN_FILE)) return [];
+    $rows = json_decode((string) @file_get_contents(TOKEN_FILE), true);
+    return is_array($rows) ? $rows : [];
+}
+
+function token_log($t, $fx, $k, $open) {
+    $rows = token_read();
+    $m = (int) (floor($t / 60000) * 60000);
+    if ($rows && (int) $rows[count($rows) - 1][0] === $m) array_pop($rows);
+    $rows[] = [$m, round($fx, 3), round($k, 3), $open ? 1 : 0];
+    $cut = $t - TOKEN_KEEP_MS;
+    $rows = array_values(array_filter($rows, function ($r) use ($cut) { return $r[0] >= $cut; }));
+    $tmp = TOKEN_FILE . '.tmp';
+    if (@file_put_contents($tmp, json_encode($rows)) !== false) @rename($tmp, TOKEN_FILE);
+}
+
 function spread_read() {
     if (!is_readable(SPREAD_FILE)) return [];
     $rows = json_decode((string) @file_get_contents(SPREAD_FILE), true);

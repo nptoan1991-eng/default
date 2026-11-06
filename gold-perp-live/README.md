@@ -39,6 +39,8 @@ Upload nguyên thư mục `gold-perp-live/` lên host PHP rồi mở `https://<t
 
 Bản đóng gói sẵn: `gold-perp-live.zip` ở thư mục gốc repo. Gói không có `api/alert-config.php` (chứa kênh ntfy và cron key), nên upload đè lên thư mục cũ trên host thì cấu hình đang dùng vẫn giữ nguyên.
 
+> **Khi cập nhật bản mới: giải nén đè lên thư mục cũ, đừng xóa thư mục `api/` trên host.** Mọi dữ liệu host lưu dần đều nằm trong các file `.json` ở đó. Gói zip không chứa file `.json` nào, nên upload đè không làm mất chúng. Xóa thư mục `api/` là mất toàn bộ lịch sử: giá Swissquote theo giờ và theo phút, funding, open interest. Muốn giữ một bản sao thì tải các file `api/*.json` về máy trước.
+
 ```
 gold-perp-live/
 ├── index.html          trang dashboard
@@ -57,7 +59,7 @@ gold-perp-live/
 
 Trang không cho Google và các công cụ tìm kiếm khác lập chỉ mục: `index.html` có thẻ `<meta name="robots" content="noindex, nofollow, noarchive">`, và `.htaccess` gửi header `X-Robots-Tag` cùng nội dung cho mọi file trong thư mục (cần host Apache có mod_headers; host khác thì vẫn còn thẻ meta). Một số trình quản lý file ẩn file bắt đầu bằng dấu chấm, nhớ bật hiện file ẩn khi upload.
 
-Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `bybit_prem_<MÃ>.json`, `bybit_kl_<MÃ>_<phút>[_idx].json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, OKX, open interest) trong đó.
+Thư mục `api/` cần quyền ghi. Các file PHP tự tạo `sjc_state.json`, `sjc_history.json`, `sjc.lock`, `fx_state.json`, `fx.lock`, `fx_state_xag.json`, `fx_xag.lock`, `alert_state.json`, `alert.lock`, `site.json` (link trang, dùng cho thông báo) `spread_history.json` (chênh lệch theo giờ), `exchanges_live.json`, `exchanges_hist.json`, `bybit_hist_<MÃ>.json`, `bybit_px_<MÃ>.json`, `bybit_prem_<MÃ>.json`, `bybit_kl_<MÃ>_<phút>[_idx].json`, `token_minutes.json`, `oi_<sàn>_<MÃ>.json` và `exchanges.lock` (dữ liệu Bybit, Hyperliquid, OKX, open interest) trong đó.
 
 Nếu mở `index.html` trực tiếp trên máy thì phần Binance và giá Bybit live vẫn chạy, riêng lịch sử funding Bybit, giá forex và khung SJC báo cần mở từ host.
 
@@ -143,7 +145,9 @@ Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
 
 **Giá vàng forex: chỉ dùng Swissquote** (giữa bid và ask). Không dùng index vàng của sàn: index đó tham chiếu cả giá hợp đồng tương lai, nên cao hơn giá giao ngay vài USDT, và ghép với Swissquote sẽ làm đường bị nhảy.
 - **Số hiện tại:** `api/fx-price.php`, lấy lại mỗi 10 giây. Index PAXG hiện tại lấy từ trường `i` của luồng markPrice PAXGUSDT Binance.
-- **Điểm theo phút:** trang tự ghi mỗi phút từ lúc mở (kể cả khi đang xem khung khác), giữ tối đa 7 ngày. Tải lại trang thì mất.
+- **Điểm theo phút:**
+  - Host ghi mỗi lần cron `alert-check.php` chạy, kể cả lúc forex nghỉ (`api/token_minutes.json`, giữ 7 ngày, đọc qua `api/spread-history.php?minutes=1`). Cài cron chạy mỗi phút thì có đủ từng phút.
+  - Trang tự ghi thêm từ lúc mở, để lấp các phút host chưa có.
 - **Điểm theo giờ:** nhật ký Swissquote host ghi (`api/spread-history.php`, do cron `alert-check.php` ghi), so với index PAXG lúc đóng nến giờ (`/fapi/v1/indexPriceKlines`). Giờ vàng giao dịch mà host không ghi thì đường đứt.
 - **Lúc vàng thế giới nghỉ** (17:00 thứ Sáu tới 18:00 Chủ nhật, và 17:00–18:00 mỗi ngày, giờ New York): giá vàng giữ ở mức lúc đóng cửa, token vẫn chạy. Mức lệch cuối tuần vì vậy gồm cả phần thị trường đoán giá vàng phiên sau. Biểu đồ tô nền xám các cuối tuần.
 
@@ -156,7 +160,7 @@ Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
 - **Thanh đo** từ −0.4% đến +0.4%: vùng xám ở giữa là 90% số giờ, hai đầu tô màu là 5% số giờ rẻ nhất và 5% đắt nhất, vạch mảnh là trung vị, vạch đậm là hiện tại.
 - **XAU Bybit − PAXG Binance:** chênh lệch giá khớp hai hợp đồng perp, để đối chiếu.
 - **Tiêu đề tab trình duyệt** luôn hiện số Token PAXG − vàng forex hiện tại, theo đơn vị đang chọn, ví dụ `−4.25 USDT · PAXG − vàng forex`. Tiêu đề thêm "(forex nghỉ)" khi forex đang nghỉ. Ở tab nào cũng vậy, và vẫn cập nhật khi tab trình duyệt đang ẩn.
-- **Biểu đồ đường** với các nút 1 giờ (các phút trang đã ghi), 24 giờ, 30 ngày, 90 ngày, từ 9/3 (điểm theo giờ, nối thêm các phút trang ghi sau giờ cuối). Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
+- **Biểu đồ đường** với các nút 1 giờ, 24 giờ (theo phút; trước phút đầu tiên có dữ liệu thì dùng điểm giờ), 30 ngày, 90 ngày, từ 9/3 (theo giờ, nối thêm các phút sau giờ cuối). Chỗ không có dữ liệu thì đường đứt. Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
 - `api/exchanges.php?kline=…` (giá đóng nến Bybit) vẫn còn trên host nhưng khung này không dùng nữa.
 
 ## Funding 4 sàn
@@ -243,7 +247,7 @@ Hai cảnh báo, mỗi cái có ngưỡng, vùng và nhật ký riêng; nút b�
 
 ### Cảnh báo 24/7 qua ntfy
 
-`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT trên Bybit, PAXGUSDT trên Binance và giá forex (Swissquote), tính **Bybit XAU − forex** (ngưỡng `high` / `low`) và **PAXG − forex** (ngưỡng `paxg_high` / `paxg_low`) rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: mỗi cảnh báo báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Nguồn giá nào (Bybit, Binance, Swissquote) lỗi 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại. Mỗi lần chạy khi forex mở còn ghi chênh lệch theo giờ (giá Binance, kèm giá Bybit) vào `spread_history.json`, và mỗi 6 giờ lưu thêm open interest, tỷ lệ Long/Short các mã (xem Xuất dữ liệu).
+`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT trên Bybit, PAXGUSDT trên Binance và giá forex (Swissquote), tính **Bybit XAU − forex** (ngưỡng `high` / `low`) và **PAXG − forex** (ngưỡng `paxg_high` / `paxg_low`) rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: mỗi cảnh báo báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Nguồn giá nào (Bybit, Binance, Swissquote) lỗi 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại. Mỗi lần chạy khi forex mở còn ghi chênh lệch theo giờ (giá Binance, kèm giá Bybit) vào `spread_history.json`. Mỗi lần chạy (cả khi forex nghỉ) ghi giá Swissquote và index PAXGUSDT theo phút vào `token_minutes.json` (giữ 7 ngày) cho khung Token PAXG so với vàng forex, và mỗi 6 giờ lưu thêm open interest, tỷ lệ Long/Short các mã (xem Xuất dữ liệu).
 
 1. **Cài app ntfy** trên điện thoại (Google Play hoặc App Store). Bấm **+**, nhập một tên kênh dài và khó đoán (ví dụ `gold-7f3k9q2x`), giữ server mặc định `ntfy.sh`. Ai biết tên kênh cũng đọc được thông báo.
 2. **Tạo file cấu hình** trên host: chép `api/alert-config.example.php` thành `api/alert-config.php`, sửa `ntfy_topic` trùng tên kênh ở bước 1, chỉnh ngưỡng `high` / `low` (Bybit XAU) và `paxg_high` / `paxg_low` (PAXG) nếu muốn. File cấu hình cũ chưa có `paxg_high` / `paxg_low` thì dùng mặc định 20 / −20. Khi cập nhật tool, **đừng ghi đè** `alert-config.php`.

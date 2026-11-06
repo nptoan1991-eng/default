@@ -3854,6 +3854,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   // Token PAXG − vàng forex = (index PAXGUSDT Binance − giá vàng XAU/USD Swissquote) / giá vàng × 100.
   // Index PAXG là giá token trên các sàn spot. Giá vàng chỉ lấy từ Swissquote (giữa bid và ask):
   // - Hiện tại: api/fx-price.php, lấy lại mỗi 10 giây; mỗi giây trang ghi lại một điểm cho phút đó (từ lúc mở trang).
+  // - Theo phút, 7 ngày gần nhất: host ghi mỗi lần cron cảnh báo chạy (token_minutes.json, đọc qua spread-history.php?minutes=1).
   // - Lịch sử theo giờ: nhật ký host ghi (api/spread-history.php, do cron cảnh báo ghi), so với index PAXG lúc đóng nến giờ.
   // Không dùng index vàng của sàn: index đó tham chiếu cả giá hợp đồng tương lai nên cao hơn giá giao ngay vài USDT.
   // Giờ vàng thế giới nghỉ (cuối tuần, 17:00–18:00 New York mỗi ngày): giữ giá vàng lúc đóng cửa.
@@ -3894,11 +3895,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   }
   // Mốc đầu của khoảng "Từ 9/3" (ngày Bybit mở XAUUSDT, giữ như các khung khác)
   const XP_SINCE = Date.UTC(2026, 2, 9);
-  // hourly: dùng nhật ký giờ của host; mọi khoảng đều nối thêm các phút trang ghi từ lúc mở
+  // minutes: vẽ theo phút (host ghi 7 ngày + trang ghi), trước phút đầu tiên có dữ liệu thì dùng điểm giờ;
+  // các khoảng dài vẽ theo giờ, sau giờ cuối thì nối các phút
   const XP_RANGES = {
-    '1h': { ms: 36e5, hourly: false, name: '1 giờ qua' }, '24h': { ms: 864e5, hourly: true, name: '24 giờ qua' },
-    '30d': { ms: 30 * 864e5, hourly: true, name: '30 ngày qua' }, '90d': { ms: 90 * 864e5, hourly: true, name: '90 ngày qua' },
-    all: { ms: 0, hourly: true, name: 'từ 9/3' }
+    '1h': { ms: 36e5, minutes: true, name: '1 giờ qua' }, '24h': { ms: 864e5, minutes: true, name: '24 giờ qua' },
+    '30d': { ms: 30 * 864e5, minutes: false, name: '30 ngày qua' }, '90d': { ms: 90 * 864e5, minutes: false, name: '90 ngày qua' },
+    all: { ms: 0, minutes: false, name: 'từ 9/3' }
   };
   const xpFrom = (R, now) => (R.ms ? now - R.ms : XP_SINCE);
   const xpEl = {
@@ -3909,6 +3911,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   };
   let xpRange = '24h', xpUnit = 'usd', xpDirty = true, xpPts = [], xpGeom = null;
   let xpHours = null, xpErr = null, xpAt = 0, xpBusy = false, xpLogFirst = null;
+  let xpMins = new Map(); // đầu phút => { g, k, open } host ghi (7 ngày)
   const xpStart = Date.now(); // trang ghi điểm từng phút từ lúc này
   const xpTicks = new Map(); // đầu phút => { g, k, open } giá vàng Swissquote và index PAXG Binance cuối cùng trong phút
 
@@ -3948,7 +3951,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       const days = Math.ceil((Date.now() - XP_SINCE) / 864e5) + 1;
       const [pk, lg] = await Promise.all([
         fetchHourly('/fapi/v1/indexPriceKlines', 'pair', 'PAXGUSDT', XP_SINCE),
-        fetch(SPREAD_API + '?days=' + days, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/spread-history.php trả HTTP ' + r.status))))
+        fetch(SPREAD_API + '?minutes=1&days=' + days, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/spread-history.php trả HTTP ' + r.status))))
       ]);
       const fxByHour = new Map(((lg && lg.rows) || []).filter((r) => r.fx > 0).map((r) => [r.h, r.fx]));
       const now = Date.now(), rows = [];
@@ -3965,7 +3968,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       }
       xpHours = rows;
       xpLogFirst = lg && lg.firstAt;
-      xpErr = fxByHour.size ? null : 'Host chưa ghi giá Swissquote nào (cần cron cảnh báo alert-check.php đang chạy).';
+      xpMins = new Map(((lg && lg.minutes) || []).filter((r) => r[1] > 0 && r[2] > 0).map((r) => [r[0], { g: r[1], k: r[2], open: !!r[3] }]));
+      xpErr = fxByHour.size || xpMins.size ? null : 'Host chưa ghi giá Swissquote nào: cần cron cảnh báo alert-check.php đang chạy (xem README), và giữ nguyên thư mục api/ trên host khi upload bản mới.';
       tkStats(rows);
     } catch (e) {
       xpErr = 'Không tải được lịch sử (' + (e.message || e) + ').';
@@ -3988,16 +3992,24 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     xpDirty = true;
   }
 
-  // Điểm của khoảng đang chọn: điểm giờ (res 60) rồi các phút trang ghi sau giờ cuối (res 1), cuối cùng là số hiện tại
+  // Điểm của khoảng đang chọn. Phút (res 1): host ghi, thêm các phút trang tự ghi mà host chưa có.
+  // Khoảng theo phút: điểm giờ chỉ dùng trước phút đầu tiên có dữ liệu. Khoảng dài: điểm giờ, sau giờ cuối nối các phút.
   function xpSeries() {
     const R = XP_RANGES[xpRange], now = Date.now(), from = xpFrom(R, now);
+    const mins = new Map(xpMins);
+    xpTicks.forEach((v, m) => { if (!mins.has(m)) mins.set(m, v); });
+    const mkeys = Array.from(mins.keys()).filter((m) => m + 6e4 > from && m + 6e4 <= now).sort((a, b) => a - b);
+    const firstMin = mkeys.length ? mkeys[0] + 6e4 : Infinity;
     const pts = [];
-    if (R.hourly) for (const d of xpHours || []) if (d.t + 36e5 > from) pts.push({ t: d.t + 36e5, g: d.g, k: d.k, open: d.open, res: 60 });
+    for (const d of xpHours || []) {
+      const t = d.t + 36e5;
+      if (t > from && (!R.minutes || t < firstMin)) pts.push({ t, g: d.g, k: d.k, open: d.open, res: 60 });
+    }
     const lastH = pts.length ? pts[pts.length - 1].t : -Infinity;
-    Array.from(xpTicks.keys()).sort((a, b) => a - b).forEach((m) => {
-      const t = m + 6e4, v = xpTicks.get(m);
-      if (t > from && t > lastH && t <= now) pts.push({ t, g: v.g, k: v.k, open: v.open, res: 1 });
-    });
+    for (const m of mkeys) {
+      const t = m + 6e4, v = mins.get(m);
+      if (t > lastH) pts.push({ t, g: v.g, k: v.k, open: v.open, res: 1 });
+    }
     const L = xpLive();
     if (L) pts.push({ t: now, g: L.g, k: L.k, open: L.open, res: 1, live: true });
     pts.forEach((pt) => { pt.v = xpVal(pt); pt.pct = tkPct(pt); });
@@ -4063,14 +4075,15 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       xpEl.avg.textContent = '—';
       xpEl.avgSub.textContent = xpBusy ? 'Đang tải…' : '—';
     }
-    xpEl.title.textContent = 'Token PAXG − vàng forex ' + R.name + ' (' + (R.hourly ? 'mỗi giờ, thêm mỗi phút từ lúc mở trang' : 'mỗi phút từ lúc mở trang') + ', '
+    xpEl.title.textContent = 'Token PAXG − vàng forex ' + R.name + ' (' + (R.minutes ? 'mỗi phút' : 'mỗi giờ, thêm mỗi phút sau giờ cuối') + ', '
       + (xpUnit === 'pct' ? '%' : 'USDT/oz') + ')';
     const nH = xpHours ? xpHours.filter((r) => r.t + 36e5 > xpFrom(R, Date.now())).length : 0;
     xpEl.meta.textContent = (xpErr ? xpErr + ' ' : '')
       + 'Giá token PAXG (index PAXGUSDT Binance, lấy từ các sàn spot) trừ giá vàng forex XAU/USD của Swissquote (giữa bid và ask). Dương là token đắt hơn vàng. '
       + 'Chỉ dùng giá Swissquote, không dùng index vàng của sàn (index sàn tham chiếu cả giá hợp đồng tương lai nên cao hơn giá giao ngay vài USDT). '
-      + (R.hourly ? 'Điểm theo giờ lấy từ nhật ký host ghi' + (xpLogFirst ? ' (từ ' + stamp(xpLogFirst) + ')' : '') + ': ' + nH + ' giờ trong khoảng này; giờ host không ghi thì đường đứt. ' : '')
-      + 'Điểm theo phút trang tự ghi từ lúc mở (' + stamp(xpStart) + '), tải lại trang là mất. '
+      + 'Điểm theo giờ lấy từ nhật ký host ghi' + (xpLogFirst ? ' (từ ' + stamp(xpLogFirst) + ')' : '') + ': ' + nH + ' giờ trong khoảng này. '
+      + 'Điểm theo phút: host ghi mỗi lần cron chạy, giữ 7 ngày (' + xpMins.size + ' phút)' + ', thêm các phút trang tự ghi từ lúc mở (' + stamp(xpStart) + '). '
+      + 'Chỗ không có dữ liệu thì đường đứt. '
       + 'Lúc vàng thế giới nghỉ (nền xám cuối tuần, và 17:00–18:00 giờ New York mỗi ngày) giá vàng giữ ở mức đóng cửa, token vẫn chạy nên mức lệch gồm cả phần thị trường đoán giá vàng phiên sau. '
       + 'Vạch đứt là khoảng 90% số giờ vàng giao dịch có giá Swissquote từ 1/9' + (xpUnit === 'usd' ? ' (đổi ra USDT theo giá vàng hiện tại)' : '') + ', trang tự tính và cập nhật. '
       + 'Phần này gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance. Lịch sử giờ tải lại mỗi 10 phút.';
@@ -4160,7 +4173,8 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.restore();
     }
     // Đường Token PAXG − vàng forex; đoạn ngoài khoảng tô màu, các đoạn liền nhau cùng màu vẽ một nét
-    const gapOf = (a, b) => Math.max(a.res || 1, b.res || 1) * 6e4 * 3; // thiếu quá 3 điểm liền thì đứt đoạn
+    // Đứt đoạn khi thiếu dữ liệu: quá 3 giờ giữa hai điểm giờ, quá 15 phút giữa hai điểm phút (cron có thể chạy 5 phút một lần)
+    const gapOf = (a, b) => (Math.max(a.res || 1, b.res || 1) === 60 ? 3 * 36e5 : 15 * 6e4);
     ctx.lineWidth = 1.6;
     ctx.lineJoin = 'round';
     let color = null;

@@ -10,7 +10,8 @@
  *   Không báo khi forex đang nghỉ. Nguồn giá nào lỗi 3 lần liền thì báo lỗi một lần.
  *
  * Mỗi lần chạy khi forex đang giao dịch cũng ghi XAU − forex và PAXG − forex theo giờ
- * (spread-lib.php, giá Binance, kèm giá Bybit) để trang vẽ lịch sử. Mỗi 6 giờ lưu thêm open interest
+ * (spread-lib.php, giá Binance, kèm giá Bybit) để trang vẽ lịch sử. Mỗi lần chạy (cả khi forex nghỉ) ghi thêm
+ * giá Swissquote và index PAXGUSDT theo phút vào token_minutes.json (giữ 7 ngày) cho khung Token PAXG so với vàng forex. Mỗi 6 giờ lưu thêm open interest
  * và tỷ lệ Long/Short các mã (ex-lib.php) cho phần xuất dữ liệu.
  *
  * Cấu hình: alert-config.php (chép từ alert-config.example.php).
@@ -25,6 +26,7 @@ require __DIR__ . '/ex-lib.php'; // lưu dần open interest
 
 define('PRICE_URL', 'https://fapi.binance.com/fapi/v1/ticker/price?symbol=');
 define('BYBIT_PRICE_URL', 'https://api.bybit.com/v5/market/tickers?category=linear&symbol=');
+define('INDEX_URL', 'https://fapi.binance.com/fapi/v1/premiumIndex?symbol=');
 define('ALERT_STATE_FILE', __DIR__ . '/alert_state.json');
 define('ALERT_LOCK_FILE', __DIR__ . '/alert.lock');
 define('FAILS_BEFORE_NOTICE', 3);
@@ -132,6 +134,16 @@ function fetch_price($symbol, &$error) {
     return null;
 }
 
+// Index (giá token trên các sàn spot) của một hợp đồng Binance, ví dụ PAXGUSDT
+function fetch_index($symbol, &$error) {
+    $log = [];
+    $raw = fx_fetch(INDEX_URL . $symbol, $log);
+    $json = $raw !== false ? json_decode($raw, true) : null;
+    if (isset($json['indexPrice']) && is_numeric($json['indexPrice']) && $json['indexPrice'] > 0) return (float) $json['indexPrice'];
+    $error = 'Không lấy được index ' . $symbol . ' từ Binance (HTTP ' . (isset($log['http_code']) ? $log['http_code'] : 0) . ')';
+    return null;
+}
+
 function fetch_bybit_price($symbol, &$error) {
     $log = [];
     $raw = fx_fetch(BYBIT_PRICE_URL . $symbol, $log);
@@ -218,6 +230,10 @@ foreach ($ALERTS as $k => $a) track_fail($state, $k, $priceErrors[$k], 'Cảnh b
 if (!$fxError) {
     $lines[] = 'Forex ' . number_format($mid, 2) . '.';
     $open = !$quote['ts'] || fx_now_ms() - $quote['ts'] <= FX_STALE_MS;
+    // Token PAXG − vàng forex mỗi phút (cả khi forex nghỉ: so với giá đóng cửa), cho khung trên trang
+    $idxError = null;
+    $paxgIdx = fetch_index('PAXGUSDT', $idxError);
+    if ($paxgIdx !== null) token_log(fx_now_ms(), $mid, $paxgIdx, $open);
     if (!$open) {
         // Forex nghỉ thì giá forex đứng yên, không báo; khi mở lại sẽ xét lại từ đầu
         $state['zones'] = [];
