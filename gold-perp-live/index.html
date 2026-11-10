@@ -213,6 +213,22 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .legend span::before { content: ""; width: 16px; height: 0; border-top: 2px solid var(--gold); }
 canvas { display: block; width: 100%; height: 250px; margin-top: 10px; }
 .note { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+/* Mô tả dài: hiện dòng đầu, nút Xem thêm mở cả đoạn */
+.note-wrap { display: flex; align-items: baseline; gap: 4px 10px; margin: 6px 0 0; min-width: 0; }
+.alert-box .note-wrap { margin: 0; }
+.note-wrap > .note { margin: 0; flex: 1 1 auto; min-width: 0; }
+.note-wrap > .note.clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
+.note-more { flex: none; border: 0; background: none; padding: 0; font: 600 12px var(--sans); color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.note-more[hidden] { display: none; }
+.note-wrap:has(> .note[hidden]) { display: none; }
+/* Mô tả ngắn: biểu tượng ⓘ, rê chuột hoặc chạm để xem */
+.tip-i {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 17px; height: 17px; margin-left: 6px; padding: 0;
+  border: 1px solid var(--muted); border-radius: 50%; background: none; color: var(--muted); font: 700 11px/1 var(--sans); cursor: help; vertical-align: 2px;
+}
+.tip-i:hover, .tip-i[aria-expanded="true"] { border-color: var(--ink); color: var(--ink); }
+.panel-head > .tip-i { align-self: center; margin-left: -10px; }
+#tipPop { position: fixed; z-index: 60; max-width: min(340px, calc(100vw - 24px)); padding: 8px 11px; border-radius: 7px; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.45; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); pointer-events: none; }
 
 /* SJC so với thế giới */
 .chip[data-dir="up"] { border-color: var(--up); }
@@ -5142,6 +5158,99 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (open) redraw();
   }));
   updateFoldBars();
+
+  // ---------- Mô tả gọn lại ----------
+  // Đoạn mô tả ngắn và cố định (không id, không data-*, dưới 90 chữ): thành biểu tượng ⓘ cạnh tiêu đề gần nhất.
+  // Các đoạn còn lại (kể cả đoạn trang tự cập nhật): hiện dòng đầu, nút Xem thêm / Thu gọn; nút chỉ hiện khi đoạn dài hơn 1 dòng.
+  const tipPop = document.createElement('div');
+  tipPop.id = 'tipPop';
+  tipPop.setAttribute('role', 'tooltip');
+  tipPop.hidden = true;
+  document.body.appendChild(tipPop);
+  let tipFor = null;
+  function showTip(btn) {
+    tipFor = btn;
+    tipPop.textContent = btn.dataset.tip;
+    tipPop.hidden = false;
+    const r = btn.getBoundingClientRect(), w = tipPop.offsetWidth, h = tipPop.offsetHeight;
+    const left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12);
+    const top = r.bottom + 8 + h > window.innerHeight ? r.top - h - 8 : r.bottom + 8;
+    tipPop.style.left = left + 'px';
+    tipPop.style.top = top + 'px';
+    document.querySelectorAll('.tip-i[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    btn.setAttribute('aria-expanded', 'true');
+  }
+  function hideTip() {
+    if (tipFor) tipFor.setAttribute('aria-expanded', 'false');
+    tipFor = null;
+    tipPop.hidden = true;
+  }
+  // Chạm / bấm vào ⓘ thì mở; chạm ra chỗ khác, rời chuột hoặc cuộn trang thì đóng
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.tip-i');
+    if (b) showTip(b); else hideTip();
+  });
+  window.addEventListener('scroll', hideTip, { passive: true });
+
+  // Tiêu đề gần nhất phía trên đoạn mô tả: tiêu đề biểu đồ (h3), hoặc tiêu đề khung
+  function tipAnchor(note) {
+    for (let n = note.previousElementSibling; n; n = n.previousElementSibling) {
+      if (n.matches('h3.sub-h')) return n;
+      const h = n.querySelector && n.querySelector(':scope > h3.sub-h');
+      if (n.matches('.gap-head, .panel-head') && h) return h;
+      if (n.matches('.panel-head')) return n;
+    }
+    const panel = note.closest('[data-panel]');
+    return panel ? panel.querySelector(':scope > .panel-head') : null;
+  }
+  const isStatic = (n) => !n.id && !Array.from(n.attributes).some((a) => a.name.startsWith('data-'));
+  document.querySelectorAll('p.note').forEach((note) => {
+    const text = note.textContent.replace(/\s+/g, ' ').trim();
+    if (isStatic(note) && text && text.length < 90) {
+      const anchor = tipAnchor(note);
+      if (anchor) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tip-i';
+        b.textContent = 'i';
+        b.dataset.tip = text;
+        b.setAttribute('aria-label', 'Giải thích: ' + text);
+        b.setAttribute('aria-expanded', 'false');
+        b.addEventListener('mouseenter', () => showTip(b));
+        b.addEventListener('mouseleave', hideTip);
+        b.addEventListener('focus', () => showTip(b));
+        b.addEventListener('blur', hideTip);
+        if (anchor.matches('.panel-head')) {
+          const h2 = anchor.querySelector(':scope > h2');
+          if (h2) h2.after(b); else anchor.appendChild(b);
+        } else {
+          anchor.appendChild(b);
+        }
+        note.remove();
+        return;
+      }
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'note-wrap';
+    note.before(wrap);
+    wrap.appendChild(note);
+    note.classList.add('clamp');
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'note-more';
+    more.hidden = true;
+    wrap.appendChild(more);
+    const check = () => {
+      const open = !note.classList.contains('clamp');
+      if (open) { more.textContent = 'Thu gọn'; more.hidden = false; return; }
+      more.textContent = 'Xem thêm';
+      more.hidden = !(note.scrollHeight > note.clientHeight + 2);
+    };
+    more.addEventListener('click', () => { note.classList.toggle('clamp'); check(); });
+    new MutationObserver(check).observe(note, { childList: true, characterData: true, subtree: true });
+    if ('ResizeObserver' in window) new ResizeObserver(check).observe(wrap);
+    check();
+  });
 
   el.views.forEach((b) => b.addEventListener('click', () => {
     view = b.dataset.view;

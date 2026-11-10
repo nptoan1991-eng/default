@@ -25,6 +25,10 @@ Các tab con trong All:
 - **BTCUSDT** (link `#btc`): riêng funding BTCUSDT trên Bybit. Đầu tab là lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm, bảng theo kỳ / ngày / tháng, xuất JSON và CSV theo kỳ, theo ngày; không có phần so giá với index và open interest), bên dưới là giá, mark, funding hiện tại, đếm ngược và funding theo vị thế với khối lượng tính bằng BTC (trang nhớ lại). Giá và funding hiện tại qua WebSocket Bybit, chỉ nhận khi mở tab; lịch sử qua `api/exchanges.php?symbol=BTCUSDT&start=<mốc>` (kho `bybit_hist_BTCUSDT.json`).
 - **So sánh** (link `#so-sanh`): PAXGUSDT so với vàng forex (thanh đo và biểu đồ thời gian thực), funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
+**Mô tả gọn lại:**
+- Đoạn giải thích dài chỉ hiện dòng đầu, bấm **Xem thêm** để mở cả đoạn, **Thu gọn** để đóng. Các đoạn trang tự cập nhật cũng vậy; lỗi và trạng thái luôn nằm ở đầu nên vẫn thấy khi thu gọn.
+- Đoạn mô tả ngắn và cố định đổi thành biểu tượng **ⓘ** cạnh tiêu đề khung hoặc tiêu đề biểu đồ. Rê chuột (máy tính) hoặc chạm (điện thoại) để xem.
+
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab (và ở Featured) áp dụng cho các khung đang thấy ở đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
 
 **Bố cục theo độ rộng màn hình:**
