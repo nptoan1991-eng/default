@@ -11,7 +11,7 @@
  *
  * Mỗi lần chạy khi forex đang giao dịch cũng ghi XAU − forex và PAXG − forex theo giờ
  * (spread-lib.php, giá Binance, kèm giá Bybit) để trang vẽ lịch sử. Mỗi lần chạy (cả khi forex nghỉ) ghi thêm
- * giá Swissquote và index PAXGUSDT theo phút vào token_minutes.json (giữ 7 ngày) cho khung Token PAXG so với vàng forex. Mỗi 6 giờ lưu thêm open interest
+ * giá Swissquote, giá khớp và index PAXGUSDT theo phút vào token_minutes.json (giữ 7 ngày) cho khung PAXGUSDT so với vàng forex. Mỗi 6 giờ lưu thêm open interest
  * và tỷ lệ Long/Short các mã (ex-lib.php) cho phần xuất dữ liệu.
  *
  * Cấu hình: alert-config.php (chép từ alert-config.example.php).
@@ -230,10 +230,10 @@ foreach ($ALERTS as $k => $a) track_fail($state, $k, $priceErrors[$k], 'Cảnh b
 if (!$fxError) {
     $lines[] = 'Forex ' . number_format($mid, 2) . '.';
     $open = !$quote['ts'] || fx_now_ms() - $quote['ts'] <= FX_STALE_MS;
-    // Token PAXG − vàng forex mỗi phút (cả khi forex nghỉ: so với giá đóng cửa), cho khung trên trang
+    // PAXGUSDT − vàng forex mỗi phút (cả khi forex nghỉ: so với giá đóng cửa), kèm index (giá token), cho khung trên trang
     $idxError = null;
     $paxgIdx = fetch_index('PAXGUSDT', $idxError);
-    if ($paxgIdx !== null) token_log(fx_now_ms(), $mid, $paxgIdx, $open);
+    if ($paxgIdx !== null || $prices['paxg'] !== null) token_log(fx_now_ms(), $mid, $paxgIdx, $open, $prices['paxg']);
     if (!$open) {
         // Forex nghỉ thì giá forex đứng yên, không báo; khi mở lại sẽ xét lại từ đầu
         $state['zones'] = [];

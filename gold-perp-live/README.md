@@ -23,7 +23,7 @@ Các tab con trong All:
 - **PAXGUSDT Binance** (link `#paxg`): giá khớp, mark price, funding, funding theo vị thế, PAXGUSDT và token PAXG so với forex kèm cảnh báo, PAXG − forex theo giờ, lịch sử funding.
 - **Dầu WTI** (link `#dau`): CLUSDT trên Bybit và Binance, giá, funding, chênh lệch hai sàn, funding theo vị thế (số thùng) và lịch sử funding 7 / 30 / 90 ngày hoặc từ đầu năm, kèm xuất dữ liệu. Chỉ tải dữ liệu khi mở tab này.
 - **BTCUSDT** (link `#btc`): riêng funding BTCUSDT trên Bybit. Đầu tab là lịch sử funding (14 / 30 / 90 ngày hoặc từ đầu năm, bảng theo kỳ / ngày / tháng, xuất JSON và CSV theo kỳ, theo ngày; không có phần so giá với index và open interest), bên dưới là giá, mark, funding hiện tại, đếm ngược và funding theo vị thế với khối lượng tính bằng BTC (trang nhớ lại). Giá và funding hiện tại qua WebSocket Bybit, chỉ nhận khi mở tab; lịch sử qua `api/exchanges.php?symbol=BTCUSDT&start=<mốc>` (kho `bybit_hist_BTCUSDT.json`).
-- **So sánh** (link `#so-sanh`): token PAXG so với vàng forex (thanh đo và biểu đồ thời gian thực), funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
+- **So sánh** (link `#so-sanh`): PAXGUSDT so với vàng forex (thanh đo và biểu đồ thời gian thực), funding 4 sàn (Binance, Bybit, Hyperliquid, OKX), chênh lệch giá XAU − PAXG và XAU − forex trên Binance kèm phân tích từng phút, so sánh funding XAUUSDT với PAXGUSDT trên Binance.
 
 Mọi khung (cả khối giá và funding ở đầu tab) đều thu gọn được: bấm tiêu đề để mở hoặc thu gọn. Lần đầu mở trang thì thu gọn hết. Trình duyệt nhớ khung nào đang mở (cùng với tab, sub tab và khoảng lịch sử đang chọn), lần sau mở trang sẽ y như lần trước. Nút **Mở hết / Thu gọn hết** ở đầu mỗi tab (và ở Featured) áp dụng cho các khung đang thấy ở đó. Khung Lịch sử funding dùng chung cho tab XAUUSDT, XAGUSDT và PAXGUSDT nên có chung một trạng thái. Dữ liệu và cảnh báo vẫn chạy khi khung đang thu gọn; bấm vào biểu đồ theo giờ ở tab PAXGUSDT thì khung Chênh lệch giá ở tab So sánh tự mở ra.
 
@@ -134,21 +134,22 @@ Thời gian trong file là UTC (dạng `2026-09-30T08:00Z`), riêng cột ngày 
 
 **Open interest và tỷ lệ Long/Short** lấy qua host: Binance `/futures/data/openInterestHist`, `/futures/data/globalLongShortAccountRatio`; Bybit `/v5/market/open-interest`, `/v5/market/account-ratio` (`api/exchanges.php?oi=1&ex=<binance|bybit>&symbol=<MÃ>&start=<mốc>`). Binance chỉ giữ 30 ngày gần nhất, nên host lưu dần vào `api/oi_<sàn>_<MÃ>.json` (giữ tối đa 400 ngày): mỗi lần xuất, và cron `alert-check.php` mỗi 6 giờ cập nhật cho XAUUSDT, XAGUSDT, PAXGUSDT Binance và XAUUSDT, XAGUSDT Bybit. Cần cron đang chạy thì lịch sử Binance mới dài dần ra.
 
-## Token PAXG so với vàng forex
+## PAXGUSDT so với vàng forex
 
-Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
+Khung đầu tab So sánh. Chỉ số chính là **PAXGUSDT − vàng forex**:
 
-> (index PAXGUSDT Binance − giá vàng XAU/USD) / giá vàng × 100
+> (giá khớp PAXGUSDT Binance − giá vàng XAU/USD Swissquote) / giá vàng × 100
 
-- Index PAXGUSDT là giá token PAXG trên các sàn spot. Dương là token đắt hơn vàng, âm là rẻ hơn.
-- Theo phân tích `analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md`, phần này gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance.
+- Dương là PAXGUSDT đắt hơn vàng, âm là rẻ hơn.
+- Dòng nhỏ dưới số hiện tại có thêm **token − forex**: giá token PAXG (index PAXGUSDT, tổng hợp từ các sàn spot) trừ forex, để đối chiếu. Perp PAXGUSDT thường thấp hơn token khoảng 0.045%.
+- Theo phân tích `analysis/chenh-lech-gia-XAU-bybit-PAXG-binance.md`, phần token so với vàng gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance.
 
 **Giá vàng forex: chỉ dùng Swissquote** (giữa bid và ask). Không dùng index vàng của sàn: index đó tham chiếu cả giá hợp đồng tương lai, nên cao hơn giá giao ngay vài USDT, và ghép với Swissquote sẽ làm đường bị nhảy.
-- **Số hiện tại:** `api/fx-price.php`, lấy lại mỗi 10 giây. Index PAXG hiện tại lấy từ trường `i` của luồng markPrice PAXGUSDT Binance.
+- **Số hiện tại:** giá Swissquote từ `api/fx-price.php`, lấy lại mỗi 10 giây. Giá khớp PAXGUSDT lấy từ WebSocket Binance. Index PAXG (để đối chiếu) lấy từ trường `i` của luồng markPrice.
 - **Điểm theo phút:**
-  - Host ghi mỗi lần cron `alert-check.php` chạy, kể cả lúc forex nghỉ (`api/token_minutes.json`, giữ 7 ngày, đọc qua `api/spread-history.php?minutes=1`). Cài cron chạy mỗi phút thì có đủ từng phút.
+  - Host ghi mỗi lần cron `alert-check.php` chạy, kể cả lúc forex nghỉ (`api/token_minutes.json`, giữ 7 ngày, đọc qua `api/spread-history.php?minutes=1`). Mỗi dòng gồm giá Swissquote, giá khớp PAXGUSDT và index PAXG. Dòng ghi trước khi có giá khớp chỉ có index nên khung không dùng. Cài cron chạy mỗi phút thì có đủ từng phút.
   - Trang tự ghi thêm từ lúc mở, để lấp các phút host chưa có.
-- **Điểm theo giờ:** nhật ký Swissquote host ghi (`api/spread-history.php`, do cron `alert-check.php` ghi), so với index PAXG lúc đóng nến giờ (`/fapi/v1/indexPriceKlines`). Giờ vàng giao dịch mà host không ghi thì đường đứt.
+- **Điểm theo giờ:** nhật ký host ghi (`api/spread-history.php`, do cron `alert-check.php` ghi): giá Swissquote và giá khớp PAXGUSDT lấy cùng lúc. Thiếu giá khớp thì dùng giá đóng nến giờ PAXGUSDT (`/fapi/v1/klines`). Giờ vàng giao dịch mà host không ghi thì đường đứt.
 - **Lúc vàng thế giới nghỉ** (17:00 thứ Sáu tới 18:00 Chủ nhật, và 17:00–18:00 mỗi ngày, giờ New York): giá vàng giữ ở mức lúc đóng cửa, token vẫn chạy. Mức lệch cuối tuần vì vậy gồm cả phần thị trường đoán giá vàng phiên sau. Biểu đồ tô nền xám các cuối tuần.
 
 **Trong khung có:**
@@ -159,7 +160,7 @@ Khung đầu tab So sánh. Chỉ số chính là **Token PAXG − vàng forex**:
   - Kèm câu kiểu "Cao hơn 95% số giờ vàng giao dịch từ 1/9".
 - **Thanh đo** từ −0.4% đến +0.4%: vùng xám ở giữa là 90% số giờ, hai đầu tô màu là 5% số giờ rẻ nhất và 5% đắt nhất, vạch mảnh là trung vị, vạch đậm là hiện tại.
 - **XAU Bybit − PAXG Binance:** chênh lệch giá khớp hai hợp đồng perp, để đối chiếu.
-- **Tiêu đề tab trình duyệt** luôn hiện số Token PAXG − vàng forex hiện tại, theo đơn vị đang chọn, ví dụ `−4.25 USDT · PAXG − vàng forex`. Tiêu đề thêm "(forex nghỉ)" khi forex đang nghỉ. Ở tab nào cũng vậy, và vẫn cập nhật khi tab trình duyệt đang ẩn.
+- **Tiêu đề tab trình duyệt** luôn hiện số PAXGUSDT − vàng forex hiện tại, theo đơn vị đang chọn, ví dụ `−6.10 USDT · PAXGUSDT − vàng forex`. Tiêu đề thêm "(forex nghỉ)" khi forex đang nghỉ. Ở tab nào cũng vậy, và vẫn cập nhật khi tab trình duyệt đang ẩn.
 - **Biểu đồ đường** với các nút 1 giờ, 24 giờ (theo phút; trước phút đầu tiên có dữ liệu thì dùng điểm giờ), 30 ngày, 90 ngày, từ 9/3 (theo giờ, nối thêm các phút sau giờ cuối). Chỗ không có dữ liệu thì đường đứt. Vạch đứt là hai đầu khoảng 90%, chấm mảnh là trung vị, đoạn ngoài khoảng 90% được tô màu.
 - `api/exchanges.php?kline=…` (giá đóng nến Bybit) vẫn còn trên host nhưng khung này không dùng nữa.
 
@@ -247,7 +248,7 @@ Hai cảnh báo, mỗi cái có ngưỡng, vùng và nhật ký riêng; nút b�
 
 ### Cảnh báo 24/7 qua ntfy
 
-`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT trên Bybit, PAXGUSDT trên Binance và giá forex (Swissquote), tính **Bybit XAU − forex** (ngưỡng `high` / `low`) và **PAXG − forex** (ngưỡng `paxg_high` / `paxg_low`) rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: mỗi cảnh báo báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Nguồn giá nào (Bybit, Binance, Swissquote) lỗi 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại. Mỗi lần chạy khi forex mở còn ghi chênh lệch theo giờ (giá Binance, kèm giá Bybit) vào `spread_history.json`. Mỗi lần chạy (cả khi forex nghỉ) ghi giá Swissquote và index PAXGUSDT theo phút vào `token_minutes.json` (giữ 7 ngày) cho khung Token PAXG so với vàng forex, và mỗi 6 giờ lưu thêm open interest, tỷ lệ Long/Short các mã (xem Xuất dữ liệu).
+`api/alert-check.php` chạy bằng cron trên host: lấy giá khớp XAUUSDT trên Bybit, PAXGUSDT trên Binance và giá forex (Swissquote), tính **Bybit XAU − forex** (ngưỡng `high` / `low`) và **PAXG − forex** (ngưỡng `paxg_high` / `paxg_low`) rồi gửi thông báo về điện thoại qua [ntfy.sh](https://ntfy.sh) (miễn phí, không cần tài khoản). Cách báo giống trên trang: mỗi cảnh báo báo một lần khi vừa vào vùng, ra khỏi vùng `gap` USDT mới báo lại, không báo khi forex nghỉ. Nguồn giá nào (Bybit, Binance, Swissquote) lỗi 3 lần liền thì báo lỗi một lần, lấy lại được thì báo chạy lại. Mỗi lần chạy khi forex mở còn ghi chênh lệch theo giờ (giá Binance, kèm giá Bybit) vào `spread_history.json`. Mỗi lần chạy (cả khi forex nghỉ) ghi giá Swissquote và index PAXGUSDT theo phút vào `token_minutes.json` (giữ 7 ngày) cho khung PAXGUSDT so với vàng forex, và mỗi 6 giờ lưu thêm open interest, tỷ lệ Long/Short các mã (xem Xuất dữ liệu).
 
 1. **Cài app ntfy** trên điện thoại (Google Play hoặc App Store). Bấm **+**, nhập một tên kênh dài và khó đoán (ví dụ `gold-7f3k9q2x`), giữ server mặc định `ntfy.sh`. Ai biết tên kênh cũng đọc được thông báo.
 2. **Tạo file cấu hình** trên host: chép `api/alert-config.example.php` thành `api/alert-config.php`, sửa `ntfy_topic` trùng tên kênh ở bước 1, chỉnh ngưỡng `high` / `low` (Bybit XAU) và `paxg_high` / `paxg_low` (PAXG) nếu muốn. File cấu hình cũ chưa có `paxg_high` / `paxg_low` thì dùng mặc định 20 / −20. Khi cập nhật tool, **đừng ghi đè** `alert-config.php`.

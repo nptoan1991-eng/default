@@ -1079,13 +1079,13 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
 
   <div class="tab-page" id="tab-so-sanh" role="tabpanel" aria-labelledby="tab-btn-so-sanh" hidden>
     <div class="tab-bar"><button type="button" class="linkbtn fold-all">Mở hết</button></div>
-    <section class="panel" data-panel="ss-xp" aria-label="Token PAXG so với vàng forex">
+    <section class="panel" data-panel="ss-xp" aria-label="PAXGUSDT so với vàng forex">
       <div class="panel-head">
-        <h2>Token PAXG so với vàng forex</h2>
+        <h2>PAXGUSDT so với vàng forex</h2>
         <div class="seg" role="radiogroup" aria-label="Đơn vị"><button type="button" role="radio" data-xpunit="usd" aria-checked="true">USDT</button><button type="button" role="radio" data-xpunit="pct" aria-checked="false">%</button></div>
       </div>
       <div class="hsum">
-        <div><div class="label">Token PAXG − vàng forex</div><div class="v lead" id="xpNow">—</div><div class="s" id="xpNowSub">Chờ giá WebSocket…</div></div>
+        <div><div class="label">PAXGUSDT − vàng forex</div><div class="v lead" id="xpNow">—</div><div class="s" id="xpNowSub">Chờ giá WebSocket…</div></div>
         <div><div class="label">Đánh giá</div><div class="v" id="xpBand">—</div><div class="s" id="xpBandSub">—</div></div>
         <div><div class="label" id="xpAvgLabel">Trung bình 24 giờ</div><div class="v" id="xpAvg">—</div><div class="s" id="xpAvgSub">—</div></div>
         <div><div class="label">XAU Bybit − PAXG Binance</div><div class="v" id="xpPair">—</div><div class="s" id="xpPairSub">Giá khớp hai hợp đồng perp</div></div>
@@ -1096,11 +1096,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
           <div class="tk-med" id="tkMed"></div>
           <div class="tk-mark" id="tkMark" hidden></div>
         </div>
-        <div class="tk-scale"><span>← Token rẻ hơn vàng</span><span>Token đắt hơn vàng →</span></div>
+        <div class="tk-scale"><span>← PAXGUSDT rẻ hơn vàng</span><span>PAXGUSDT đắt hơn vàng →</span></div>
       </div>
       <p class="note" id="tkNote">—</p>
       <div class="gap-head">
-        <h3 class="sub-h" id="xpChartTitle">Token PAXG − vàng forex 24 giờ qua</h3>
+        <h3 class="sub-h" id="xpChartTitle">PAXGUSDT − vàng forex 24 giờ qua</h3>
         <div class="seg xp-range" role="radiogroup" aria-label="Khoảng thời gian">
           <button type="button" role="radio" data-xprange="1h" aria-checked="false">1 giờ</button>
           <button type="button" role="radio" data-xprange="24h" aria-checked="true">24 giờ</button>
@@ -1110,7 +1110,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
         </div>
       </div>
       <div class="bs-wrap">
-        <canvas id="xpChart" aria-label="Biểu đồ đường giá token PAXG so với giá vàng forex"></canvas>
+        <canvas id="xpChart" aria-label="Biểu đồ đường giá PAXGUSDT so với giá vàng forex"></canvas>
         <div class="bs-guide" id="xpGuide" hidden></div>
         <div class="bs-tip" id="xpTip" hidden></div>
       </div>
@@ -1747,12 +1747,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     setGap(el.bxGap, el.bxGapSub, br != null ? br * (24 / biv) * 365 * 100 : null, rate != null ? rate * (24 / iv) * 365 * 100 : null, 2, shortBetter);
   }
 
-  // Tiêu đề tab trình duyệt: Token PAXG − vàng forex hiện tại (index PAXGUSDT Binance − Swissquote), theo đơn vị
-  // đang chọn ở khung Token PAXG so với vàng forex; cập nhật cả khi tab trình duyệt đang ẩn
+  // Tiêu đề tab trình duyệt: PAXGUSDT − vàng forex hiện tại (giá khớp PAXGUSDT Binance − Swissquote), theo đơn vị
+  // đang chọn ở khung PAXGUSDT so với vàng forex; cập nhật cả khi tab trình duyệt đang ẩn
   function renderTitle() {
     const L = xpLive();
     document.title = L
-      ? xpFmt(xpVal(L)) + (L.open ? '' : ' (forex nghỉ)') + ' · PAXG − vàng forex | Gold Perp Live'
+      ? xpFmt(xpVal(L)) + (L.open ? '' : ' (forex nghỉ)') + ' · PAXGUSDT − vàng forex | Gold Perp Live'
       : 'Gold Perp Live';
   }
 
@@ -3850,9 +3850,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       null);
   }
 
-  // ---------- Token PAXG so với vàng forex ----------
-  // Token PAXG − vàng forex = (index PAXGUSDT Binance − giá vàng XAU/USD Swissquote) / giá vàng × 100.
-  // Index PAXG là giá token trên các sàn spot. Giá vàng chỉ lấy từ Swissquote (giữa bid và ask):
+  // ---------- PAXGUSDT so với vàng forex ----------
+  // PAXGUSDT − vàng forex = (giá khớp PAXGUSDT Binance − giá vàng XAU/USD Swissquote) / giá vàng × 100.
+  // Kèm token − forex (index PAXGUSDT, giá token trên các sàn spot) để đối chiếu; perp thường thấp hơn token khoảng 0.045%.
+  // Giá vàng chỉ lấy từ Swissquote (giữa bid và ask):
   // - Hiện tại: api/fx-price.php, lấy lại mỗi 10 giây; mỗi giây trang ghi lại một điểm cho phút đó (từ lúc mở trang).
   // - Theo phút, 7 ngày gần nhất: host ghi mỗi lần cron cảnh báo chạy (token_minutes.json, đọc qua spread-history.php?minutes=1).
   // - Lịch sử theo giờ: nhật ký host ghi (api/spread-history.php, do cron cảnh báo ghi), so với index PAXG lúc đóng nến giờ.
@@ -3879,7 +3880,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     $('tkHi').style.width = 100 - pos(tkBand.hi) + '%';
     $('tkMed').style.left = pos(tkBand.mid) + '%';
   }
-  // Tỷ lệ số giờ (vàng giao dịch, từ 1/9) có Token PAXG − vàng forex thấp hơn v, 0..100
+  // Tỷ lệ số giờ (vàng giao dịch, từ 1/9) có PAXGUSDT − vàng forex thấp hơn v, 0..100
   function tkRank(v) {
     const a = tkSorted;
     let lo = 0, hi = a.length;
@@ -3887,10 +3888,10 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     return (lo / a.length) * 100;
   }
   function tkVerdict(v) {
-    if (v > tkBand.hi) return { text: 'Token đắt bất thường', dir: 'up' };
-    if (v < tkBand.lo) return { text: 'Token rẻ bất thường', dir: 'down' };
-    if (v > tkBand.q75) return { text: 'Token hơi đắt', dir: '' };
-    if (v < tkBand.q25) return { text: 'Token hơi rẻ', dir: '' };
+    if (v > tkBand.hi) return { text: 'PAXG đắt bất thường', dir: 'up' };
+    if (v < tkBand.lo) return { text: 'PAXG rẻ bất thường', dir: 'down' };
+    if (v > tkBand.q75) return { text: 'PAXG hơi đắt', dir: '' };
+    if (v < tkBand.q25) return { text: 'PAXG hơi rẻ', dir: '' };
     return { text: 'Bình thường', dir: '' };
   }
   // Mốc đầu của khoảng "Từ 9/3" (ngày Bybit mở XAUUSDT, giữ như các khung khác)
@@ -3915,10 +3916,12 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   const xpStart = Date.now(); // trang ghi điểm từng phút từ lúc này
   const xpTicks = new Map(); // đầu phút => { g, k, open } giá vàng Swissquote và index PAXG Binance cuối cùng trong phút
 
-  // Hiện tại: vàng theo Swissquote (lúc forex nghỉ là giá đóng cửa), token PAXG theo luồng markPrice Binance (trường i)
+  // Hiện tại: vàng theo Swissquote (lúc forex nghỉ là giá đóng cửa); k là giá khớp PAXGUSDT (WebSocket aggTrade),
+  // tk là giá token (index PAXGUSDT, trường i của luồng markPrice) để đối chiếu
   const xpLive = () => {
-    const g = fxMid(), k = sym === 'PAXGUSDT' ? s.index : bnPX.index;
-    return g > 0 && k > 0 ? { g, k, open: fxOpen() } : null;
+    const g = fxMid(), k = lastBy.PAXGUSDT != null ? lastBy.PAXGUSDT : sym === 'PAXGUSDT' ? s.last : null;
+    const tk = sym === 'PAXGUSDT' ? s.index : bnPX.index;
+    return g > 0 && k > 0 ? { g, k, tk: tk > 0 ? tk : null, open: fxOpen() } : null;
   };
   const tkPct = (pt) => ((pt.k - pt.g) / pt.g) * 100;
   const xpVal = (pt) => (xpUnit === 'pct' ? tkPct(pt) : pt.k - pt.g);
@@ -3940,8 +3943,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     schedule();
   }
 
-  // Lịch sử theo giờ: giờ nào host ghi được giá Swissquote thì có một điểm (token = index PAXG lúc đóng nến giờ đó).
-  // Giờ vàng nghỉ mà host không ghi thì giữ giá đóng cửa của giờ giao dịch gần nhất; giờ giao dịch mà host không ghi thì bỏ.
+  // Lịch sử theo giờ: giờ nào host ghi được giá Swissquote thì có một điểm, dùng giá khớp PAXGUSDT host ghi cùng lúc
+  // (thiếu thì giá đóng nến giờ PAXGUSDT). Giờ vàng nghỉ: nến giờ PAXGUSDT so với giá đóng cửa của giờ giao dịch gần nhất;
+  // giờ giao dịch mà host không ghi thì bỏ.
   async function loadXp() {
     if (xpBusy) return;
     xpBusy = true;
@@ -3950,15 +3954,17 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       if (location.protocol === 'file:') throw new Error('cần mở trang từ host có thư mục api/');
       const days = Math.ceil((Date.now() - XP_SINCE) / 864e5) + 1;
       const [pk, lg] = await Promise.all([
-        fetchHourly('/fapi/v1/indexPriceKlines', 'pair', 'PAXGUSDT', XP_SINCE),
+        fetchHourly('/fapi/v1/klines', 'symbol', 'PAXGUSDT', XP_SINCE),
         fetch(SPREAD_API + '?minutes=1&days=' + days, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : Promise.reject(new Error('api/spread-history.php trả HTTP ' + r.status))))
       ]);
-      const fxByHour = new Map(((lg && lg.rows) || []).filter((r) => r.fx > 0).map((r) => [r.h, r.fx]));
+      const logByHour = new Map(((lg && lg.rows) || []).filter((r) => r.fx > 0).map((r) => [r.h, r]));
       const now = Date.now(), rows = [];
       let lastG = null;
-      for (const [t, k, end] of pk) {
-        if (end >= now || !(k > 0)) continue;
-        const open = !goldClosedAt(t + 36e5 - 1), fx = fxByHour.get(t);
+      for (const [t, close, end] of pk) {
+        if (end >= now) continue;
+        const open = !goldClosedAt(t + 36e5 - 1), row = logByHour.get(t);
+        const fx = row ? row.fx : null, k = row && row.paxg > 0 ? row.paxg : close;
+        if (!(k > 0)) continue;
         if (open) {
           lastG = fx || null;
           if (fx) rows.push({ t, g: fx, k, open });
@@ -3966,9 +3972,11 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
           rows.push({ t, g: fx || lastG, k, open });
         }
       }
+      const fxByHour = logByHour;
       xpHours = rows;
       xpLogFirst = lg && lg.firstAt;
-      xpMins = new Map(((lg && lg.minutes) || []).filter((r) => r[1] > 0 && r[2] > 0).map((r) => [r[0], { g: r[1], k: r[2], open: !!r[3] }]));
+      // Dòng ghi trước khi có giá khớp PAXGUSDT (chỉ 4 phần tử) không dùng được
+      xpMins = new Map(((lg && lg.minutes) || []).filter((r) => r[1] > 0 && r[4] > 0).map((r) => [r[0], { g: r[1], k: r[4], tk: r[2] > 0 ? r[2] : null, open: !!r[3] }]));
       xpErr = fxByHour.size || xpMins.size ? null : 'Host chưa ghi giá Swissquote nào: cần cron cảnh báo alert-check.php đang chạy (xem README), và giữ nguyên thư mục api/ trên host khi upload bản mới.';
       tkStats(rows);
     } catch (e) {
@@ -4030,8 +4038,9 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     if (L) {
       const pct = tkPct(L);
       xpEl.now.textContent = xpFmt(xpVal(L));
-      xpEl.nowSub.textContent = (xpUnit === 'pct' ? signed(L.k - L.g, 2) + ' USDT' : signed(pct, 3) + '%') + ' · token ' + fmt2.format(L.k)
-        + ' · vàng forex ' + fmt2.format(L.g) + (fxClosed ? ' (forex đang nghỉ, giá lúc ' + clock(fxData.ts || fxData.fetchedAt) + ')' : '');
+      xpEl.nowSub.textContent = (xpUnit === 'pct' ? signed(L.k - L.g, 2) + ' USDT' : signed(pct, 3) + '%') + ' · PAXGUSDT ' + fmt2.format(L.k)
+        + ' · vàng forex ' + fmt2.format(L.g) + (fxClosed ? ' (forex đang nghỉ, giá lúc ' + clock(fxData.ts || fxData.fetchedAt) + ')' : '')
+        + (L.tk ? ' · token − forex ' + signed(L.tk - L.g, 2) + ' (token ' + fmt2.format(L.tk) + ')' : '');
       if (B) {
         const vd = tkVerdict(pct), rank = tkRank(pct);
         xpEl.now.dataset.dir = vd.dir;
@@ -4075,18 +4084,19 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
       xpEl.avg.textContent = '—';
       xpEl.avgSub.textContent = xpBusy ? 'Đang tải…' : '—';
     }
-    xpEl.title.textContent = 'Token PAXG − vàng forex ' + R.name + ' (' + (R.minutes ? 'mỗi phút' : 'mỗi giờ, thêm mỗi phút sau giờ cuối') + ', '
+    xpEl.title.textContent = 'PAXGUSDT − vàng forex ' + R.name + ' (' + (R.minutes ? 'mỗi phút' : 'mỗi giờ, thêm mỗi phút sau giờ cuối') + ', '
       + (xpUnit === 'pct' ? '%' : 'USDT/oz') + ')';
     const nH = xpHours ? xpHours.filter((r) => r.t + 36e5 > xpFrom(R, Date.now())).length : 0;
     xpEl.meta.textContent = (xpErr ? xpErr + ' ' : '')
-      + 'Giá token PAXG (index PAXGUSDT Binance, lấy từ các sàn spot) trừ giá vàng forex XAU/USD của Swissquote (giữa bid và ask). Dương là token đắt hơn vàng. '
+      + 'Giá khớp PAXGUSDT Binance (hợp đồng perp) trừ giá vàng forex XAU/USD của Swissquote (giữa bid và ask). Dương là PAXGUSDT đắt hơn vàng. '
+      + 'Dòng nhỏ dưới số hiện tại có thêm giá token PAXG (index PAXGUSDT) − forex để đối chiếu: perp thường thấp hơn token khoảng 0.045%. '
       + 'Chỉ dùng giá Swissquote, không dùng index vàng của sàn (index sàn tham chiếu cả giá hợp đồng tương lai nên cao hơn giá giao ngay vài USDT). '
       + 'Điểm theo giờ lấy từ nhật ký host ghi' + (xpLogFirst ? ' (từ ' + stamp(xpLogFirst) + ')' : '') + ': ' + nH + ' giờ trong khoảng này. '
       + 'Điểm theo phút: host ghi mỗi lần cron chạy, giữ 7 ngày (' + xpMins.size + ' phút)' + ', thêm các phút trang tự ghi từ lúc mở (' + stamp(xpStart) + '). '
       + 'Chỗ không có dữ liệu thì đường đứt. '
-      + 'Lúc vàng thế giới nghỉ (nền xám cuối tuần, và 17:00–18:00 giờ New York mỗi ngày) giá vàng giữ ở mức đóng cửa, token vẫn chạy nên mức lệch gồm cả phần thị trường đoán giá vàng phiên sau. '
+      + 'Lúc vàng thế giới nghỉ (nền xám cuối tuần, và 17:00–18:00 giờ New York mỗi ngày) giá vàng giữ ở mức đóng cửa, PAXGUSDT vẫn chạy nên mức lệch gồm cả phần thị trường đoán giá vàng phiên sau. '
       + 'Vạch đứt là khoảng 90% số giờ vàng giao dịch có giá Swissquote từ 1/9' + (xpUnit === 'usd' ? ' (đổi ra USDT theo giá vàng hiện tại)' : '') + ', trang tự tính và cập nhật. '
-      + 'Phần này gây ra gần như toàn bộ dao động của chênh lệch XAU Bybit − PAXG Binance. Lịch sử giờ tải lại mỗi 10 phút.';
+      + 'Lịch sử giờ tải lại mỗi 10 phút.';
   }
 
   // Cuối tuần theo giờ UTC: thứ 6 từ 22:00 tới Chủ nhật 23:00 (vàng thế giới nghỉ)
@@ -4172,7 +4182,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
     ctx.beginPath(); ctx.moveTo(L, ym); ctx.lineTo(L + pw, ym); ctx.stroke();
     ctx.restore();
     }
-    // Đường Token PAXG − vàng forex; đoạn ngoài khoảng tô màu, các đoạn liền nhau cùng màu vẽ một nét
+    // Đường PAXGUSDT − vàng forex; đoạn ngoài khoảng tô màu, các đoạn liền nhau cùng màu vẽ một nét
     // Đứt đoạn khi thiếu dữ liệu: quá 3 giờ giữa hai điểm giờ, quá 15 phút giữa hai điểm phút (cron có thể chạy 5 phút một lần)
     const gapOf = (a, b) => (Math.max(a.res || 1, b.res || 1) === 60 ? 3 * 36e5 : 15 * 6e4);
     ctx.lineWidth = 1.6;
@@ -5144,7 +5154,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   try { savedPremUnit = localStorage.getItem('gold-perp-live.premUnit'); } catch (e) { /* bỏ qua */ }
   setPremUnit(savedPremUnit, false);
   el.premUnitBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.premunit !== premUnit) setPremUnit(b.dataset.premunit, true); }));
-  // Khung Token PAXG so với vàng: nhớ đơn vị và khoảng thời gian
+  // Khung PAXGUSDT so với vàng forex: nhớ đơn vị và khoảng thời gian
   let savedXp = {};
   try { savedXp = { u: localStorage.getItem('gold-perp-live.xpUnit'), r: localStorage.getItem('gold-perp-live.xpRange') }; } catch (e) { /* bỏ qua */ }
   setXpUnit(savedXp.u, false);
@@ -5152,7 +5162,7 @@ footer code { font-family: var(--mono); font-size: 11.5px; }
   xpEl.unitBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.xpunit !== xpUnit) setXpUnit(b.dataset.xpunit, true); }));
   xpEl.rangeBtns.forEach((b) => b.addEventListener('click', () => { if (b.dataset.xprange !== xpRange) setXpRange(b.dataset.xprange, true); }));
   bindChartTip(xpEl.chart, xpEl.tip, xpEl.guide, () => xpPts, () => xpGeom,
-    (p) => (p.live ? 'Hiện tại' : stamp(p.t)) + ' · ' + xpBoth(p) + ' · token ' + fmt2.format(p.k) + ' · vàng forex ' + fmt2.format(p.g) + (p.open === false ? ' (vàng nghỉ, giá đóng cửa)' : ''));
+    (p) => (p.live ? 'Hiện tại' : stamp(p.t)) + ' · ' + xpBoth(p) + ' · PAXGUSDT ' + fmt2.format(p.k) + ' · vàng forex ' + fmt2.format(p.g) + (p.open === false ? ' (vàng nghỉ, giá đóng cửa)' : ''));
   bindChartTip(el.plChart, el.plTip, el.plGuide, () => plPts, () => plGeom,
     (p) => (p.live ? 'Hiện tại' : stamp(p.t)) + ' · ' + fmtPrem(p.v));
   // Khoảng lịch sử funding (nhớ lựa chọn); đặt trước sub tab để lần tải đầu đúng khoảng
